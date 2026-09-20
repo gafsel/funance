@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 
 import '../theme/app_breakpoints.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_durations.dart';
 import '../theme/app_spacing.dart';
 
 /// A camada onde as conquistas aparecem.
@@ -25,8 +28,9 @@ import '../theme/app_spacing.dart';
 ///   precisam de um `Overlay`, que só existe abaixo do `Navigator`; usar um
 ///   derruba a tela inteira.
 ///
-/// Quando a fila está vazia, devolve [child] sem embrulho nenhum.
-class CelebrationOverlay extends StatelessWidget {
+/// Quando não há nada a mostrar — nem toast na fila, nem confete no ar —,
+/// devolve [child] sem embrulho nenhum.
+class CelebrationOverlay extends StatefulWidget {
   const CelebrationOverlay({
     super.key,
     required this.child,
@@ -43,6 +47,9 @@ class CelebrationOverlay extends StatelessWidget {
   /// nível, dentro da Home — e não acompanhava badge, missão nem patente.
   final ConfettiController? confetti;
 
+  @override
+  State<CelebrationOverlay> createState() => _CelebrationOverlayState();
+
   /// Altura de uma `AppBar` padrão.
   ///
   /// A camada mora acima do `Navigator` e não tem como perguntar se a rota
@@ -51,19 +58,76 @@ class CelebrationOverlay extends StatelessWidget {
   /// toast apenas começa um pouco mais abaixo, que é um custo pequeno perto
   /// de tampar o botão de voltar.
   static const double _appBarClearance = kToolbarHeight;
+}
+
+class _CelebrationOverlayState extends State<CelebrationOverlay> {
+  /// O confete continua na tela depois que o toast sai.
+  ///
+  /// A camada inteira era montada por `toasts.isNotEmpty`, então dispensar o
+  /// último toast — tocando nele, que é o que se faz quando a conquista leva
+  /// a algum lugar — arrancava o `ConfettiWidget` da árvore no meio do voo.
+  /// O confete sumia no ar, e sumia justamente para quem interagiu com a
+  /// conquista.
+  bool _confettiVisible = false;
+
+  /// Depois que a emissão para, as partículas que já saíram ainda estão
+  /// caindo. Esta é a folga para elas terminarem.
+  Timer? _tail;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.confetti?.addListener(_onConfetti);
+  }
+
+  @override
+  void didUpdateWidget(CelebrationOverlay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.confetti != widget.confetti) {
+      oldWidget.confetti?.removeListener(_onConfetti);
+      widget.confetti?.addListener(_onConfetti);
+    }
+  }
+
+  @override
+  void dispose() {
+    _tail?.cancel();
+    widget.confetti?.removeListener(_onConfetti);
+    super.dispose();
+  }
+
+  void _onConfetti() {
+    final playing = widget.confetti?.state == ConfettiControllerState.playing;
+
+    if (playing) {
+      _tail?.cancel();
+      if (!_confettiVisible) setState(() => _confettiVisible = true);
+      return;
+    }
+
+    if (!_confettiVisible) return;
+    _tail?.cancel();
+    _tail = Timer(AppDurations.celebrate, () {
+      if (mounted) setState(() => _confettiVisible = false);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    if (toasts.isEmpty) return child;
+    final toasts = widget.toasts;
+    final confetti = widget.confetti;
+    final child = widget.child;
+
+    if (toasts.isEmpty && !_confettiVisible) return child;
 
     return Stack(
       children: [
         child,
-        if (confetti != null)
+        if (confetti != null && _confettiVisible)
           Align(
             alignment: Alignment.topCenter,
             child: ConfettiWidget(
-              confettiController: confetti!,
+              confettiController: confetti,
               blastDirectionality: BlastDirectionality.explosive,
               shouldLoop: false,
               numberOfParticles: 30,
@@ -79,41 +143,44 @@ class CelebrationOverlay extends StatelessWidget {
               ],
             ),
           ),
-        Positioned(
-          top: 0,
-          left: 0,
-          right: 0,
-          child: SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.gutter,
-                _appBarClearance + AppSpacing.xs,
-                AppSpacing.gutter,
-                AppSpacing.xs,
-              ),
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(
-                    maxWidth: AppBreakpoints.medium,
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      for (final toast in toasts)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-                          child: toast,
-                        ),
-                    ],
+        if (toasts.isNotEmpty)
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.gutter,
+                  CelebrationOverlay._appBarClearance + AppSpacing.xs,
+                  AppSpacing.gutter,
+                  AppSpacing.xs,
+                ),
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: AppBreakpoints.medium,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        for (final toast in toasts)
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              bottom: AppSpacing.xs,
+                            ),
+                            child: toast,
+                          ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
       ],
     );
   }

@@ -1,3 +1,4 @@
+import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:funances/core/celebration/celebration_event.dart';
 import 'package:funances/core/celebration/celebration_service.dart';
 import 'package:funances/core/router/app_router.dart';
+import 'package:funances/core/theme/app_durations.dart';
 import 'package:funances/core/theme/app_theme.dart';
 import 'package:funances/core/widgets/celebration_overlay.dart';
 import 'package:funances/core/widgets/reward_toast.dart';
@@ -278,6 +280,50 @@ void main() {
         greaterThanOrEqualTo(barraBottom),
         reason: 'o toast tampava o botão de voltar',
       );
+    });
+
+    /// baixo — a camada inteira era montada por `toasts.isNotEmpty`, então
+    /// dispensar o último toast (tocando nele, que é o que se faz quando a
+    /// conquista leva a algum lugar) arrancava o `ConfettiWidget` da árvore
+    /// no meio do voo. O confete sumia no ar, e sumia justamente para quem
+    /// interagiu com a conquista.
+    testWidgets('o confete não some quando o último toast sai', (tester) async {
+      final confetti = ConfettiController(duration: AppDurations.celebrate);
+      addTearDown(confetti.dispose);
+
+      Widget comToasts(List<Widget> toasts) => MaterialApp(
+        theme: AppTheme.light,
+        home: CelebrationOverlay(
+          confetti: confetti,
+          toasts: toasts,
+          child: const Scaffold(body: SizedBox.expand()),
+        ),
+      );
+
+      await tester.pumpWidget(
+        comToasts(const [RewardToast(icon: Icons.stars, title: 'Nível 2')]),
+      );
+      confetti.play();
+      await tester.pump();
+      expect(find.byType(ConfettiWidget), findsOneWidget);
+
+      // O toast é dispensado no meio da festa.
+      await tester.pumpWidget(comToasts(const []));
+      await tester.pump();
+
+      expect(
+        find.byType(ConfettiWidget),
+        findsOneWidget,
+        reason: 'o confete estava no ar',
+      );
+      expect(find.byType(RewardToast), findsNothing);
+
+      // E quando ele acaba de fato, a camada some sozinha.
+      confetti.stop();
+      await tester.pump();
+      await tester.pump(AppDurations.celebrate + const Duration(seconds: 1));
+
+      expect(find.byType(ConfettiWidget), findsNothing);
     });
   });
 
