@@ -477,6 +477,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'This is the character who fights for you all week.';
 
   @override
+  String get profileAvatarPreview => 'This is how you look in the Arena';
+
+  @override
+  String get profileAvatarUnknown =>
+      'The hero you had saved is gone. Pick another one.';
+
+  @override
   String get avatarKnight => 'Knight';
 
   @override

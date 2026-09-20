@@ -155,6 +155,8 @@
   "profilePhotoGallery": "Galeria",
   "profileAvatarLabel": "Seu herói na Arena",
   "profileAvatarHint": "É este boneco que luta por você na semana.",
+  "profileAvatarPreview": "Na Arena, você fica assim",
+  "profileAvatarUnknown": "O herói que estava salvo não existe mais. Escolha outro.",
   "avatarKnight": "Cavaleiro",
   "avatarMage": "Mago",
   "avatarRanger": "Batedor",

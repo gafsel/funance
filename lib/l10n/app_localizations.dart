@@ -944,6 +944,18 @@ abstract class AppLocalizations {
   /// **'É este boneco que luta por você na semana.'**
   String get profileAvatarHint;
 
+  /// No description provided for @profileAvatarPreview.
+  ///
+  /// In pt, this message translates to:
+  /// **'Na Arena, você fica assim'**
+  String get profileAvatarPreview;
+
+  /// No description provided for @profileAvatarUnknown.
+  ///
+  /// In pt, this message translates to:
+  /// **'O herói que estava salvo não existe mais. Escolha outro.'**
+  String get profileAvatarUnknown;
+
   /// No description provided for @avatarKnight.
   ///
   /// In pt, this message translates to:

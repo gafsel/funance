@@ -716,6 +716,8 @@
   "profilePhotoGallery": "Gallery",
   "profileAvatarLabel": "Your Arena hero",
   "profileAvatarHint": "This is the character who fights for you all week.",
+  "profileAvatarPreview": "This is how you look in the Arena",
+  "profileAvatarUnknown": "The hero you had saved is gone. Pick another one.",
   "avatarKnight": "Knight",
   "avatarMage": "Mage",
   "avatarRanger": "Ranger",

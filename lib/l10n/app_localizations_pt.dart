@@ -480,6 +480,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get profileAvatarHint => 'É este boneco que luta por você na semana.';
 
   @override
+  String get profileAvatarPreview => 'Na Arena, você fica assim';
+
+  @override
+  String get profileAvatarUnknown =>
+      'O herói que estava salvo não existe mais. Escolha outro.';
+
+  @override
   String get avatarKnight => 'Cavaleiro';
 
   @override

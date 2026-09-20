@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/form/responsive_form.dart';
-import 'package:funances/core/theme/app_palette.dart';
-import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/features/auth/presentation/providers.dart';
 import 'package:funances/features/user/presentation/widgets/avatar_picker.dart';
 import 'package:funances/features/user/presentation/controller/user_profile_notifier.dart';
@@ -68,7 +66,10 @@ class UserProfileScreen extends ConsumerWidget {
                 final state = snapshot.model;
                 final notifier = snapshot.notifier;
 
-                // Inicializa o estado se for a primeira vez
+                // O estado JÁ nasce com o usuário (ver o provider): esta
+                // rede só pega o caso de o documento ter chegado depois da
+                // criação do notifier. Antes ela era o caminho normal, e o
+                // primeiro quadro da tela desenhava o formulário vazio.
                 if (state.id.isEmpty) {
                   WidgetsBinding.instance.addPostFrameCallback((_) {
                     notifier.load(user);
@@ -115,24 +116,10 @@ class UserProfileScreen extends ConsumerWidget {
                   // O seletor ocupa a linha inteira: oito bonecos de 92 px
                   // não cabem numa coluna de formulário no desktop.
                   FullWidthItem(
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          l10n.profileAvatarLabel,
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        Text(
-                          l10n.profileAvatarHint,
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: context.palette.ink2),
-                        ),
-                        AppSpacing.gapSm,
-                        AvatarPicker(
-                          selected: state.avatar,
-                          onSelected: notifier.updateAvatar,
-                        ),
-                      ],
+                    AvatarField(
+                      selected: state.avatar,
+                      unknown: state.avatarUnknown,
+                      onSelected: notifier.updateAvatar,
                     ),
                   ),
                 ];
