@@ -250,9 +250,25 @@ void main() {
     await tester.pump();
 
     expect(
-      find.text(l10n.onboardingGoalsTitle),
+      find.text(l10n.goalsTitle),
       findsNothing,
       reason: 'quem titula é quem contém: a AppBar da tela já diz "Metas"',
     );
+  });
+
+  /// A2 — a tela e a seção usavam `onboardingGoalsTitle`, que é a FRASE de
+  /// convite do onboarding: "Trace suas primeiras metas" como título de uma
+  /// tela de quem já tem quatro. Título é substantivo.
+  test('A2 — o título de metas é a palavra, não o convite', () {
+    expect(l10n.goalsTitle, 'Metas');
+    expect(l10n.goalsTitle, isNot(contains('primeiras')));
+  });
+
+  testWidgets('A2 — e é ele que a seção escreve', (tester) async {
+    await tester.pumpWidget(_app([_emAndamento()]));
+    await tester.pump();
+
+    expect(find.text('Metas'), findsOneWidget);
+    expect(find.text(l10n.onboardingGoalsTitle), findsNothing);
   });
 }

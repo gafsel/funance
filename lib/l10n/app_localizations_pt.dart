@@ -2479,4 +2479,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String automaticTransactionSeeAll(int count) {
     return 'Ver as $count pendências';
   }
+
+  @override
+  String get goalsTitle => 'Metas';
 }

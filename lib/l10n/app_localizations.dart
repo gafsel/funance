@@ -4417,6 +4417,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Ver as {count} pendências'**
   String automaticTransactionSeeAll(int count);
+
+  /// No description provided for @goalsTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Metas'**
+  String get goalsTitle;
 }
 
 class _AppLocalizationsDelegate

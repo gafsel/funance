@@ -2461,4 +2461,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String automaticTransactionSeeAll(int count) {
     return 'See all $count pending';
   }
+
+  @override
+  String get goalsTitle => 'Goals';
 }

@@ -1299,5 +1299,6 @@
         "type": "int"
       }
     }
-  }
+  },
+  "goalsTitle": "Goals"
 }

@@ -64,7 +64,11 @@ class GoalsSection extends ConsumerWidget {
             children: [
               Expanded(
                 child: Text(
-                  l10n.onboardingGoalsTitle,
+                  // `goalsTitle`, e não `onboardingGoalsTitle`: a chave do
+                  // onboarding é uma FRASE de convite — "Trace suas
+                  // primeiras metas" —, e ela aparecia como título de uma
+                  // tela de quem já tem quatro. Título é substantivo.
+                  l10n.goalsTitle,
                   style: theme.textTheme.titleLarge,
                   overflow: TextOverflow.ellipsis,
                 ),

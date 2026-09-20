@@ -19,7 +19,7 @@ class GoalsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppScaffold(
       appBar: AppBar(
-        title: Text(context.l10n.onboardingGoalsTitle),
+        title: Text(context.l10n.goalsTitle),
         // A tela abre empilhada pela Home, mas também por link direto. Sem a
         // saída explícita, chegar por fora deixava a pessoa numa tela sem
         // botão de voltar — o mesmo padrão de `EntityRoute`.
