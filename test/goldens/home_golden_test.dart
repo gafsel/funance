@@ -4,6 +4,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:funances/features/arena/domain/models/arena_state.dart';
 import 'package:funances/features/arena/presentation/providers/arena_providers.dart';
 import 'package:funances/features/home/presentation/widgets/arena_tab.dart';
+import 'package:funances/features/home/presentation/widgets/home/workspace_selector.dart';
+import 'package:funances/features/workspace/domain/models/workspace_model.dart';
+import 'package:funances/features/workspace/presentation/model/workspace_view_model.dart';
+import 'package:funances/features/workspace/presentation/providers.dart';
 
 import 'package:funances/features/arena/domain/models/hud_state.dart';
 import 'package:funances/features/arena/presentation/providers/hud_providers.dart';
@@ -12,6 +16,7 @@ import 'package:funances/features/home/domain/models/financial_health_model.dart
 import '../arena/arena_harness.dart';
 import '../arena/hud_harness.dart';
 import '../support/home_harness.dart';
+import '../support/journey_fakes.dart';
 import 'golden_support.dart';
 
 /// A Home, que agora É a Arena — celular e desktop.
@@ -45,6 +50,7 @@ Future<void> _pump(
   required Size size,
   required Brightness brightness,
   ArenaState? state,
+  bool reduceMotion = false,
 }) async {
   await loadAppFonts();
 
@@ -57,6 +63,7 @@ Future<void> _pump(
       homeApp(
         const ArenaTab(),
         brightness: brightness,
+        reduceMotion: reduceMotion,
         overrides: [
           ...homeOverrides(
             missions: homeTypicalMissions(),
@@ -171,14 +178,16 @@ void main() {
   );
 
   /// O RETRATO REAL do cofre do dono, lido da base em 2026-09-20 (domingo):
-  /// R\$ 3.115,02 em caixa contra R\$ 12.122,33 de compromisso, sendo
-  /// R\$ 8.310,55 já vencidos. A barra dos heróis está CHEIA — a semana acabou
-  /// de começar e nada saiu — e é exatamente por isso que esta captura
-  /// existe: sem o selo do rombo e sem a hachura densa, ela mostra uma
-  /// situação tranquila.
+  /// o caixa em R\$ −6.361,92 contra R\$ 12.122,33 de compromisso, sendo
+  /// R\$ 8.310,55 já vencidos.
+  ///
+  /// É o caso que deu nome à regra nova do HP. Com `atual / inicial`, os dois
+  /// saldos negativos se cancelavam e a barra aparecia CHEIA — a Arena dizia
+  /// que estava tudo no lugar para quem está no vermelho. Agora HP é dinheiro
+  /// POSITIVO em conta: não há nenhum, a barra fica vazia e ela ALARMA.
   ArenaState oRombo() => arenaTestState(
-    initialBalance: 3115.02,
-    currentBalance: 3115.02,
+    initialBalance: -6361.92,
+    currentBalance: -6361.92,
     day: ArenaDay.sunday,
     commitments: [
       arenaTestCommitment(
@@ -202,6 +211,24 @@ void main() {
         dayOffset: 2,
       ),
     ],
+  );
+
+  /// A barra dos HERÓIS vazia: o caixa chegou a zero no meio da semana.
+  ///
+  /// É o estado que o alarme existe para mostrar, e ele não é o do rombo —
+  /// no rombo a barra está CHEIA e coberta de hachura densa. Aqui não há o
+  /// que hachurar: a vida acabou, e uma barra vazia parada é indistinguível
+  /// de uma barra que ninguém desenhou.
+  ///
+  /// A captura é com "reduzir movimento" LIGADO, e isso é sobre o PNG e não
+  /// sobre o produto: o pulso é um ciclo por segundo, e fotografá-lo em
+  /// movimento daria uma opacidade diferente a cada execução. Com o pulso
+  /// parado sobra o que ele tem de dizer quando o usuário pediu menos
+  /// movimento — calha vermelha cheia e contorno mais grosso.
+  ArenaState semCaixa() => arenaTestState(
+    initialBalance: 5200,
+    currentBalance: 0,
+    day: ArenaDay.friday,
   );
 
   /// A semana VENCIDA: o monstro no chão.
@@ -291,17 +318,72 @@ void main() {
     );
   });
 
-  for (final caso in <({String nome, ArenaState Function() estado})>[
-    (nome: 'home_arena_derrotado', estado: derrotado),
-    (nome: 'home_arena_rombo', estado: oRombo),
-    (nome: 'home_arena_monstro_30', estado: quaseVencida),
-  ]) {
+  /// O TOPO da Home: o seletor de cofre na AppBar.
+  ///
+  /// Faltava captura do cabeçalho, e é onde mora a correção que o dono
+  /// pediu: *"o título do workspace no app bar ficou pressionado por causa
+  /// do tipo do workspace"*. A 360 px, com um nome de cofre longo, o PNG
+  /// mostra quem ficou com o espaço — o nome inteiro, e o tipo como figura.
+  testWidgets('golden — home_topo', (tester) async {
+    await loadAppFonts();
+
+    tester.view.physicalSize = const Size(360, 120);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    final cofre = WorkspaceModel(
+      id: 'w1',
+      // Um nome LONGO de propósito: com a palavra "Pessoal" dividindo a
+      // linha, é ele que aparecia cortado.
+      name: 'Casa da Praia do Norte',
+      type: WorkspaceType.personal,
+      createdAt: DateTime(2026, 1, 1),
+    );
+
+    await tester.pumpWidget(
+      homeApp(
+        const SizedBox.shrink(),
+        overrides: [
+          ...homeOverrides(),
+          WorkspaceViewProviders.workspace.overrideWith(
+            (ref) => TestWorkspaceNotifier(
+              WorkspaceState(
+                currentWorkspace: cofre,
+                availableWorkspaces: [cofre],
+                initialLoadDone: true,
+              ),
+            ),
+          ),
+        ],
+        topo: const WorkspaceSelector(isNavigationRail: false),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(AppBar),
+      matchesGoldenFile('images/home_topo.png'),
+    );
+  });
+
+  for (final caso
+      in <({String nome, ArenaState Function() estado, bool parado})>[
+        (nome: 'home_arena_derrotado', estado: derrotado, parado: false),
+        // O rombo PISCA desde que o HP virou "dinheiro positivo em conta":
+        // com os dois saldos negativos ele não tem vida nenhuma. A captura é
+        // com movimento reduzido, senão o PNG fotografa a opacidade do
+        // instante em que ela caiu.
+        (nome: 'home_arena_rombo', estado: oRombo, parado: true),
+        (nome: 'home_arena_monstro_30', estado: quaseVencida, parado: false),
+        (nome: 'home_arena_sem_caixa', estado: semCaixa, parado: true),
+      ]) {
     testWidgets('golden — ${caso.nome}', (tester) async {
       await _pump(
         tester,
         size: const Size(400, 800),
         brightness: Brightness.light,
         state: caso.estado(),
+        reduceMotion: caso.parado,
       );
 
       await expectLater(

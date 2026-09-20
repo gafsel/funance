@@ -24,7 +24,7 @@ import 'package:funances/core/theme/app_spacing.dart';
 /// vale para a calha e para o preenchimento ao mesmo tempo — as duas pontas
 /// internas têm o mesmo bico. Um chanfro só no preenchimento deixaria um
 /// dente retangular de calha sobrando quando a vida encolhesse.
-class ArenaHpBar extends StatelessWidget {
+class ArenaHpBar extends StatefulWidget {
   const ArenaHpBar({
     super.key,
     required this.ratio,
@@ -33,6 +33,8 @@ class ArenaHpBar extends StatelessWidget {
     this.mirrored = false,
     this.overflowing = false,
     this.pressed = false,
+    this.depleted = false,
+    this.depletedLabel,
     this.height = _height,
   });
 
@@ -60,6 +62,32 @@ class ArenaHpBar extends StatelessWidget {
   /// comprometido" — que é outra situação.
   final bool pressed;
 
+  /// A vida ACABOU: a calha pulsa em vermelho e a moldura vai junto.
+  ///
+  /// O dono: *"a barra vazia não chama muita atenção, já uma barra piscando
+  /// em vermelho chamaria e indicaria o perigo"*. Uma barra vazia e parada é
+  /// indistinguível de uma barra que ninguém desenhou — foi o mesmo problema
+  /// que deu à calha uma cor própria e à barra uma moldura. Parada ela diz
+  /// "não há vida aqui"; pulsando ela diz "isto está errado AGORA".
+  ///
+  /// É uma BANDEIRA de quem chama, e não `ratio <= 0` lido aqui dentro: a
+  /// barra do monstro também chega a zero, e lá o zero é a melhor notícia da
+  /// semana — o bicho morreu. Um alarme vermelho no lugar do "Derrotado"
+  /// diria o contrário do que aconteceu.
+  final bool depleted;
+
+  /// A palavra DENTRO da barra vazia — "Esgotado".
+  ///
+  /// Ela existe por causa de "reduzir movimento". Sem o pulso, o que separa
+  /// a barra ESGOTADA da barra cheia e exausta (o rombo com caixa, toda
+  /// hachurada de vermelho) era um pixel e meio de moldura — e um pixel e
+  /// meio não é um sinal. A palavra é: ela diz em texto o que o pulso diria
+  /// em movimento, e serve a quem não vê nenhum dos dois.
+  ///
+  /// O número do buraco continua no selo, acima da barra: os dois se
+  /// completam — "Esgotado" é o estado, "faltam R\$ 18,5k" é o tamanho dele.
+  final String? depletedLabel;
+
   final double height;
 
   static const double _height = 14;
@@ -69,10 +97,68 @@ class ArenaHpBar extends StatelessWidget {
   static const double chamfer = 10;
 
   @override
+  State<ArenaHpBar> createState() => _ArenaHpBarState();
+}
+
+class _ArenaHpBarState extends State<ArenaHpBar>
+    with SingleTickerProviderStateMixin {
+  /// O pulso do alarme: um ciclo por segundo, ida e volta.
+  late final AnimationController _pulse = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 500),
+  );
+
+  late final Animation<double> _alarm = CurvedAnimation(
+    parent: _pulse,
+    curve: Curves.easeInOut,
+  );
+
+  @override
+  void didUpdateWidget(ArenaHpBar old) {
+    super.didUpdateWidget(old);
+    _sync();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _sync();
+  }
+
+  /// Liga e desliga o alarme.
+  ///
+  /// Vida acima de zero não agenda quadro nenhum: o placar fica na tela a
+  /// sessão inteira, e um ticker vivo por uma barra que não pisca é bateria
+  /// gasta em pixel parado.
+  void _sync() {
+    final moves =
+        widget.depleted &&
+        !AppDurations.reduceMotion(context) &&
+        TickerMode.valuesOf(context).enabled;
+
+    if (moves && !_pulse.isAnimating) {
+      _pulse.repeat(reverse: true);
+    } else if (!moves && _pulse.isAnimating) {
+      // Parar no CHEIO, e não no zero: com "reduzir movimento" ligado no meio
+      // do ciclo, uma calha meio vermelha leria como meio perigo.
+      _pulse
+        ..stop()
+        ..value = 1;
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final palette = context.palette;
     final reduce = AppDurations.reduceMotion(context);
-    final fill = overflowing ? palette.successText : color;
+    final fill = widget.overflowing ? palette.successText : widget.color;
 
     // O chanfro é cortado no espaço do FILHO e só depois espelhado: assim o
     // bico fica sempre na ponta voltada para o centro, com um clipper só.
@@ -82,13 +168,18 @@ class ArenaHpBar extends StatelessWidget {
     // lia igual a "não há barra nenhuma aqui" — ver
     // `test/arena/arena_contrast_test.dart`.
     return Transform.flip(
-      flipX: mirrored,
+      flipX: widget.mirrored,
       child: CustomPaint(
-        foregroundPainter: const _FramePainter(),
+        foregroundPainter: _FramePainter(
+          color: widget.depleted ? AppColors.danger : AppColors.gameFrame,
+          // Sem pulso, o contorno é quem carrega o alarme sozinho: mais
+          // grosso, ele diz "olhe aqui" sem se mexer.
+          strokeWidth: widget.depleted && reduce ? 2.5 : 1.5,
+        ),
         child: ClipPath(
           clipper: const _ChamferClipper(),
           child: SizedBox(
-            height: height,
+            height: widget.height,
             // `StackFit.expand` é obrigatório, não estilo: num `Stack` frouxo
             // o `FractionallySizedBox` recebe altura nenhuma, e o `ColoredBox`
             // dentro dele não tem tamanho próprio — a barra desenhava com
@@ -102,11 +193,24 @@ class ArenaHpBar extends StatelessWidget {
                 // onde terminar: "5% de vida" lia igual a "não há barra
                 // nenhuma aqui".
                 const ColoredBox(color: AppColors.gameTrough),
+                // O ALARME: vermelho por cima da calha, com a opacidade
+                // indo e voltando. Fica ABAIXO do preenchimento e da
+                // hachura de propósito — quando a vida volta, o alarme sai
+                // de cena sem ter pintado nada por cima dela.
+                if (widget.depleted)
+                  AnimatedBuilder(
+                    animation: _alarm,
+                    builder: (context, child) => ColoredBox(
+                      color: AppColors.danger.withValues(
+                        alpha: reduce ? 1 : 0.35 + 0.65 * _alarm.value,
+                      ),
+                    ),
+                  ),
                 // 1. O fantasma: mesma fração, mas com atraso e mais devagar.
                 //    Fica POR BAIXO do preenchimento, então só aparece no
                 //    rastro do que encolheu.
                 _Fill(
-                  ratio: ratio,
+                  ratio: widget.ratio,
                   color: palette.dangerText,
                   duration: reduce
                       ? Duration.zero
@@ -114,7 +218,7 @@ class ArenaHpBar extends StatelessWidget {
                   curve: const Interval(0.45, 1, curve: Curves.easeOut),
                 ),
                 _Fill(
-                  ratio: ratio,
+                  ratio: widget.ratio,
                   color: fill,
                   duration: AppDurations.respectingMotion(
                     context,
@@ -126,11 +230,35 @@ class ArenaHpBar extends StatelessWidget {
                 //    Cor chapada leria como "outra vida"; a hachura lê como
                 //    "reservado". Ela mora na ponta CHEIA da barra porque o
                 //    que tem dono é a primeira coisa que sai.
-                if (committedRatio > 0)
+                // A palavra fica POR CIMA do alarme e por baixo de nada: ela
+                // é a última coisa desenhada quando a vida acabou, e a
+                // hachura do comprometido não existe nesse estado.
+                if (widget.depleted && widget.depletedLabel != null)
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.xs,
+                      ),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          widget.depletedLabel!,
+                          maxLines: 1,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: AppColors.inkInverse,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                if (widget.committedRatio > 0)
                   _CommittedBand(
-                    extent: committedRatio,
-                    color: pressed ? palette.dangerText : palette.onGame2,
-                    dense: pressed,
+                    extent: widget.committedRatio,
+                    color: widget.pressed
+                        ? palette.dangerText
+                        : palette.onGame2,
+                    dense: widget.pressed,
                     duration: AppDurations.respectingMotion(
                       context,
                       AppDurations.celebrate,
@@ -147,23 +275,28 @@ class ArenaHpBar extends StatelessWidget {
 
 /// O quadro claro em volta da barra, no mesmo bico do recorte.
 class _FramePainter extends CustomPainter {
-  const _FramePainter();
+  const _FramePainter({required this.color, required this.strokeWidth});
+
+  final Color color;
+
+  /// 1,5 e não 1: num aparelho de densidade alta uma linha de um ponto some
+  /// contra o preenchimento claro do herói.
+  final double strokeWidth;
 
   @override
   void paint(Canvas canvas, Size size) {
     canvas.drawPath(
       const _ChamferClipper().getClip(size),
       Paint()
-        ..color = AppColors.gameFrame
+        ..color = color
         ..style = PaintingStyle.stroke
-        // 1,5 e não 1: num aparelho de densidade alta uma linha de um ponto
-        // some contra o preenchimento claro do herói.
-        ..strokeWidth = 1.5,
+        ..strokeWidth = strokeWidth,
     );
   }
 
   @override
-  bool shouldRepaint(_FramePainter oldDelegate) => false;
+  bool shouldRepaint(_FramePainter old) =>
+      old.color != color || old.strokeWidth != strokeWidth;
 }
 
 /// O bico da ponta interna.

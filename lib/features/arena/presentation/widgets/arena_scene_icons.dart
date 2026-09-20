@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/theme/app_breakpoints.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/theme/app_radius.dart';
 import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/features/arena/presentation/widgets/arena_icon_glyphs.dart';
 import 'package:funances/features/arena/presentation/widgets/arena_missions_sheet.dart';
+import 'package:funances/features/arena/presentation/widgets/hud_slot_tile.dart';
 import 'package:funances/features/coaching/presentation/coaching_actions.dart';
 import 'package:funances/features/coaching/presentation/providers.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
@@ -34,9 +36,16 @@ import 'package:go_router/go_router.dart';
 /// `ArenaGame.safeTopBand` e o teste em `home_arena_test`.
 ///
 /// **A forma é a do rodapé mensal**, e não a do Material: anel com a figura
-/// dentro, desenhada em código ([ArenaIconGlyph]), e o valor curto embaixo.
-/// Ícone do Material sobre pixel art é um adesivo de outro aplicativo colado
-/// no jogo — foi o segundo achado de game design do QA.
+/// dentro, desenhada em código ([ArenaIconGlyph]). Ícone do Material sobre
+/// pixel art é um adesivo de outro aplicativo colado no jogo — foi o segundo
+/// achado de game design do QA.
+///
+/// Desde o pedido do dono — *"os ícones da parte superior, troca pra um
+/// formato parecido com o dos ícones da parte de baixo (com o número do lado
+/// e o texto em baixo em telas grandes o suficiente)"* — a montagem é a
+/// MESMA do rodapé, literalmente: [HudSlotTile]. O número saiu de baixo do
+/// anel e foi para o lado dele, e do tablet para cima entra o nome curto —
+/// "Missões", "Bússola", "Coach", "Pendentes".
 class ArenaSceneIcons extends ConsumerWidget {
   const ArenaSceneIcons({super.key, this.compact = false});
 
@@ -60,81 +69,105 @@ class ArenaSceneIcons extends ConsumerWidget {
     final done = missions.where((m) => m.status.isCompleted).length;
     final freshCoaching = insight != null && !insight.isDeprecated;
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        ArenaSceneIcon(
-          glyph: ArenaGlyph.scroll,
-          compact: compact,
-          label: l10n.weeklyMissionsTitle,
-          semanticsValue: l10n.weeklyMissionsProgress(
-            '$done',
-            '${missions.length}',
+    // O NOME só onde há largura para ele, medido pelas constraints reais da
+    // faixa e não pela janela: a cena divide a tela com o rail no desktop.
+    // `Expanded` em cada slot, e não `spaceEvenly`: com quatro caixas de
+    // larguras diferentes o espaçamento fica igual e os ANÉIS não — cada um
+    // cai num x que depende do tamanho do número ao lado. Slots iguais mais
+    // a caixa fixa da figura ([HudSlotTile]) são o que põe os quatro na
+    // mesma grade, e na mesma do rodapé.
+    return LayoutBuilder(
+      builder: (context, constraints) => Row(
+        children: [
+          Expanded(
+            child: ArenaSceneIcon(
+              glyph: ArenaGlyph.scroll,
+              compact: compact,
+              showName: !constraints.layout.isCompact,
+              label: l10n.weeklyMissionsTitle,
+              name: l10n.arenaIconMissions,
+              semanticsValue: l10n.weeklyMissionsProgress(
+                '$done',
+                '${missions.length}',
+              ),
+              // As missões abrem a folha mesmo quando não há nenhuma: o ícone é a
+              // porta da semana, e uma porta que some quando o servidor ainda não
+              // gerou as missões deixa o usuário sem explicação nenhuma.
+              value: missions.isEmpty ? null : '$done/${missions.length}',
+              filled: missions.isNotEmpty,
+              progress: missions.isEmpty ? 0 : done / missions.length,
+              color: AppColors.gold,
+              onTap: () => ArenaMissionsSheet.show(context),
+            ),
           ),
-          // As missões abrem a folha mesmo quando não há nenhuma: o ícone é a
-          // porta da semana, e uma porta que some quando o servidor ainda não
-          // gerou as missões deixa o usuário sem explicação nenhuma.
-          value: missions.isEmpty ? null : '$done/${missions.length}',
-          filled: missions.isNotEmpty,
-          progress: missions.isEmpty ? 0 : done / missions.length,
-          color: AppColors.gold,
-          onTap: () => ArenaMissionsSheet.show(context),
-        ),
-        ArenaSceneIcon(
-          glyph: ArenaGlyph.compass,
-          compact: compact,
-          label: l10n.compassTitle,
-          semanticsValue: health == null
-              ? compassTierLabel(l10n, FreedomTier.unknown)
-              : l10n.compassScoreOf(
-                  '${health.score.round()}',
-                  compassTierLabel(l10n, health.tier),
-                ),
-          // A pontuação, não a patente: o número cabe embaixo do anel, a
-          // palavra não. Sem índice publicado o ícone continua na faixa,
-          // apagado — some o toque, não a explicação.
-          value: health == null ? null : '${health.score.round()}',
-          filled: health != null,
-          progress: health == null ? 0 : health.score / 100,
-          color: health == null
-              ? AppColors.inkInverse2
-              : compassScoreColor(health.score),
-          onTap: health == null
-              ? null
-              : () => FreedomCompassSheet.show(context, health),
-        ),
-        ArenaSceneIcon(
-          glyph: ArenaGlyph.coach,
-          compact: compact,
-          label: l10n.coachingTitle,
-          semanticsValue: freshCoaching
-              ? l10n.coachingViewLast
-              : l10n.coachingConsultAction,
-          // O coach não tem contagem: o anel fica cheio quando há análise
-          // nova para ler e vazio quando o convite é para pedir uma.
-          progress: freshCoaching ? 1 : 0,
-          filled: freshCoaching,
-          color: freshCoaching ? AppColors.teal : AppColors.inkInverse2,
-          onTap: () => CoachingActions.open(context, ref, insight),
-        ),
-        // A faísca NÃO some quando não há pendência: ela apaga, como os
-        // outros três. Sumir tirava um ícone da faixa e reorganizava os
-        // outros a cada notificação que chegava ou era consolidada — um
-        // pulo de layout no meio de uma cena parada.
-        ArenaSceneIcon(
-          glyph: ArenaGlyph.spark,
-          compact: compact,
-          label: l10n.automaticTransactionTitle,
-          semanticsValue: l10n.automaticTransactionPendingCount(pending),
-          value: pending == 0 ? null : '$pending',
-          filled: pending > 0,
-          progress: 0,
-          color: pending > 0 ? AppColors.danger : AppColors.inkInverse2,
-          onTap: pending == 0
-              ? null
-              : () => context.push('/automatic-transactions'),
-        ),
-      ],
+          Expanded(
+            child: ArenaSceneIcon(
+              glyph: ArenaGlyph.compass,
+              compact: compact,
+              showName: !constraints.layout.isCompact,
+              label: l10n.compassTitle,
+              name: l10n.arenaIconCompass,
+              semanticsValue: health == null
+                  ? compassTierLabel(l10n, FreedomTier.unknown)
+                  : l10n.compassScoreOf(
+                      '${health.score.round()}',
+                      compassTierLabel(l10n, health.tier),
+                    ),
+              // A pontuação, não a patente: o número cabe embaixo do anel, a
+              // palavra não. Sem índice publicado o ícone continua na faixa,
+              // apagado — some o toque, não a explicação.
+              value: health == null ? null : '${health.score.round()}',
+              filled: health != null,
+              progress: health == null ? 0 : health.score / 100,
+              color: health == null
+                  ? AppColors.inkInverse2
+                  : compassScoreColor(health.score),
+              onTap: health == null
+                  ? null
+                  : () => FreedomCompassSheet.show(context, health),
+            ),
+          ),
+          Expanded(
+            child: ArenaSceneIcon(
+              glyph: ArenaGlyph.coach,
+              compact: compact,
+              showName: !constraints.layout.isCompact,
+              label: l10n.coachingTitle,
+              name: l10n.arenaIconCoach,
+              semanticsValue: freshCoaching
+                  ? l10n.coachingViewLast
+                  : l10n.coachingConsultAction,
+              // O coach não tem contagem: o anel fica cheio quando há análise
+              // nova para ler e vazio quando o convite é para pedir uma.
+              progress: freshCoaching ? 1 : 0,
+              filled: freshCoaching,
+              color: freshCoaching ? AppColors.teal : AppColors.inkInverse2,
+              onTap: () => CoachingActions.open(context, ref, insight),
+            ),
+          ),
+          // A faísca NÃO some quando não há pendência: ela apaga, como os
+          // outros três. Sumir tirava um ícone da faixa e reorganizava os
+          // outros a cada notificação que chegava ou era consolidada — um
+          // pulo de layout no meio de uma cena parada.
+          Expanded(
+            child: ArenaSceneIcon(
+              glyph: ArenaGlyph.spark,
+              compact: compact,
+              showName: !constraints.layout.isCompact,
+              label: l10n.automaticTransactionTitle,
+              name: l10n.arenaIconPending,
+              semanticsValue: l10n.automaticTransactionPendingCount(pending),
+              value: pending == 0 ? null : '$pending',
+              filled: pending > 0,
+              progress: 0,
+              color: pending > 0 ? AppColors.danger : AppColors.inkInverse2,
+              onTap: pending == 0
+                  ? null
+                  : () => context.push('/automatic-transactions'),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -153,6 +186,7 @@ class ArenaSceneIcon extends StatelessWidget {
     super.key,
     required this.glyph,
     required this.label,
+    required this.name,
     required this.semanticsValue,
     required this.color,
     required this.progress,
@@ -160,6 +194,7 @@ class ArenaSceneIcon extends StatelessWidget {
     this.value,
     this.filled = true,
     this.compact = false,
+    this.showName = false,
   });
 
   /// Mínimo de alvo de toque, em pixels lógicos.
@@ -167,14 +202,21 @@ class ArenaSceneIcon extends StatelessWidget {
 
   final ArenaGlyph glyph;
 
-  /// O nome, para o leitor de tela e para o tooltip.
+  /// O nome INTEIRO — "Bússola da Liberdade" —, para o leitor de tela e para
+  /// o tooltip. A semântica não encolheu junto com a tela.
   final String label;
+
+  /// O nome CURTO, o que cabe sob uma figura de 32 px: "Bússola".
+  final String name;
+
+  /// Desenhar o nome sob a figura. Só do tablet para cima.
+  final bool showName;
 
   /// O que o número NÃO consegue caber — "1 de 3 completadas", "72 de 100 •
   /// Guardião".
   final String semanticsValue;
 
-  /// O número embaixo do anel. `null` quando não há o que contar.
+  /// O número AO LADO do anel. `null` quando não há o que contar — o coach.
   final String? value;
 
   /// Fração do anel, 0..1.
@@ -192,7 +234,6 @@ class ArenaSceneIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final ringSize = compact ? 28.0 : 32.0;
 
     return Semantics(
@@ -215,49 +256,23 @@ class ArenaSceneIcon extends StatelessWidget {
               ),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(minWidth: minTarget),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ArenaIconRing(
-                      progress: progress,
+                child: HudSlotTile(
+                  figureSize: ringSize,
+                  name: name,
+                  value: value,
+                  showName: showName,
+                  compact: compact,
+                  figure: ArenaIconRing(
+                    progress: progress,
+                    color: color,
+                    size: ringSize,
+                    child: ArenaIconGlyph(
+                      glyph: glyph,
                       color: color,
-                      size: ringSize,
-                      child: ArenaIconGlyph(
-                        glyph: glyph,
-                        color: color,
-                        size: ringSize * 0.56,
-                        filled: filled,
-                      ),
+                      size: ringSize * 0.56,
+                      filled: filled,
                     ),
-                    // A linha do valor existe SEMPRE, com ou sem número: é
-                    // ela que impede a faixa de mudar de altura quando o
-                    // último contador some.
-                    //
-                    // Mas ela fica VAZIA quando não há o que contar. O traço
-                    // que morava aqui era uma legenda de ausência colada
-                    // debaixo de um anel cheio: no aparelho do dono a faixa
-                    // lia "1/3 · 37 · — · —", e dois traços seguidos parecem
-                    // um erro de carregamento, não um estado. O coach não tem
-                    // contagem; quem diz o estado dele é o anel.
-                    SizedBox(
-                      height: compact ? 14 : 16,
-                      child: value == null
-                          ? null
-                          : FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text(
-                                value!,
-                                maxLines: 1,
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  color: AppColors.inkInverse,
-                                  fontFeatures: const [
-                                    FontFeature.tabularFigures(),
-                                  ],
-                                ),
-                              ),
-                            ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),

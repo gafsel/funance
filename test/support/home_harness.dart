@@ -373,11 +373,23 @@ Widget homeApp(
   Widget home, {
   required List<Override> overrides,
   Brightness brightness = Brightness.light,
+  bool reduceMotion = false,
+
+  /// O que vai na AppBar. Sem ele não há AppBar nenhuma, que é como as
+  /// capturas da cena sempre montaram.
+  Widget? topo,
 }) => ProviderScope(
   overrides: overrides,
   child: MaterialApp(
     debugShowCheckedModeBanner: false,
     theme: brightness == Brightness.dark ? AppTheme.dark : AppTheme.light,
+    // "Reduzir movimento" do sistema. Um golden de algo que PULSA precisa
+    // dele: sem parar o ciclo, o PNG fotografa a opacidade do instante em
+    // que a captura caiu, e duas execuções discordam.
+    builder: (context, child) => MediaQuery(
+      data: MediaQuery.of(context).copyWith(disableAnimations: reduceMotion),
+      child: child!,
+    ),
     localizationsDelegates: const [
       AppLocalizations.delegate,
       GlobalMaterialLocalizations.delegate,
@@ -386,7 +398,10 @@ Widget homeApp(
     ],
     supportedLocales: AppLocalizations.supportedLocales,
     locale: const Locale('pt'),
-    home: Scaffold(body: home),
+    home: Scaffold(
+      appBar: topo == null ? null : AppBar(title: topo),
+      body: home,
+    ),
   ),
 );
 

@@ -9,11 +9,13 @@ import 'package:funances/features/arena/presentation/widgets/arena_view.dart';
 import 'package:funances/features/home/presentation/widgets/arena_tab.dart';
 import 'package:funances/features/coaching/domain/models/coaching_model.dart';
 import 'package:funances/features/finance/domain/models/automatic_transaction_model.dart';
+import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/home/domain/models/financial_health_model.dart';
 import 'package:funances/features/home/domain/models/weekly_mission_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/user/domain/models/user_model.dart';
+import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 
@@ -33,6 +35,115 @@ final UserModel arenaTestUser = UserModel(
   displayName: 'Gabriel Silva',
   createdAt: arenaTestDay,
 );
+
+/// A segunda pessoa do cofre. Existe para a logo da conta ter DOIS avatares
+/// para empilhar: com um dono só, o teste não distingue "mostra os donos" de
+/// "mostra o dono".
+final UserModel arenaTestPartner = UserModel(
+  id: 'u2',
+  email: 'ana@funances.test',
+  displayName: 'Ana Silva',
+  createdAt: arenaTestDay,
+);
+
+/// As contas do cofre de teste, com logo de banco e donos.
+///
+/// Os ids são os MESMOS que as leituras do HUD e da Arena citam — é por eles
+/// que [AccountViewProviders.byIdMap] casa a leitura com a conta. Uma conta
+/// que falta aqui não quebra tela nenhuma: a linha cai no ícone genérico,
+/// que é a rede de segurança de propósito.
+List<AccountModel> arenaTestAccounts() => [
+  _conta('c1', 'Nubank', BankLogo.nubank, AccountType.checking),
+  _conta('inv', 'Tesouro', BankLogo.xp, AccountType.investment),
+  _conta(
+    'cofrinho',
+    'Cofrinho Disney',
+    BankLogo.nubank,
+    AccountType.investment,
+  ),
+  _conta('samsclub', 'Cartão Samsclub', BankLogo.visa, AccountType.creditCard),
+  _conta(
+    'nubank1',
+    'Cartão Nubank G98Y',
+    BankLogo.nubank,
+    AccountType.creditCard,
+  ),
+  _conta('inter', 'Cartão Inter', BankLogo.inter, AccountType.creditCard),
+  _conta('itau', 'Cartão Itaú', BankLogo.itau, AccountType.creditCard),
+  _conta('c6', 'Cartão C6', BankLogo.c6, AccountType.creditCard),
+  _conta(
+    'nubank2',
+    'Cartão Nubank VgIy',
+    BankLogo.nubank,
+    AccountType.creditCard,
+  ),
+  _conta(
+    'emprestimo-itau',
+    'Empréstimo Itaú',
+    BankLogo.itau,
+    AccountType.debt,
+  ),
+];
+
+AccountModel _conta(
+  String id,
+  String nome,
+  BankLogo logo,
+  AccountType tipo,
+) {
+  final donos = id == 'nubank2' ? ['u1', 'u2'] : ['u1'];
+
+  return switch (tipo) {
+    AccountType.checking => AccountModel.checking(
+      id: id,
+      name: nome,
+      icon: 'account_balance',
+      color: logo.defaultColor ?? '#8A05BE',
+      initialBalanceDate: arenaTestDay,
+      bankLogo: logo,
+      ownerIds: donos,
+    ),
+    AccountType.investment => AccountModel.investment(
+      id: id,
+      name: nome,
+      icon: 'savings',
+      color: logo.defaultColor ?? '#2E7D32',
+      initialBalanceDate: arenaTestDay,
+      interestRate: 0,
+      bankLogo: logo,
+      ownerIds: donos,
+    ),
+    AccountType.creditCard => AccountModel.creditCard(
+      id: id,
+      name: nome,
+      icon: 'credit_card',
+      color: logo.defaultColor ?? '#8A05BE',
+      initialBalanceDate: arenaTestDay,
+      limit: 10000,
+      dueDay: 10,
+      closingDay: 4,
+      bankLogo: logo,
+      ownerIds: donos,
+    ),
+    AccountType.debt => AccountModel.debt(
+      id: id,
+      name: nome,
+      icon: 'account_balance',
+      color: logo.defaultColor ?? '#EC7000',
+      initialBalanceDate: arenaTestDay,
+      interestRate: 0,
+      bankLogo: logo,
+      ownerIds: donos,
+    ),
+  };
+}
+
+/// Os dublês de conta e de membro, que toda tela com [AccountLogo] precisa.
+List<Override> arenaAccountOverrides() => [
+  WorkspaceViewProviders.members.overrideWith(
+    (ref) async => [arenaTestUser, arenaTestPartner],
+  ),
+];
 
 InstallmentModel arenaTestInstallment({
   String id = 'aluguel',
@@ -207,6 +318,7 @@ List<Override> arenaOverrides({
   List<Override> extra = const [],
 }) => homeOverrides(
   currentUser: arenaTestUser,
+  accounts: arenaTestAccounts(),
   missions: missions,
   pendingAutomatic: pendingAutomatic,
   health: health,
@@ -216,6 +328,7 @@ List<Override> arenaOverrides({
       (ref) => AsyncValue<ArenaState>.data(state ?? arenaTestState()),
     ),
     ArenaViewProviders.isBusiness.overrideWith((ref) => isBusiness),
+    ...arenaAccountOverrides(),
     ...extra,
   ],
 );

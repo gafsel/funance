@@ -218,10 +218,11 @@ void main() {
     ) async {
       await pumpHudFooter(tester, isBusiness: true, size: const Size(400, 900));
 
-      await tester.tap(find.byType(HudGlyph).at(1));
-      await tester.pumpAndSettle();
+      await openHudSheet(tester, 1);
 
       expect(find.text('Vila'), findsOneWidget);
+
+      await openHudExplanation(tester);
 
       // "Centro de custo" sobrevive onde ele é a coisa CERTA de dizer: o
       // texto financeiro da mini explicação, que fala do plano real da
@@ -488,10 +489,12 @@ void main() {
     ) async {
       await pumpHudFooter(tester, size: const Size(400, 900));
 
-      await tester.tap(find.byType(HudGlyph).at(3));
-      await tester.pumpAndSettle();
+      await openHudSheet(tester, 3);
 
       expect(find.text('Veneno'), findsOneWidget);
+
+      await openHudExplanation(tester);
+
       expect(
         find.textContaining('os juros corroem seu capital'),
         findsOneWidget,
@@ -505,8 +508,8 @@ void main() {
     testWidgets('a poção termina no fim da batalha', (tester) async {
       await pumpHudFooter(tester, size: const Size(400, 900));
 
-      await tester.tap(find.byType(HudGlyph).at(0));
-      await tester.pumpAndSettle();
+      await openHudSheet(tester, 0);
+      await openHudExplanation(tester);
 
       expect(
         find.textContaining('capital que trabalha por você'),
@@ -908,16 +911,21 @@ void main() {
   });
 
   group('os gestos', () {
-    testWidgets('tocar abre a folha com a explicação e os números', (
+    testWidgets('tocar abre a folha com os NÚMEROS, e só eles', (
       tester,
     ) async {
       await pumpHudFooter(tester, size: const Size(400, 900));
 
-      await tester.tap(find.byType(HudGlyph).first);
-      await tester.pumpAndSettle();
+      await openHudSheet(tester, 0);
 
-      expect(find.byKey(const ValueKey('hud-explanation')), findsOneWidget);
+      // Quem já leu a explicação abre a folha e vê a conta: o texto está
+      // atrás do ícone, e não mais entre o valor e a lista.
       expect(find.text('Cofrinho Disney'), findsOneWidget);
+      expect(find.byKey(const ValueKey('intro-panel')), findsNothing);
+
+      await openHudExplanation(tester);
+
+      expect(find.byKey(const ValueKey('intro-panel')), findsOneWidget);
     });
 
     testWidgets('segurar abre a tela de dados', (tester) async {
@@ -936,20 +944,22 @@ void main() {
       (indice: 2, nome: 'ovo', linha: 'Cartão Inter'),
       (indice: 3, nome: 'gota', linha: 'Empréstimo Itaú'),
     ]) {
-      testWidgets('a folha da ${caso.nome} traz explicação e dados', (
-        tester,
-      ) async {
+      testWidgets('a folha da ${caso.nome} traz os dados, e a explicação a '
+          'um toque', (tester) async {
         // Cada folha num teste próprio, e não num laço com fechamento entre
         // elas: uma folha aberta por cima da anterior encontraria DOIS
         // ícones de poção na árvore, e o teste passaria a medir a ordem de
         // fechamento em vez do conteúdo.
         await pumpHudFooter(tester, size: const Size(400, 900));
 
-        await tester.tap(find.byType(HudGlyph).at(caso.indice));
-        await tester.pumpAndSettle();
+        await openHudSheet(tester, caso.indice);
 
-        expect(find.byKey(const ValueKey('hud-explanation')), findsOneWidget);
         expect(find.text(caso.linha), findsOneWidget);
+        expect(find.byKey(const ValueKey('intro-panel')), findsNothing);
+
+        await openHudExplanation(tester);
+
+        expect(find.byKey(const ValueKey('intro-panel')), findsOneWidget);
       });
     }
   });

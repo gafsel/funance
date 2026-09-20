@@ -284,8 +284,13 @@ void main() {
       // um caractere invisível. O selo também é compacto (decisão 13): a
       // 400px "Falta R\$ 9.007,31 em caixa" saía cortado, e um selo cortado
       // não informa nada.
+      //
+      // "faltam" e não "em caixa": o número do selo é o ROMBO (o que se deve
+      // menos o que se tem), e "−R$ 9k em caixa" dizia que o caixa era esse
+      // — o QA pegou a mentira. A redação faz par com o "+R$ 8,3k atrasado"
+      // do monstro.
       expect(find.textContaining('9k'), findsWidgets);
-      expect(find.textContaining('em caixa'), findsOneWidget);
+      expect(find.textContaining('faltam'), findsOneWidget);
 
       final barra = tester.widget<ArenaHpBar>(find.byType(ArenaHpBar).first);
       expect(barra.ratio, 1, reason: 'a barra está cheia');
@@ -298,7 +303,7 @@ void main() {
     ) async {
       await pumpArena(tester);
 
-      expect(find.textContaining('em caixa'), findsNothing);
+      expect(find.textContaining('faltam'), findsNothing);
       expect(
         tester.widget<ArenaHpBar>(find.byType(ArenaHpBar).first).pressed,
         isFalse,
@@ -335,7 +340,23 @@ void main() {
       // O número do buraco, no lugar da palavra "Exausto": com a barra
       // vazia, a palavra sozinha não diz de quanto é.
       expect(find.textContaining('7,7k'), findsWidgets);
-      expect(find.textContaining('em caixa'), findsOneWidget);
+      expect(find.textContaining('faltam'), findsOneWidget);
+
+      // E o par ao lado da barra fala a língua DELA: sem vida e sem régua,
+      // os dois lados são zero. Os saldos reais, negativos, ficam na folha
+      // dos heróis, que é onde há espaço para entendê-los.
+      expect(
+        find.textContaining('6,4k'),
+        findsNothing,
+        reason:
+            'o texto seguia os saldos crus — "−R\$ 6,4k / −R\$ 6,4k" — '
+            'enquanto a barra já media HP sobre régua',
+      );
+
+      final denominador = tester.widget<Text>(
+        find.textContaining(' / ').first,
+      );
+      expect(denominador.data, contains('0'));
     });
   });
 

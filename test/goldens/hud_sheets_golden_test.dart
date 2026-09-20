@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/theme/app_theme.dart';
 import 'package:funances/features/arena/domain/models/hud_state.dart';
-import 'package:funances/features/arena/presentation/widgets/hud_glyph.dart';
 
 import '../arena/hud_harness.dart';
 import 'golden_support.dart';
@@ -18,9 +17,10 @@ import 'golden_support.dart';
 ///    abriu;
 /// 2. a barra de HP de cada aldeão, que mostra a queda sem precisar da
 ///    palavra "morto": quem estourou fica com a calha inteira à mostra;
-/// 3. a mini explicação em três frases, com a primeira em tinta principal e
-///    as outras duas em tinta secundária. A hierarquia ali é a diferença
-///    entre "leia isto" e "três parágrafos cinzas".
+/// 3. o ícone de informação no canto do cabeçalho, que é por onde a mini
+///    explicação passou a entrar. Ela saiu do corpo da folha — era ela que
+///    empurrava os dados para baixo da dobra —, e o que estas oito capturas
+///    provam é justamente o que sobrou: o que importa, sem rolar.
 ///
 /// A folha da GOTA também é a única captura do estado sem receita prevista —
 /// o aviso âmbar que substitui a classe quando o servidor ainda não sabe
@@ -31,18 +31,22 @@ Future<void> _pump(
   required Brightness brightness,
   required int indice,
   HudState? hud,
+  Size size = const Size(400, 900),
+  bool compact = true,
+  bool introSeen = true,
 }) async {
   await loadAppFonts();
 
   await pumpHudFooter(
     tester,
     hud: hud,
-    size: const Size(400, 900),
+    size: size,
+    compact: compact,
+    introSeen: introSeen,
     theme: brightness == Brightness.dark ? AppTheme.dark : AppTheme.light,
   );
 
-  await tester.tap(find.byType(HudGlyph).at(indice));
-  await tester.pumpAndSettle();
+  await openHudSheet(tester, indice);
 }
 
 /// A FAIXA inteira, nos dois tamanhos.
@@ -131,4 +135,21 @@ void main() {
       );
     });
   }
+
+  /// O painel de explicação, aberto sozinho na PRIMEIRA abertura da folha.
+  ///
+  /// Uma captura basta: o painel é o mesmo nas quatro folhas — muda o texto,
+  /// não o desenho —, e o que ela guarda é a hierarquia das três frases (a
+  /// do jogo em tinta principal, as outras duas em secundária), o título
+  /// "Como funciona" com o mesmo ícone do botão que o abre, e o "Entendi"
+  /// ancorado no pé, fora do que rola.
+  testWidgets('golden — hud_explicacao', (tester) async {
+    await _pump(tester, brightness: Brightness.light, indice: 0,
+        introSeen: false);
+
+    await expectLater(
+      find.byKey(const ValueKey('intro-panel')),
+      matchesGoldenFile('images/hud_explicacao.png'),
+    );
+  });
 }

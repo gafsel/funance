@@ -56,10 +56,17 @@ class ArenaHud extends StatelessWidget {
         Expanded(
           child: _Side(
             onTap: onTapHeroes,
-            semanticsLabel: l10n.arenaHeroesSemantics(
-              state.currentBalance.asCurrency(locale: context.locale),
-              state.committed.asCurrency(locale: context.locale),
-            ),
+            // O perigo vem PRIMEIRO no rótulo. Quem usa leitor de tela não
+            // vê a barra pulsar; se a frase do alarme viesse depois do saldo
+            // e do comprometido, ela chegaria como um detalhe no fim de uma
+            // leitura longa — e ela é a manchete.
+            semanticsLabel: [
+              if (_esgotado) l10n.arenaHeroesDepleted,
+              l10n.arenaHeroesSemantics(
+                state.currentBalance.asCurrency(locale: context.locale),
+                state.committed.asCurrency(locale: context.locale),
+              ),
+            ].join(' '),
             title: _heroNames(context),
             badge: _heroBadge(context),
             bar: ArenaHpBar(
@@ -67,6 +74,8 @@ class ArenaHud extends StatelessWidget {
               committedRatio: state.committedRatio,
               overflowing: state.isOverhealed,
               pressed: state.isPressed,
+              depleted: _esgotado,
+              depletedLabel: l10n.arenaHeroesDepletedShort,
               color: state.heroMood == HeroMood.exhausted
                   ? context.palette.dangerText
                   : AppColors.teal,
@@ -111,6 +120,17 @@ class ArenaHud extends StatelessWidget {
       ],
     );
   }
+
+  /// Não há dinheiro POSITIVO em conta.
+  ///
+  /// É a condição do alarme vermelho, e ela é do LADO DOS HERÓIS só. Do
+  /// outro lado a mesma barra a zero quer dizer que o monstro morreu, e o
+  /// selo de lá já diz isso em verde.
+  ///
+  /// A pergunta é sobre o HP, e não sobre a fração: os dois dizem a mesma
+  /// coisa hoje, mas o HP é o fato — "o caixa acabou" — e a fração é o
+  /// desenho dele.
+  bool get _esgotado => state.heroHp <= 0;
 
   /// Os nomes dos membros, separados por ponto. É quem está lutando.
   Widget _heroNames(BuildContext context) {
@@ -303,8 +323,14 @@ class _HeroValue extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          // O par fala a língua da BARRA: HP sobre régua, e não os saldos
+          // crus. O QA pegou os dois discordando — a barra media
+          // `heroHp/heroMaxHp` e o texto ao lado dizia "−R$ 6,4k / −R$ 6,4k",
+          // que é a leitura antiga e parece uma barra cheia escrita por
+          // extenso. Os saldos REAIS, com sinal, continuam na folha dos
+          // heróis, que é onde eles têm espaço para ser entendidos.
           AnimatedDouble(
-            value: state.currentBalance,
+            value: state.heroHp,
             formatter: (context, value) =>
                 value.asCompactCurrency(locale: context.locale),
             duration: AppDurations.respectingMotion(
@@ -315,7 +341,7 @@ class _HeroValue extends StatelessWidget {
             style: style,
           ),
           Text(
-            ' / ${state.initialBalance.asCompactCurrency(locale: context.locale)}',
+            ' / ${state.heroMaxHp.asCompactCurrency(locale: context.locale)}',
             style: theme.textTheme.labelSmall?.copyWith(
               color: palette.onGame2,
               fontFeatures: const [FontFeature.tabularFigures()],

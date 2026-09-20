@@ -13,6 +13,7 @@ import 'package:funances/features/arena/presentation/providers/hud_providers.dar
 import 'package:funances/features/arena/presentation/widgets/hud_format.dart';
 import 'package:funances/features/arena/presentation/widgets/hud_glyph.dart';
 import 'package:funances/features/arena/presentation/widgets/hud_sheets.dart';
+import 'package:funances/features/arena/presentation/widgets/hud_slot_tile.dart';
 import 'package:go_router/go_router.dart';
 
 /// A faixa MENSAL no pé da Arena: quatro ícones e nada mais.
@@ -366,51 +367,10 @@ class _SlotState extends State<_Slot> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final l10n = context.l10n;
 
     final glyphSize = widget.compact ? 20.0 : 24.0;
     final ringSize = widget.compact ? 30.0 : 36.0;
-
-    final figuraEValor = Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        AnimatedBuilder(
-          animation: Listenable.merge([_loop, _flash]),
-          builder: (context, child) => _animated(child!),
-          child: HudRing(
-            progress: widget.progress,
-            color: widget.color,
-            size: ringSize,
-            stroke: widget.compact ? 2.5 : 3,
-            child: HudGlyph(
-              slot: widget.slot,
-              color: widget.color,
-              size: glyphSize,
-              stage: widget.stage,
-              filled: widget.filled,
-            ),
-          ),
-        ),
-        AppSpacing.gapXxs,
-        Flexible(
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              widget.value,
-              maxLines: 1,
-              style:
-                  (widget.compact
-                          ? theme.textTheme.labelSmall
-                          : theme.textTheme.labelMedium)
-                      ?.copyWith(color: AppColors.inkInverse),
-            ),
-          ),
-        ),
-      ],
-    );
 
     return Semantics(
       button: true,
@@ -428,40 +388,31 @@ class _SlotState extends State<_Slot> with TickerProviderStateMixin {
         onLongPress: () => context.push(widget.path),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxs),
-          child: widget.showName
-              ? Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    figuraEValor,
-                    // O nome é EXCLUÍDO da semântica: ele já está no rótulo
-                    // do botão, e lido duas vezes viraria "Incubados: …
-                    // Incubados".
-                    //
-                    // `Flexible` + `FittedBox`: a faixa tem altura FIXA (é o
-                    // que impede a cena de reorganizar quando os números
-                    // chegam), e a 1,6 de escala de texto o nome estourava
-                    // por 0,78px — a listra amarela e preta atravessando o
-                    // rodapé por causa de menos de um pixel. Quem encolhe é o
-                    // nome: a figura é o que identifica o slot.
-                    Flexible(
-                      child: ExcludeSemantics(
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            widget.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: AppColors.inkInverse2,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                )
-              : Center(child: figuraEValor),
+          // A MESMA montagem dos ícones do placar, logo acima na cena.
+          child: HudSlotTile(
+            figureSize: ringSize,
+            name: widget.name,
+            value: widget.value,
+            showName: widget.showName,
+            compact: widget.compact,
+            figure: AnimatedBuilder(
+              animation: Listenable.merge([_loop, _flash]),
+              builder: (context, child) => _animated(child!),
+              child: HudRing(
+                progress: widget.progress,
+                color: widget.color,
+                size: ringSize,
+                stroke: widget.compact ? 2.5 : 3,
+                child: HudGlyph(
+                  slot: widget.slot,
+                  color: widget.color,
+                  size: glyphSize,
+                  stage: widget.stage,
+                  filled: widget.filled,
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );

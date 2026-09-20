@@ -2439,6 +2439,24 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get arenaIconMissions => 'Missões';
+
+  @override
+  String get arenaIconCompass => 'Bússola';
+
+  @override
+  String get arenaIconCoach => 'Coach';
+
+  @override
+  String get arenaIconPending => 'Pendentes';
+
+  @override
+  String get arenaHeroesDepletedShort => 'Esgotado';
+
+  @override
+  String get arenaHeroesDepleted => 'Vida dos heróis esgotada, perigo.';
+
+  @override
   String arenaHeroesSemantics(String balance, String committed) {
     return 'Vida dos heróis: $balance, sendo $committed comprometido. Toque para ver as contas.';
   }
@@ -2553,7 +2571,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String arenaShortfall(String amount) {
-    return '−$amount em caixa';
+    return 'faltam $amount';
   }
 
   @override
@@ -2599,6 +2617,27 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get hudDropTitle => 'Veneno';
+
+  @override
+  String get introPanelTitle => 'Como funciona';
+
+  @override
+  String get introPanelGotIt => 'Entendi';
+
+  @override
+  String get badgesXpSourcesHowItWorks => 'Como ganhar XP';
+
+  @override
+  String get hudPotionHowItWorks => 'Como funciona a Poção';
+
+  @override
+  String get hudVillageHowItWorks => 'Como funciona a Vila';
+
+  @override
+  String get hudEggHowItWorks => 'Como funcionam os Monstros incubados';
+
+  @override
+  String get hudDropHowItWorks => 'Como funciona o Veneno';
 
   @override
   String get hudTierSemi => 'semi';

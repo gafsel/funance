@@ -2423,6 +2423,24 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get arenaIconMissions => 'Missions';
+
+  @override
+  String get arenaIconCompass => 'Compass';
+
+  @override
+  String get arenaIconCoach => 'Coach';
+
+  @override
+  String get arenaIconPending => 'Pending';
+
+  @override
+  String get arenaHeroesDepletedShort => 'Out of cash';
+
+  @override
+  String get arenaHeroesDepleted => 'Heroes\' life is gone, danger.';
+
+  @override
   String arenaHeroesSemantics(String balance, String committed) {
     return 'Heroes\' life: $balance, of which $committed is committed. Tap to see the accounts.';
   }
@@ -2583,6 +2601,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get hudDropTitle => 'Poison';
+
+  @override
+  String get introPanelTitle => 'How it works';
+
+  @override
+  String get introPanelGotIt => 'Got it';
+
+  @override
+  String get badgesXpSourcesHowItWorks => 'How to earn XP';
+
+  @override
+  String get hudPotionHowItWorks => 'How the Potion works';
+
+  @override
+  String get hudVillageHowItWorks => 'How the Village works';
+
+  @override
+  String get hudEggHowItWorks => 'How Incubating monsters work';
+
+  @override
+  String get hudDropHowItWorks => 'How the Poison works';
 
   @override
   String get hudTierSemi => 'semi';

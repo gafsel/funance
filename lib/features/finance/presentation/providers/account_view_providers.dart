@@ -43,6 +43,27 @@ class AccountViewProviders {
     (ref) => ref.watch(AccountDomainProviders.service).getAccountsByType(),
   );
 
+  /// As contas indexadas por id, para quem só tem o id na mão.
+  ///
+  /// É um DERIVADO de [byTypeMap] e não uma leitura nova: a regra do projeto
+  /// é que consulta nova custa índice e teste em produção, e quem precisa
+  /// disto — as folhas da Arena, que recebem leituras com `accountId` e
+  /// precisam da logo do banco e dos donos — não tem por que pagar uma
+  /// segunda assinatura do mesmo stream.
+  ///
+  /// Mapa VAZIO enquanto a lista não chegou (ou se ela falhar): quem usa
+  /// desenha o ícone genérico e a tela continua de pé.
+  static final byIdMap = Provider<Map<String, AccountModel>>((ref) {
+    final porTipo =
+        ref.watch(byTypeMap).valueOrNull ??
+        const <AccountType, List<AccountModel>>{};
+
+    return {
+      for (final contas in porTipo.values)
+        for (final conta in contas) conta.id: conta,
+    };
+  });
+
   static final form = StateNotifierProvider.autoDispose
       .family<AccountFormNotifier, AccountFormState, AccountFormArgs>((
         ref,

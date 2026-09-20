@@ -6,9 +6,11 @@ import 'package:funances/features/workspace/presentation/widgets/badges/badge_gr
 import 'package:funances/features/workspace/presentation/widgets/badges/badge_theme.dart';
 import 'package:funances/features/workspace/presentation/widgets/badges/level_header_card.dart';
 import 'package:funances/features/workspace/presentation/widgets/badges/xp_sources_section.dart';
+import 'package:funances/core/intro/intro_store.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/widgets/empty_state.dart';
+import 'package:funances/core/widgets/info_intro.dart';
 import 'package:funances/core/widgets/section_header.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
@@ -63,7 +65,7 @@ class BadgesCabinetScreen extends ConsumerWidget {
 
 /// Corpo da vitrine, separado da tela para poder ser montado num teste de
 /// widget com um catálogo falso, sem Firebase.
-class BadgesCabinetView extends StatelessWidget {
+class BadgesCabinetView extends ConsumerStatefulWidget {
   const BadgesCabinetView({
     super.key,
     required this.catalog,
@@ -87,20 +89,61 @@ class BadgesCabinetView extends StatelessWidget {
   final Map<String, String> unlockedBadges;
 
   @override
+  ConsumerState<BadgesCabinetView> createState() => _BadgesCabinetViewState();
+}
+
+class _BadgesCabinetViewState extends ConsumerState<BadgesCabinetView>
+    with IntroPanelMixin<BadgesCabinetView> {
+  @override
+  String get introKey => IntroKeys.badgesXpSources;
+
+  @override
+  Widget buildIntroBody(BuildContext context) =>
+      XpSourcesSection(sources: _sources);
+
+  List<XpSource> get _sources => widget.catalog?.xpSources ?? const [];
+
+  /// A régua de XP vem do servidor (`config/badges`). Enquanto ela não
+  /// chega, não há aula para dar — e dar uma aula vazia por dada seria
+  /// perder a única vez em que ela aparece sozinha.
+  @override
+  bool get canIntroduce => _sources.isNotEmpty;
+
+  /// A vitrine é uma ROTA, e ela entra deslizando: esperar a entrada é o que
+  /// tira o piscar, como nas folhas do HUD.
+  @override
+  Future<void> waitIntroEntrance() => waitModalEntrance(context);
+
+  @override
+  void initState() {
+    super.initState();
+    scheduleIntro();
+  }
+
+  /// O catálogo costuma chegar DEPOIS do primeiro quadro. Quando ele chega,
+  /// a apresentação é pedida de novo — o `scheduleIntro` já sabe não se
+  /// repetir.
+  @override
+  void didUpdateWidget(BadgesCabinetView old) {
+    super.didUpdateWidget(old);
+    if (canIntroduce) scheduleIntro();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final catalog = this.catalog;
+    final catalog = widget.catalog;
 
     if (catalog == null || catalog.badges.isEmpty) {
-      if (isLoading) {
+      if (widget.isLoading) {
         return const Center(child: CircularProgressIndicator());
       }
       return _CatalogUnavailable(l10n: l10n);
     }
 
-    final xpInLevel = catalog.xpInLevel(level, xp);
-    final xpForNextLevel = catalog.xpToNextLevel(level);
-    final progressFraction = catalog.levelProgress(level, xp);
+    final xpInLevel = catalog.xpInLevel(widget.level, widget.xp);
+    final xpForNextLevel = catalog.xpToNextLevel(widget.level);
+    final progressFraction = catalog.levelProgress(widget.level, widget.xp);
 
     return CustomScrollView(
       physics: const BouncingScrollPhysics(),
@@ -109,27 +152,38 @@ class BadgesCabinetView extends StatelessWidget {
           child: Padding(
             padding: AppSpacing.allMd,
             child: LevelHeaderCard(
-              workspaceName: workspaceName,
-              level: level,
-              xp: xp,
+              workspaceName: widget.workspaceName,
+              level: widget.level,
+              xp: widget.xp,
               xpInLevel: xpInLevel,
               xpForNextLevel: xpForNextLevel,
               progressFraction: progressFraction,
-              weeklyStreaks: weeklyStreaks,
-              unlockedCount: unlockedBadges.keys
+              weeklyStreaks: widget.weeklyStreaks,
+              unlockedCount: widget.unlockedBadges.keys
                   .where((id) => catalog.badges.any((b) => b.id == id))
                   .length,
               totalCount: catalog.badges.length,
+              // A porta da explicação, no cabeçalho — e a explicação é a
+              // lista de fontes de XP, que era a primeira coisa da tela.
+              info: catalog.xpSources.isEmpty
+                  ? null
+                  : InfoIntroButton(
+                      key: introAnchorKey,
+                      label: l10n.badgesXpSourcesHowItWorks,
+                      onPressed: openIntro,
+                      onGame: true,
+                    ),
             ),
           ),
         ),
-        // Como ganhar XP vem ANTES das conquistas: a vitrine respondia "o que
-        // você já fez" sem nunca dizer o que rende pontos, e a régua estava
-        // só na cabeça de quem escreveu o backend.
-        if (catalog.xpSources.isNotEmpty)
-          SliverToBoxAdapter(
-            child: XpSourcesSection(sources: catalog.xpSources),
-          ),
+        // "Como ganhar XP" saiu daqui. Ela vinha ANTES das conquistas — a
+        // vitrine respondia "o que você já fez" sem nunca dizer o que rende
+        // pontos —, e o preço era a tela inteira: a régua de XP empurrava os
+        // emblemas para baixo da dobra em todo celular. O dono: *"a descrição
+        // de como ganhar xp pode ser ocultada e mostrada apenas na primeira
+        // vez que for aberto, como defini para os ícones do jogo"*. Ela
+        // continua chegando — sozinha, na primeira visita —, e depois mora
+        // atrás do ícone do cabeçalho.
         for (final category in catalog.categories) ...[
           SliverToBoxAdapter(
             child: Builder(
@@ -139,7 +193,9 @@ class BadgesCabinetView extends StatelessWidget {
                     : Theme.of(context).colorScheme.primary;
                 final unlocked = catalog
                     .ofCategory(category)
-                    .where((badge) => unlockedBadges.containsKey(badge.id))
+                    .where(
+                      (badge) => widget.unlockedBadges.containsKey(badge.id),
+                    )
                     .length;
 
                 return SectionHeader.withIcon(
@@ -156,7 +212,7 @@ class BadgesCabinetView extends StatelessWidget {
           ),
           BadgeGrid(
             badges: catalog.ofCategory(category),
-            unlockedBadges: unlockedBadges,
+            unlockedBadges: widget.unlockedBadges,
           ),
         ],
         const SliverToBoxAdapter(child: AppSpacing.gapXl),

@@ -6,9 +6,14 @@ import 'package:funances/core/theme/app_theme.dart';
 import 'package:funances/features/arena/domain/models/hud_state.dart';
 import 'package:funances/features/arena/domain/services/hud_calculator.dart';
 import 'package:funances/features/arena/presentation/providers/arena_providers.dart';
+import 'package:funances/core/intro/intro_store.dart';
 import 'package:funances/features/arena/presentation/providers/hud_providers.dart';
+import 'package:funances/features/finance/presentation/providers/account_view_providers.dart';
 import 'package:funances/features/arena/presentation/widgets/arena_hud_footer.dart';
+import 'package:funances/core/widgets/info_intro.dart';
+import 'package:funances/features/arena/presentation/widgets/hud_glyph.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'arena_harness.dart';
 
@@ -263,7 +268,7 @@ HudState hudTestState({
           debts ??
           const [
             HudBalanceReading(
-              accountId: 'itau',
+              accountId: 'emprestimo-itau',
               name: 'Empréstimo Itaú',
               balance: -7623.68,
               color: '#EC7000',
@@ -276,7 +281,11 @@ HudState hudTestState({
       // apresenta como o retrato do cofre do dono, e um número inventado
       // aqui é uma mentira que os goldens fotografam.
       debtInstallments: {
-        'itau': (
+        // O id do EMPRÉSTIMO, que não é o do cartão. Os dois se chamavam
+        // 'itau' aqui dentro, e no cofre real eles são duas contas — o que
+        // não fazia diferença enquanto a folha só mostrava nome e valor, e
+        // passou a fazer quando ela foi buscar a logo do banco pelo id.
+        'emprestimo-itau': (
           amount: Money.fromDouble(3811.78),
           dueDate: DateTime(2026, 9, 22),
         ),
@@ -309,6 +318,14 @@ Widget hudFooterApp(
       (ref) => asyncState ?? AsyncValue<HudState>.data(hud),
     ),
     ArenaViewProviders.isBusiness.overrideWith((ref) => isBusiness),
+    // A faixa vive sozinha neste harness — sem a Home e sem os dublês dela.
+    // As folhas mostram a logo do banco e os donos de cada conta, e o mapa
+    // é o caminho mais curto até isso: um `Provider` derivado, que aqui
+    // recebe o valor pronto em vez de um stream de mentira.
+    AccountViewProviders.byIdMap.overrideWithValue({
+      for (final conta in arenaTestAccounts()) conta.id: conta,
+    }),
+    ...arenaAccountOverrides(),
   ],
   child: MaterialApp.router(
     debugShowCheckedModeBanner: false,
@@ -377,6 +394,11 @@ class HudMarker extends StatelessWidget {
 }
 
 /// Monta a faixa num tamanho dado.
+///
+/// [introSeen] decide se as quatro explicações já foram lidas NESTE aparelho.
+/// O padrão é `true`, e ele é o estado do usuário de todo dia: a folha abre
+/// com os dados e nada mais. Quem testa a apresentação automática — e só ele
+/// — passa `false`.
 Future<void> pumpHudFooter(
   WidgetTester tester, {
   HudState? hud,
@@ -385,9 +407,15 @@ Future<void> pumpHudFooter(
   bool compact = true,
   bool isBusiness = false,
   bool reduceMotion = true,
+  bool introSeen = true,
   AsyncValue<HudState>? asyncState,
   Color? background,
 }) async {
+  SharedPreferences.setMockInitialValues({
+    if (introSeen)
+      for (final intro in IntroKeys.all) IntroStore.keyFor(intro): true,
+  });
+
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -413,4 +441,22 @@ Future<void> pumpHudFooter(
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 16));
   }
+}
+
+/// Abre a folha de um slot da faixa e espera o que vem depois dela.
+///
+/// Os dois `pumpAndSettle` não são superstição: entre o toque e o painel de
+/// apresentação há uma ida ao disco (o `SharedPreferences`), e uma leitura
+/// assíncrona não agenda quadro nenhum — o primeiro `pumpAndSettle` volta
+/// antes de a resposta chegar, e o segundo é o que desenha o que ela abriu.
+Future<void> openHudSheet(WidgetTester tester, int index) async {
+  await tester.tap(find.byType(HudGlyph).at(index));
+  await tester.pumpAndSettle();
+  await tester.pumpAndSettle();
+}
+
+/// Abre a explicação pelo ícone de informação do cabeçalho da folha.
+Future<void> openHudExplanation(WidgetTester tester) async {
+  await tester.tap(find.byType(InfoIntroButton));
+  await tester.pumpAndSettle();
 }

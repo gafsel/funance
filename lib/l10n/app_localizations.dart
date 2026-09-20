@@ -4334,6 +4334,42 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{Último dia da semana} other{Faltam {count} dias na semana}}'**
   String arenaDaysLeft(int count);
 
+  /// No description provided for @arenaIconMissions.
+  ///
+  /// In pt, this message translates to:
+  /// **'Missões'**
+  String get arenaIconMissions;
+
+  /// No description provided for @arenaIconCompass.
+  ///
+  /// In pt, this message translates to:
+  /// **'Bússola'**
+  String get arenaIconCompass;
+
+  /// No description provided for @arenaIconCoach.
+  ///
+  /// In pt, this message translates to:
+  /// **'Coach'**
+  String get arenaIconCoach;
+
+  /// No description provided for @arenaIconPending.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pendentes'**
+  String get arenaIconPending;
+
+  /// No description provided for @arenaHeroesDepletedShort.
+  ///
+  /// In pt, this message translates to:
+  /// **'Esgotado'**
+  String get arenaHeroesDepletedShort;
+
+  /// No description provided for @arenaHeroesDepleted.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vida dos heróis esgotada, perigo.'**
+  String get arenaHeroesDepleted;
+
   /// No description provided for @arenaHeroesSemantics.
   ///
   /// In pt, this message translates to:
@@ -4487,7 +4523,7 @@ abstract class AppLocalizations {
   /// No description provided for @arenaShortfall.
   ///
   /// In pt, this message translates to:
-  /// **'−{amount} em caixa'**
+  /// **'faltam {amount}'**
   String arenaShortfall(String amount);
 
   /// No description provided for @arenaShortfallLabel.
@@ -4549,6 +4585,48 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Veneno'**
   String get hudDropTitle;
+
+  /// No description provided for @introPanelTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Como funciona'**
+  String get introPanelTitle;
+
+  /// No description provided for @introPanelGotIt.
+  ///
+  /// In pt, this message translates to:
+  /// **'Entendi'**
+  String get introPanelGotIt;
+
+  /// No description provided for @badgesXpSourcesHowItWorks.
+  ///
+  /// In pt, this message translates to:
+  /// **'Como ganhar XP'**
+  String get badgesXpSourcesHowItWorks;
+
+  /// No description provided for @hudPotionHowItWorks.
+  ///
+  /// In pt, this message translates to:
+  /// **'Como funciona a Poção'**
+  String get hudPotionHowItWorks;
+
+  /// No description provided for @hudVillageHowItWorks.
+  ///
+  /// In pt, this message translates to:
+  /// **'Como funciona a Vila'**
+  String get hudVillageHowItWorks;
+
+  /// No description provided for @hudEggHowItWorks.
+  ///
+  /// In pt, this message translates to:
+  /// **'Como funcionam os Monstros incubados'**
+  String get hudEggHowItWorks;
+
+  /// No description provided for @hudDropHowItWorks.
+  ///
+  /// In pt, this message translates to:
+  /// **'Como funciona o Veneno'**
+  String get hudDropHowItWorks;
 
   /// No description provided for @hudTierSemi.
   ///

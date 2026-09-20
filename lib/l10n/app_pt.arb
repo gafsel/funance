@@ -1315,6 +1315,12 @@
   "arenaHeroesFallback": "Você",
   "arenaDayOfWeek": "{day}/{total}",
   "arenaDaysLeft": "{count, plural, =1{Último dia da semana} other{Faltam {count} dias na semana}}",
+  "arenaIconMissions": "Missões",
+  "arenaIconCompass": "Bússola",
+  "arenaIconCoach": "Coach",
+  "arenaIconPending": "Pendentes",
+  "arenaHeroesDepletedShort": "Esgotado",
+  "arenaHeroesDepleted": "Vida dos heróis esgotada, perigo.",
   "arenaHeroesSemantics": "Vida dos heróis: {balance}, sendo {committed} comprometido. Toque para ver as contas.",
   "arenaMonsterSemantics": "Monstro da semana: falta {remaining} de {total}. Toque para ver os compromissos.",
   "arenaMonsterSheetTitle": "Compromissos da semana",
@@ -1499,7 +1505,7 @@
       }
     }
   },
-  "arenaShortfall": "−{amount} em caixa",
+  "arenaShortfall": "faltam {amount}",
   "@arenaShortfall": {
     "placeholders": {
       "amount": {
@@ -1547,6 +1553,13 @@
   "hudEggTitle": "Incubados",
   "hudEggSheetTitle": "Monstros incubados",
   "hudDropTitle": "Veneno",
+  "introPanelTitle": "Como funciona",
+  "introPanelGotIt": "Entendi",
+  "badgesXpSourcesHowItWorks": "Como ganhar XP",
+  "hudPotionHowItWorks": "Como funciona a Poção",
+  "hudVillageHowItWorks": "Como funciona a Vila",
+  "hudEggHowItWorks": "Como funcionam os Monstros incubados",
+  "hudDropHowItWorks": "Como funciona o Veneno",
   "hudTierSemi": "semi",
   "hudTierRegular": "regular",
   "hudTierSuper": "super",

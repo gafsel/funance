@@ -7,6 +7,7 @@ import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/core/widgets/money_text.dart';
 import 'package:funances/core/presentation/display_names.dart';
 import 'package:funances/features/arena/domain/models/arena_state.dart';
+import 'package:funances/features/arena/presentation/widgets/hud_account_logo.dart';
 import 'package:go_router/go_router.dart';
 
 /// De onde vem a vida dos heróis: conta por conta, do domingo até agora.
@@ -139,6 +140,11 @@ class _AccountRow extends StatelessWidget {
         padding: AppSpacing.vXs,
         child: Row(
           children: [
+            // A MESMA marca da Visão Geral: logo do banco e os donos. É a
+            // lista que define o HP dos heróis, e reconhecer a conta pelo
+            // desenho é mais rápido do que ler o nome dela.
+            HudAccountLogo(accountId: life.accountId),
+            AppSpacing.gapXs,
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
