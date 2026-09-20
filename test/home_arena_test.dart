@@ -266,6 +266,34 @@ void main() {
       );
     });
 
+    testWidgets('os quatro anéis caem numa grade: mesmos vãos', (
+      tester,
+    ) async {
+      await _pump(tester, comMissoes: true, size: const Size(1300, 900));
+
+      final xs = tester
+          .widgetList<ArenaIconRing>(find.byType(ArenaIconRing))
+          .map((anel) => tester.getRect(find.byWidget(anel)).center.dx)
+          .toList();
+
+      expect(xs.length, 4);
+
+      // Antes a linha de cada ícone era centrada, e o anel caía onde o
+      // NÚMERO ao lado permitisse: "1/3" e "72" empurravam a figura para
+      // lugares diferentes, e a faixa não tinha ritmo nenhum.
+      final vaos = [
+        for (var i = 1; i < xs.length; i++) xs[i] - xs[i - 1],
+      ];
+
+      for (final vao in vaos) {
+        expect(
+          vao,
+          closeTo(vaos.first, 1),
+          reason: 'vãos entre anéis: $vaos',
+        );
+      }
+    });
+
     testWidgets('o coach não inventa número onde não há contagem', (
       tester,
     ) async {

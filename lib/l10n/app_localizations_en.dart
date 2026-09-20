@@ -2435,6 +2435,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get arenaIconPending => 'Pending';
 
   @override
+  String get arenaHeroesDepletedShort => 'Out of cash';
+
+  @override
   String get arenaHeroesDepleted => 'Heroes\' life is gone, danger.';
 
   @override

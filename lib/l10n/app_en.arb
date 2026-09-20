@@ -1319,6 +1319,7 @@
   "arenaIconCompass": "Compass",
   "arenaIconCoach": "Coach",
   "arenaIconPending": "Pending",
+  "arenaHeroesDepletedShort": "Out of cash",
   "arenaHeroesDepleted": "Heroes' life is gone, danger.",
   "arenaHeroesSemantics": "Heroes' life: {balance}, of which {committed} is committed. Tap to see the accounts.",
   "arenaMonsterSemantics": "Monster of the week: {remaining} left of {total}. Tap to see the commitments.",

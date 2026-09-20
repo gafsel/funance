@@ -34,6 +34,7 @@ class ArenaHpBar extends StatefulWidget {
     this.overflowing = false,
     this.pressed = false,
     this.depleted = false,
+    this.depletedLabel,
     this.height = _height,
   });
 
@@ -74,6 +75,18 @@ class ArenaHpBar extends StatefulWidget {
   /// semana — o bicho morreu. Um alarme vermelho no lugar do "Derrotado"
   /// diria o contrário do que aconteceu.
   final bool depleted;
+
+  /// A palavra DENTRO da barra vazia — "Esgotado".
+  ///
+  /// Ela existe por causa de "reduzir movimento". Sem o pulso, o que separa
+  /// a barra ESGOTADA da barra cheia e exausta (o rombo com caixa, toda
+  /// hachurada de vermelho) era um pixel e meio de moldura — e um pixel e
+  /// meio não é um sinal. A palavra é: ela diz em texto o que o pulso diria
+  /// em movimento, e serve a quem não vê nenhum dos dois.
+  ///
+  /// O número do buraco continua no selo, acima da barra: os dois se
+  /// completam — "Esgotado" é o estado, "faltam R\$ 18,5k" é o tamanho dele.
+  final String? depletedLabel;
 
   final double height;
 
@@ -142,6 +155,7 @@ class _ArenaHpBarState extends State<ArenaHpBar>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final palette = context.palette;
     final reduce = AppDurations.reduceMotion(context);
     final fill = widget.overflowing ? palette.successText : widget.color;
@@ -216,6 +230,28 @@ class _ArenaHpBarState extends State<ArenaHpBar>
                 //    Cor chapada leria como "outra vida"; a hachura lê como
                 //    "reservado". Ela mora na ponta CHEIA da barra porque o
                 //    que tem dono é a primeira coisa que sai.
+                // A palavra fica POR CIMA do alarme e por baixo de nada: ela
+                // é a última coisa desenhada quando a vida acabou, e a
+                // hachura do comprometido não existe nesse estado.
+                if (widget.depleted && widget.depletedLabel != null)
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.xs,
+                      ),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          widget.depletedLabel!,
+                          maxLines: 1,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: AppColors.inkInverse,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 if (widget.committedRatio > 0)
                   _CommittedBand(
                     extent: widget.committedRatio,

@@ -1319,6 +1319,7 @@
   "arenaIconCompass": "Bússola",
   "arenaIconCoach": "Coach",
   "arenaIconPending": "Pendentes",
+  "arenaHeroesDepletedShort": "Esgotado",
   "arenaHeroesDepleted": "Vida dos heróis esgotada, perigo.",
   "arenaHeroesSemantics": "Vida dos heróis: {balance}, sendo {committed} comprometido. Toque para ver as contas.",
   "arenaMonsterSemantics": "Monstro da semana: falta {remaining} de {total}. Toque para ver os compromissos.",

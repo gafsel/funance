@@ -4358,6 +4358,12 @@ abstract class AppLocalizations {
   /// **'Pendentes'**
   String get arenaIconPending;
 
+  /// No description provided for @arenaHeroesDepletedShort.
+  ///
+  /// In pt, this message translates to:
+  /// **'Esgotado'**
+  String get arenaHeroesDepletedShort;
+
   /// No description provided for @arenaHeroesDepleted.
   ///
   /// In pt, this message translates to:

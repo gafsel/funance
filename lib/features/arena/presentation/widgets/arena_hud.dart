@@ -75,6 +75,7 @@ class ArenaHud extends StatelessWidget {
               overflowing: state.isOverhealed,
               pressed: state.isPressed,
               depleted: _esgotado,
+              depletedLabel: l10n.arenaHeroesDepletedShort,
               color: state.heroMood == HeroMood.exhausted
                   ? context.palette.dangerText
                   : AppColors.teal,

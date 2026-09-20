@@ -2451,6 +2451,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get arenaIconPending => 'Pendentes';
 
   @override
+  String get arenaHeroesDepletedShort => 'Esgotado';
+
+  @override
   String get arenaHeroesDepleted => 'Vida dos heróis esgotada, perigo.';
 
   @override

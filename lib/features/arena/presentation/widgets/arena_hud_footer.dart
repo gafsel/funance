@@ -390,6 +390,7 @@ class _SlotState extends State<_Slot> with TickerProviderStateMixin {
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxs),
           // A MESMA montagem dos ícones do placar, logo acima na cena.
           child: HudSlotTile(
+            figureSize: ringSize,
             name: widget.name,
             value: widget.value,
             showName: widget.showName,

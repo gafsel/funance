@@ -24,6 +24,7 @@ class HudSlotTile extends StatelessWidget {
   const HudSlotTile({
     super.key,
     required this.figure,
+    required this.figureSize,
     required this.name,
     required this.showName,
     this.value,
@@ -32,6 +33,10 @@ class HudSlotTile extends StatelessWidget {
 
   /// O anel com a figura dentro, já montado por quem chama.
   final Widget figure;
+
+  /// O diâmetro do anel. É a largura da caixa que ancora a grade — e ela é
+  /// reservada mesmo quando o slot não tem número.
+  final double figureSize;
 
   /// O número curto ao lado da figura: "1/3", "72", "9/16", "1,1×".
   ///
@@ -54,32 +59,47 @@ class HudSlotTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    // O ANEL é ancorado, e o número flutua à direita dele.
+    //
+    // Antes a linha inteira era centrada, e o resultado era um ritmo torto:
+    // o anel de quem tem número curto ("72") ficava num x e o de quem tem
+    // número longo ("< 0,1×") em outro, nos dois grupos e em desencontro
+    // entre eles. Agora cada slot reserva a MESMA caixa para a figura, e é
+    // o texto que se acomoda no que sobra — os quatro anéis do topo caem na
+    // mesma grade dos quatro do rodapé.
     final figuraEValor = Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
       children: [
-        figure,
-        if (value case final texto?) ...[
-          AppSpacing.gapXxs,
-          Flexible(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                texto,
-                maxLines: 1,
-                style:
-                    (compact
-                            ? theme.textTheme.labelSmall
-                            : theme.textTheme.labelMedium)
-                        ?.copyWith(
-                          color: AppColors.inkInverse,
-                          fontFeatures: const [FontFeature.tabularFigures()],
-                        ),
-              ),
-            ),
-          ),
-        ],
+        // A caixa da figura tem largura FIXA: é ela que fixa a grade.
+        SizedBox(
+          width: figureSize,
+          child: Center(child: figure),
+        ),
+        AppSpacing.gapXxs,
+        // O espaço do número existe mesmo sem número — é o que impede o anel
+        // do coach (que não conta nada) de cair num x diferente do dos
+        // outros três.
+        Expanded(
+          child: value == null
+              ? const SizedBox.shrink()
+              : FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    value!,
+                    maxLines: 1,
+                    style:
+                        (compact
+                                ? theme.textTheme.labelSmall
+                                : theme.textTheme.labelMedium)
+                            ?.copyWith(
+                              color: AppColors.inkInverse,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
+                            ),
+                  ),
+                ),
+        ),
       ],
     );
 

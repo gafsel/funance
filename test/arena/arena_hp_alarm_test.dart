@@ -316,6 +316,50 @@ void main() {
       );
     });
 
+    testWidgets('sem movimento, a palavra "Esgotado" faz o trabalho do pulso', (
+      tester,
+    ) async {
+      // Com "reduzir movimento" ligado, o que separava a barra ESGOTADA da
+      // barra cheia e exausta era um pixel e meio de moldura. A palavra é o
+      // sinal que não depende de movimento nem de um pixel.
+      await pumpArena(
+        tester,
+        reduceMotion: true,
+        state: arenaTestState(
+          initialBalance: -6361.92,
+          currentBalance: -6361.92,
+        ),
+      );
+
+      expect(find.text('Esgotado'), findsOneWidget);
+    });
+
+    testWidgets('cheia e exausta NÃO diz "Esgotado" — ela tem caixa', (
+      tester,
+    ) async {
+      // O rombo COM caixa: a barra está cheia, toda hachurada de vermelho, e
+      // o selo diz quanto falta. Ela não está esgotada, e dizer que está
+      // apagaria a diferença entre "está no talo" e "acabou".
+      await pumpArena(
+        tester,
+        state: arenaTestState(
+          initialBalance: 3115.02,
+          currentBalance: 3115.02,
+          commitments: [
+            arenaTestCommitment(id: 'fatura', amount: 8300.55, overdue: true),
+          ],
+        ),
+      );
+
+      final herois = tester
+          .widgetList<ArenaHpBar>(find.byType(ArenaHpBar))
+          .first;
+
+      expect(herois.depleted, isFalse);
+      expect(herois.pressed, isTrue);
+      expect(find.text('Esgotado'), findsNothing);
+    });
+
     testWidgets('com caixa, ninguém acende', (tester) async {
       await pumpArena(tester, state: arenaTestState());
 
