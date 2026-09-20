@@ -65,6 +65,18 @@ import {
 } from "./villagers";
 
 /**
+ * Último instante de um mês `YYYY-MM`, no fuso do produto.
+ *
+ * É o que decide QUAL semana recebe o XP da aldeia na barra semanal. Derivar
+ * da chave (e não do relógio de quem chama) é o que faz o cron do dia 1 e o
+ * recálculo retroativo de dois meses depois creditarem a mesma semana.
+ */
+function monthEndInstant(monthKey: string): Date {
+    const [year, month] = monthKey.split("-").map(Number);
+    return getMonthRangeInTz(localMidnightInstant(year, month, 1), 0).end;
+}
+
+/**
  * Um planning cobre o mês se startMonth <= mês <= endMonth (chaves "YYYY-MM").
  * Plannings sem período definido são considerados sempre ativos.
  */
@@ -2203,7 +2215,7 @@ export class GamificationService {
         const monthKey = `${lastMonth.year}-${String(lastMonth.month).padStart(2, "0")}`;
 
         const run = async () => {
-            await this.closeMonthlyVillagers(workspaceId, monthKey, lastMonth.end);
+            await this.closeMonthlyVillagers(workspaceId, monthKey, now);
         };
 
         if (this.idempotencyService) {
@@ -2222,18 +2234,19 @@ export class GamificationService {
      * script `recompute_monthly_villagers` recalcula um mês retroativamente. A
      * proteção contra pagamento duplo é o marcador durável, não o embrulho.
      *
-     * `xpWeekDate` é o instante da semana que recebe o XP na BARRA semanal —
-     * para o cron, o último instante do mês fechado. O mérito é daquele mês, e
-     * é na barra daquela semana que o histórico precisa mostrá-lo (mesma
-     * decisão do XP semanal, que credita a semana AVALIADA).
+     * A semana que recebe o XP na BARRA semanal sai do PRÓPRIO `monthKey` — o
+     * último instante do mês avaliado —, e não do relógio: o mérito é daquele
+     * mês, e é na barra daquela semana que o histórico precisa mostrá-lo
+     * (mesma decisão do XP semanal, que credita a semana AVALIADA). Assim o
+     * cron e o recálculo retroativo creditam a MESMA semana.
      */
     async closeMonthlyVillagers(
         workspaceId: string,
         monthKey: string,
-        xpWeekDate: Date,
         now: Date = new Date()
     ): Promise<MonthlyVillagersReport | null> {
         const outcome = await this.computeMonthlyVillagers(workspaceId, monthKey);
+        const xpWeekDate = monthEndInstant(monthKey);
 
         // Nenhuma categoria com orçamento: não havia aldeia para defender.
         // Sem retrato e sem XP — gravar um documento por workspace por mês

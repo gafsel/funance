@@ -233,7 +233,9 @@ describe("HUD mensal (integração com emulador do Firestore)", () => {
             new GamificationRepositoryImpl(),
             undefined,
             undefined,
-            async (_w, date, xp) => { written.push({ date, xp }); }
+            async (_w, date, xp) => {
+                written.push({ date, xp });
+            }
         );
         await service.evaluateMonthlyVillagersXp(workspaceId, MONTHLY_CRON);
 

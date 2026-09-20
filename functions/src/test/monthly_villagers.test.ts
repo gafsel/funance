@@ -30,6 +30,7 @@ import {
     XP_VALUES,
 } from "../features/goal/domain/services/gamification.service";
 import { buildBadgeCatalog } from "../features/goal/domain/services/badge_catalog.service";
+import { getWeekId } from "../core/utils/week.utils";
 
 /** Dia 1º de setembro de 2026, 03:00 em São Paulo — o horário do cron mensal. */
 const MONTHLY_CRON = new Date("2026-09-01T06:00:00.000Z");
@@ -271,7 +272,7 @@ describe("closeMonthlyVillagers — concessão e retrato", () => {
         const repository = makeRepository(rows);
 
         await new GamificationService(repository)
-            .closeMonthlyVillagers("w", EVALUATED_MONTH, new Date("2026-08-31T23:59:59.999Z"));
+            .closeMonthlyVillagers("w", EVALUATED_MONTH, MONTHLY_CRON);
 
         expect(repository.awardXpOnce).toHaveBeenCalledTimes(1);
         const [workspaceId, group, key, xp] = repository.awardXpOnce.mock.calls[0];
@@ -288,7 +289,7 @@ describe("closeMonthlyVillagers — concessão e retrato", () => {
         const now = new Date("2026-09-01T06:00:00.000Z");
 
         const report = await new GamificationService(repository)
-            .closeMonthlyVillagers("w", EVALUATED_MONTH, now, now);
+            .closeMonthlyVillagers("w", EVALUATED_MONTH, now);
 
         expect(repository.saveMonthlyReport).toHaveBeenCalledWith("w", {
             monthKey: EVALUATED_MONTH,
@@ -346,15 +347,34 @@ describe("closeMonthlyVillagers — concessão e retrato", () => {
         const writer = jest.fn(async (_w: string, date: Date, xp: number) => {
             calls.push({ date, xp });
         });
-        // Último instante de agosto no fuso do produto.
-        const monthEnd = new Date("2026-09-01T02:59:59.999Z");
 
+        // O relógio é setembro; a semana creditada é a de AGOSTO. A data sai
+        // do `monthKey`, não de `now` — é o que faz o cron do dia 1 e o
+        // recálculo retroativo creditarem a mesma semana.
         await new GamificationService(repository, undefined, undefined, writer)
-            .closeMonthlyVillagers("w", EVALUATED_MONTH, monthEnd);
+            .closeMonthlyVillagers("w", EVALUATED_MONTH, MONTHLY_CRON);
 
         expect(calls).toHaveLength(1);
-        expect(calls[0].date).toBe(monthEnd);
         expect(calls[0].xp).toBe(145);
+        // Último instante de agosto no fuso do produto: 31/08 23:59:59.999
+        // local = 01/09 02:59:59.999Z.
+        expect(calls[0].date.toISOString()).toBe("2026-09-01T02:59:59.999Z");
+        expect(getWeekId(calls[0].date)).toBe("2026-W35");
+    });
+
+    it("um recálculo MUITO depois credita a MESMA semana do cron", async () => {
+        const seen: string[] = [];
+        const writer = jest.fn(async (_w: string, date: Date) => {
+            seen.push(date.toISOString());
+        });
+
+        const service = (repo: any) => new GamificationService(repo, undefined, undefined, writer);
+
+        await service(makeRepository(rows)).closeMonthlyVillagers("w", EVALUATED_MONTH, MONTHLY_CRON);
+        await service(makeRepository(rows))
+            .closeMonthlyVillagers("w", EVALUATED_MONTH, new Date("2026-12-25T12:00:00.000Z"));
+
+        expect(seen[0]).toBe(seen[1]);
     });
 
     it("não credita a barra quando o XP não saiu", async () => {
