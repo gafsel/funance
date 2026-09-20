@@ -100,13 +100,27 @@ void main() {
     }
   });
 
-  test('o anel da Party sobreviveu, genérico, em core/widgets', () {
-    // Decisão 9, segunda metade: *"NÃO apague o widget de anel circular se
-    // for reutilizável"* — a vila do HUD mensal vai montar uma grade no mesmo
-    // formato, e a alternativa seria ela nascer com um segundo desenho do
-    // mesmo anel.
+  test('o código sem quem o renderize não sobrevive', () {
+    // Segunda passada de faxina: a rodada 1 tirou os blocos da tela e deixou
+    // três arquivos compilando sem ninguém montá-los. Um widget que ninguém
+    // renderiza é o pior tipo de código morto — ele compila, tem teste, e no
+    // dia em que alguém procurar "onde fica o coaching?" vai achar 400 linhas
+    // de cartão que a tela não usa.
+    //
+    // O anel genérico saiu junto: o outro pacote já tem `core/widgets/
+    // app_ring.dart`, e dois anéis genéricos são um a mais.
+    for (final morto in <String>[
+      'lib/core/widgets/progress_ring_icon.dart',
+      'lib/features/home/presentation/widgets/coaching_insight_card.dart',
+      'lib/features/home/presentation/widgets/compass/compass_strip_view.dart',
+    ]) {
+      expect(File(morto).existsSync(), isFalse, reason: '$morto ressuscitou');
+    }
+
+    // O que sobrou do coach são as AÇÕES, sem a moldura.
     expect(
-      File('lib/core/widgets/progress_ring_icon.dart').existsSync(),
+      File('lib/features/coaching/presentation/coaching_actions.dart')
+          .existsSync(),
       isTrue,
     );
   });
