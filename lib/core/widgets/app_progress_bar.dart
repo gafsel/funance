@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 import '../theme/app_durations.dart';
-import '../theme/app_gradients.dart';
 import '../theme/app_palette.dart';
 import '../theme/app_radius.dart';
 
@@ -67,7 +66,7 @@ class AppProgressBar extends StatelessWidget {
   /// Cor sólida do preenchimento. `null` usa o gradiente de progresso.
   final Color? color;
 
-  /// Cor do trilho. `null` usa a linha do tema.
+  /// Cor do trilho. `null` deriva do preenchimento — ver [trackFor].
   final Color? trackColor;
 
   final String? semanticLabel;
@@ -75,6 +74,18 @@ class AppProgressBar extends StatelessWidget {
 
   /// Chave do retângulo preenchido, para medida em teste.
   static const Key fillKey = _Fill.fillKey;
+
+  /// O trilho de uma barra COLORIDA: a própria tinta a 20%.
+  ///
+  /// A cor de linha do tema não serve aqui. Ela é uma cinza pálida, e a
+  /// tinta de uma barra colorida costuma ser clara também: ouro sobre
+  /// `lineLight` dá 1,22:1 — a barra de missão cumprida desenhava e ninguém
+  /// via onde ela terminava, que é a única coisa que uma barra precisa
+  /// mostrar. Diluir a PRÓPRIA tinta contra a superfície dá um trilho do
+  /// mesmo matiz e com a separação necessária, em qualquer tema, desde que a
+  /// tinta seja a do tema — o que este contrato passa a cobrar de quem
+  /// chama.
+  static Color trackFor(Color color) => color.withValues(alpha: 0.20);
 
   @override
   Widget build(BuildContext context) {
@@ -98,12 +109,17 @@ class AppProgressBar extends StatelessWidget {
         child: Stack(
           children: [
             Positioned.fill(
-              child: ColoredBox(color: trackColor ?? palette.line),
+              child: ColoredBox(
+                color:
+                    trackColor ??
+                    (color == null ? palette.line : trackFor(color!)),
+              ),
             ),
             Positioned.fill(
               child: _Fill(
                 fraction: fraction,
                 color: color,
+                gradient: palette.progressGradient,
                 radius: radius,
                 height: size.height,
                 animate: animate && !AppDurations.reduceMotion(context),
@@ -139,6 +155,7 @@ class _Fill extends StatelessWidget {
   const _Fill({
     required this.fraction,
     required this.color,
+    required this.gradient,
     required this.radius,
     required this.height,
     required this.animate,
@@ -146,6 +163,9 @@ class _Fill extends StatelessWidget {
 
   final double fraction;
   final Color? color;
+
+  /// O gradiente do TEMA, já resolvido — ver [AppPalette.progressGradient].
+  final LinearGradient gradient;
   final BorderRadius radius;
 
   /// Altura da barra, repassada explicitamente: é o que garante que o
@@ -173,7 +193,7 @@ class _Fill extends StatelessWidget {
             child: DecoratedBox(
               decoration: BoxDecoration(
                 color: color,
-                gradient: color == null ? AppGradients.progress : null,
+                gradient: color == null ? gradient : null,
                 borderRadius: radius,
               ),
             ),

@@ -99,8 +99,9 @@ class LevelBadge extends StatelessWidget {
               child: AppProgressBar(
                 value: progress,
                 size: AppProgressSize.thin,
+                // O trilho vem do próprio `AppProgressBar`, diluído desta
+                // tinta: a regra saiu daqui e virou contrato do componente.
                 color: reward,
-                trackColor: reward.withValues(alpha: 0.24),
               ),
             ),
           ],

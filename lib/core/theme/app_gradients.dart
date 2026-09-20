@@ -28,6 +28,16 @@ abstract final class AppGradients {
     end: Alignment.centerRight,
   );
 
+  /// O mesmo progresso, em tinta de papel claro.
+  ///
+  /// Ver [AppPalette.progressGradient]: quem escolhe entre os dois é a
+  /// paleta, porque a escolha é do TEMA e não de quem desenha a barra.
+  static const LinearGradient progressOnPaper = LinearGradient(
+    colors: [AppColors.successInk, AppColors.tealInk],
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+  );
+
   /// Ouro: recompensa, botão de celebração, moeda, aro de conquista.
   static const LinearGradient gold = LinearGradient(
     colors: [AppColors.gold, AppColors.goldDeep],

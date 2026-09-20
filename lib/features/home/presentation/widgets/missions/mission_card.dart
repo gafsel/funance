@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/theme/app_palette.dart';
 import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
@@ -86,7 +85,11 @@ class MissionCard extends StatelessWidget {
             AppSpacing.gapSm,
             AppProgressBar(
               value: mission.completion,
-              color: completed ? AppColors.gold : null,
+              // `rewardText`, e não o ouro cheio: sobre papel claro o ouro dá
+              // 1,22:1 contra o trilho e a barra da missão CUMPRIDA — a que
+              // mais importa — era a única que não se via. O trilho sai
+              // daqui, diluído da própria tinta.
+              color: completed ? palette.rewardText : null,
               semanticLabel: _labelOf(l10n, mission.type),
             ),
             AppSpacing.gapXxs,

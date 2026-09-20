@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'app_colors.dart';
+import 'app_gradients.dart';
 
 /// Os papéis de cor já resolvidos para o brilho corrente.
 ///
@@ -97,6 +98,21 @@ class AppPalette extends ThemeExtension<AppPalette> {
       isDark ? AppColors.warningInkDark : AppColors.warningInk;
   Color get dangerText =>
       isDark ? AppColors.dangerInkDark : AppColors.dangerInk;
+
+  /// O gradiente de progresso, na superfície corrente.
+  ///
+  /// O verde-claro → teal da identidade é a versão para fundo ESCURO. Sobre
+  /// papel claro ele tem quase a mesma luminância do trilho (1,22:1 e 1,39:1
+  /// contra `line`): a barra desenhava, mas não dava para ver ONDE ela
+  /// terminava, que é a única coisa que uma barra de progresso precisa
+  /// mostrar. É o mesmo buraco de `dangerText` e `rewardText` — todo acento
+  /// deste design system tem uma versão de tinta para papel claro, e o
+  /// gradiente de progresso era o único que não tinha.
+  ///
+  /// A versão clara é feita de tokens que já existiam: verde de sucesso →
+  /// teal de tinta, 4,93:1 e 4,43:1 contra o trilho.
+  LinearGradient get progressGradient =>
+      isDark ? AppGradients.progress : AppGradients.progressOnPaper;
 
   /// Tinta de RECOMPENSA na superfície corrente: XP, nível, missão, badge.
   ///

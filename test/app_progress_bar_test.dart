@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
 import 'package:funances/core/theme/app_theme.dart';
 import 'package:funances/core/widgets/app_progress_bar.dart';
 
@@ -173,6 +174,118 @@ void main() {
       final larguras = faixas(tester).map((s) => s.width).toList();
       expect(larguras.last, greaterThan(0));
       expect(tester.takeException(), isNull);
+    });
+  });
+
+  /// Item 6 — a barra desenhava e ninguém via ONDE ela terminava.
+  ///
+  /// O trilho era sempre a cor de linha do tema, uma cinza pálida, e a tinta
+  /// de uma barra colorida costuma ser clara também: ouro sobre `lineLight`
+  /// dá 1,22:1. A barra da missão CUMPRIDA — a que mais importa — era a
+  /// única que não se via. O mesmo valia para o gradiente padrão, que é a
+  /// versão para fundo escuro e vivia sobre papel claro.
+  group('o preenchimento se separa do trilho', () {
+    const piso = 3.0;
+
+    void exige(String oque, Color fill, Color track, Color superficie) {
+      final razao = AppColors.contrastRatio(
+        fill,
+        Color.alphaBlend(track, superficie),
+      );
+      expect(
+        razao,
+        greaterThanOrEqualTo(piso),
+        reason: '$oque: ${razao.toStringAsFixed(2)}:1, piso $piso:1',
+      );
+    }
+
+    for (final entry in {
+      'claro': AppPalette.light,
+      'escuro': AppPalette.dark,
+    }.entries) {
+      final palette = entry.value;
+
+      test('${entry.key}: cada tinta do tema contra o próprio trilho', () {
+        final tintas = {
+          'recompensa': palette.rewardText,
+          'sucesso': palette.successText,
+          'erro': palette.dangerText,
+          'aviso': palette.warningText,
+          'teal': palette.tealText,
+          'tinta secundária': palette.ink2,
+        };
+
+        tintas.forEach((nome, tinta) {
+          for (final superficie in [palette.paper, palette.paper2]) {
+            exige(
+              '$nome em ${entry.key}',
+              tinta,
+              AppProgressBar.trackFor(tinta),
+              superficie,
+            );
+          }
+        });
+      });
+
+      test('${entry.key}: o gradiente padrão contra a cor de linha', () {
+        for (final ponta in palette.progressGradient.colors) {
+          exige(
+            'ponta do gradiente em ${entry.key}',
+            ponta,
+            palette.line,
+            palette.paper,
+          );
+        }
+      });
+    }
+
+    testWidgets('a barra colorida NÃO usa a cor de linha como trilho', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        AppProgressBar(
+          value: 0.5,
+          color: AppPalette.light.rewardText,
+          animate: false,
+        ),
+      );
+
+      final trilho = tester.widget<ColoredBox>(
+        find.descendant(
+          of: find.byType(AppProgressBar),
+          matching: find.byType(ColoredBox),
+        ),
+      );
+
+      expect(trilho.color, AppProgressBar.trackFor(AppPalette.light.rewardText));
+      expect(trilho.color, isNot(AppColors.lineLight));
+    });
+
+    testWidgets('um trilho pedido por quem chama continua mandando', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        const AppProgressBar(
+          value: 0.5,
+          color: AppColors.violet,
+          trackColor: AppColors.lineLight,
+          animate: false,
+        ),
+      );
+
+      expect(
+        tester
+            .widget<ColoredBox>(
+              find.descendant(
+                of: find.byType(AppProgressBar),
+                matching: find.byType(ColoredBox),
+              ),
+            )
+            .color,
+        AppColors.lineLight,
+      );
     });
   });
 }

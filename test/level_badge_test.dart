@@ -131,10 +131,14 @@ void main() {
     final barra = _barra(tester);
     final selo = _fundoDoSelo(tester, AppColors.paperLight);
 
+    // O trilho não vem mais daqui: a regra virou contrato do
+    // `AppProgressBar`, que dilui a própria tinta. O selo só escolhe a tinta.
+    expect(barra.trackColor, isNull);
+
     _exige(
       'preenchimento contra o trilho',
       barra.color!,
-      Color.alphaBlend(barra.trackColor!, selo),
+      Color.alphaBlend(AppProgressBar.trackFor(barra.color!), selo),
     );
   });
 
