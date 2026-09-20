@@ -91,6 +91,11 @@ dev_dependencies:
   # Controle de timers em teste (virada de meia-noite do todayProvider).
   # Já vinha transitivo pelo flutter_test; declarado para o analyzer.
   fake_async: ^1.3.3
+  # `FirestoreMessageCodec`, o codec REAL por onde toda escrita do app passa.
+  # É `const` e codifica sem canal de plataforma, então o teste exercita o
+  # mesmo caminho que recusava as pendências com sugestão — e não uma
+  # imitação. Vem transitivo pelo cloud_firestore; declarado para o analyzer.
+  cloud_firestore_platform_interface: ^6.6.12
 
 flutter_launcher_icons:
   android: "launcher_icon"

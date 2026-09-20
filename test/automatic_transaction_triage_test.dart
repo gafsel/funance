@@ -1,16 +1,20 @@
+// ignore: implementation_imports
+import 'package:cloud_firestore_platform_interface/src/method_channel/utils/firestore_message_codec.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:funances/core/firestore/write_failures.dart';
 import 'package:funances/core/observability/crash_reporter.dart';
 import 'package:funances/features/finance/data/models/automatic_transaction_mapper.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/automatic_transaction_model.dart';
+import 'package:funances/features/finance/domain/models/order_model.dart';
+import 'package:funances/features/finance/domain/models/reconciliation_model.dart';
 import 'package:funances/features/finance/domain/repositories/automatic_transaction_repository.dart';
 import 'package:funances/features/finance/domain/services/automatic_transaction_service.dart';
 import 'package:funances/features/finance/domain/services/finance_service.dart';
 import 'package:funances/features/finance/domain/services/notification_listener_service.dart';
 import 'package:funances/features/finance/presentation/controllers/automatic_transaction_notifier.dart';
+import 'package:funances/features/workspace/domain/models/category_model.dart';
 
 /// O bug que o dono relatou: "alguns lançamentos identificados que simplesmente
 /// não consigo apagar".
@@ -99,12 +103,15 @@ Map<String, dynamic> _pendenciaCrua() => {
   'isIgnored': false,
 };
 
-/// O codec do Firestore ESTENDE `StandardMessageCodec`: tudo que ele não
-/// reconhece cai no `writeValue` do pai, que recusa com `ArgumentError`. É
-/// esse pai que exercitamos aqui — o filho vive atrás de um `src/` do
-/// `cloud_firestore_platform_interface` e exigiria o canal de plataforma.
-void _codificaComoOFirestore(Map<String, dynamic> payload) {
-  const StandardMessageCodec().encodeMessage(payload);
+/// O codec REAL — o mesmo que o `cloud_firestore` usa para mandar a escrita
+/// pelo canal de plataforma.
+///
+/// Ele é `const` e não precisa de canal nenhum para codificar, então dá para
+/// exercitá-lo direto: `Timestamp`, `GeoPoint` e companhia ele conhece; tudo
+/// que não conhece cai no `writeValue` do `StandardMessageCodec`, que recusa
+/// com `ArgumentError`. É exatamente esse caminho que engolia a triagem.
+void _codificaComoOFirestore(Object payload) {
+  const FirestoreMessageCodec().encodeMessage(payload);
 }
 
 class _RepositorioFalso implements IAutomaticTransactionRepository {
@@ -115,11 +122,19 @@ class _RepositorioFalso implements IAutomaticTransactionRepository {
   /// Quando presente, TODA escrita falha com isto.
   Object? falha;
 
+  /// Quando presente, a RELEITURA falha com isto.
+  Object? falhaNaLeitura;
+
   final List<String> escritas = <String>[];
 
   @override
-  Future<List<AutomaticTransactionModel>> getPendingTransactions(String _) async =>
-      pendentes;
+  Future<List<AutomaticTransactionModel>> getPendingTransactions(
+    String _,
+  ) async {
+    final Object? erro = falhaNaLeitura;
+    if (erro != null) throw erro;
+    return pendentes;
+  }
 
   @override
   Future<void> updateTransaction(
@@ -256,8 +271,10 @@ void main() {
         (voltou.suggestedAccount! as CreditCardAccount).nextInvoice,
         isNull,
         reason:
-            'nextInvoice é dado do servidor (`includeToJson: false`); a cópia '
-            'que o leitor tinha embutido não é regravada pelo app',
+            'a ida e volta NÃO preserva nextInvoice, e isso é de propósito: '
+            '`includeToJson: false` apara a cópia embutida na primeira '
+            'regravação. A fonte da verdade da fatura é `accounts/{id}`, que '
+            'o servidor mantém; uma segunda cópia aqui só envelheceria',
       );
     });
   });
@@ -312,8 +329,47 @@ void main() {
         reason: 'nada mudou no servidor, então o item VOLTA — essa é a verdade',
       );
       expect(falhas.single.entity, WriteEntity.automaticTransaction);
-      expect(falhas.single.reason, WriteFailureReason.unknown);
+      expect(
+        falhas.single.reason,
+        WriteFailureReason.serializationFailed,
+        reason:
+            'a escrita nunca saiu do aparelho — dizer "o servidor recusou" '
+            'mandaria o dono investigar o lugar errado',
+      );
       expect(reportados, hasLength(1));
+    });
+
+    test('releitura que falha não escapa, e a lista anterior fica', () async {
+      // O `finally` do `_triage` chama `loadTransactions`, e os botões que
+      // chamam a triagem são `VoidCallback`: se a releitura lançasse, o erro
+      // não teria para onde voltar — a mesma porta por onde o bug original
+      // ficou invisível.
+      final _RepositorioFalso repositorio = _RepositorioFalso([
+        AutomaticTransactionModel.fromJson(_pendenciaCrua()),
+      ]);
+      final AutomaticTransactionNotifier notifier = _notifier(repositorio);
+      await notifier.loadTransactions();
+
+      repositorio.falhaNaLeitura = StateError('servidor fora do ar');
+
+      await expectLater(
+        notifier.ignore(notifier.state.pendingTransactions.single),
+        completes,
+      );
+      expect(
+        notifier.state.pendingTransactions.map((t) => t.id),
+        ['auto-crua'],
+        reason: 'stale, mas é o último estado que o servidor confirmou',
+      );
+      expect(notifier.state.isLoading, isFalse);
+      expect(reportados, hasLength(1), reason: 'some da tela, não do relatório');
+      expect(
+        falhas,
+        isEmpty,
+        reason:
+            'a escrita deu certo; acender "não foi possível salvar" por uma '
+            'LEITURA que falhou seria mentira',
+      );
     });
 
     test('a recusa das rules chega com o motivo certo', () async {
@@ -445,6 +501,128 @@ void main() {
           ),
         ),
       );
+    });
+  });
+
+  /// Item 2 do QA: o conserto não pode abrir a mesma porta de novo.
+  ///
+  /// `TimestampOrIsoConverter` lança em valor inesperado, e um `nextInvoice`
+  /// pela metade dentro de `suggestedAccount` derrubaria a conta, a pendência
+  /// e o documento inteiro — exatamente o defeito de origem. A regra
+  /// "fatura incompleta é DESCARTADA" saiu do mapper da camada de dados e
+  /// passou a viver no modelo, onde vale para os dois caminhos.
+  group('fatura pela metade não derruba a pendência', () {
+    Map<String, dynamic> pendenciaComFaturaQuebrada(
+      void Function(Map<String, dynamic> fatura) estraga,
+    ) {
+      final Map<String, dynamic> doc = _pendenciaComCartaoSugerido();
+      final conta = doc['suggestedAccount']! as Map<String, dynamic>;
+      estraga(conta['nextInvoice']! as Map<String, dynamic>);
+      return doc;
+    }
+
+    test('nextInvoice sem dueDate: a pendência APARECE, sem a fatura', () {
+      final List<String> ilegiveis = <String>[];
+
+      final itens = parsePendingTransactions(
+        [
+          (
+            id: '018469dd',
+            data: pendenciaComFaturaQuebrada((f) => f.remove('dueDate')),
+          ),
+        ],
+        onInvalid: (id, error, stack) => ilegiveis.add('$id: $error'),
+      );
+
+      expect(ilegiveis, isEmpty);
+      final conta = itens.single.suggestedAccount! as CreditCardAccount;
+      expect(conta.name, 'Cartão Itaú', reason: 'a conta continua parseando');
+      expect(
+        conta.nextInvoice,
+        isNull,
+        reason: 'melhor "calculando" do que uma fatura com borda pela metade',
+      );
+    });
+
+    test('nextInvoice com data de tipo impossível também degrada', () {
+      final itens = parsePendingTransactions([
+        (
+          id: '018469dd',
+          data: pendenciaComFaturaQuebrada((f) => f['cycleEnd'] = 42),
+        ),
+      ], onInvalid: (id, error, stack) => fail('não deveria pular: $error'));
+
+      expect(
+        (itens.single.suggestedAccount! as CreditCardAccount).nextInvoice,
+        isNull,
+      );
+    });
+
+    test('nextInvoice que não é mapa não derruba nada', () {
+      final Map<String, dynamic> doc = _pendenciaComCartaoSugerido();
+      (doc['suggestedAccount']! as Map<String, dynamic>)['nextInvoice'] =
+          'era para ser um mapa';
+
+      final itens = parsePendingTransactions([
+        (id: '018469dd', data: doc),
+      ], onInvalid: (id, error, stack) => fail('não deveria pular: $error'));
+
+      expect(
+        (itens.single.suggestedAccount! as CreditCardAccount).nextInvoice,
+        isNull,
+      );
+    });
+
+    test('a fatura ÍNTEIRA continua chegando inteira', () {
+      final itens = parsePendingTransactions([
+        (id: '018469dd', data: _pendenciaComCartaoSugerido()),
+      ]);
+
+      final fatura = (itens.single.suggestedAccount! as CreditCardAccount)
+          .nextInvoice!;
+      expect(fatura.amount, 2843.07);
+      expect(fatura.dueDate.toUtc(), DateTime.utc(2026, 10, 10, 3));
+    });
+  });
+
+  /// Item 1 do QA: os gêmeos latentes. Mesmo defeito, ainda adormecido porque
+  /// hoje só são LIDOS — e foi assim que o de `automatic_transactions` passou
+  /// meses invisível.
+  group('os modelos aninhados vizinhos também são gravaveis', () {
+    test('ReconciliationTransaction passa pelo codec real', () {
+      final ReconciliationTransaction transacao = ReconciliationTransaction(
+        description: 'MERCADO CENTRAL',
+        amount: 132.4,
+        date: DateTime.utc(2026, 3, 15, 15),
+        type: OrderType.expense,
+        category: const CategoryModel(
+          id: 'mercado',
+          name: 'Mercado',
+          icon: 'shopping_cart',
+          color: '#2E7D32',
+        ),
+      );
+
+      final Map<String, dynamic> json = transacao.toJson();
+
+      expect(json['category'], isA<Map<String, dynamic>>());
+      expect(() => _codificaComoOFirestore(json), returnsNormally);
+    });
+
+    test('AccountDocumentAnalysisResult passa pelo codec real', () {
+      final AccountDocumentAnalysisResult resultado =
+          AccountDocumentAnalysisResult(
+            account: AccountModel.fromJson(
+              (_pendenciaComContaSemFatura()['suggestedAccount']!
+                  as Map<String, dynamic>),
+            ),
+          );
+
+      final Map<String, dynamic> json = resultado.toJson();
+
+      expect(json['account'], isA<Map<String, dynamic>>());
+      expect(json['orders'], isEmpty);
+      expect(() => _codificaComoOFirestore(json), returnsNormally);
     });
   });
 }
