@@ -5,7 +5,11 @@ import 'package:funances/features/arena/domain/models/arena_state.dart';
 import 'package:funances/features/arena/presentation/providers/arena_providers.dart';
 import 'package:funances/features/home/presentation/widgets/journey_tab.dart';
 
+import 'package:funances/features/arena/domain/models/hud_state.dart';
+import 'package:funances/features/arena/presentation/providers/hud_providers.dart';
+
 import '../arena/arena_harness.dart';
+import '../arena/hud_harness.dart';
 import '../support/home_harness.dart';
 import 'golden_support.dart';
 
@@ -52,6 +56,13 @@ Future<void> _pump(
             (ref) => AsyncValue<ArenaState>.data(state ?? arenaTestState()),
           ),
           ArenaViewProviders.isBusiness.overrideWith((ref) => false),
+          // O rodapé MENSAL, com os números do cofre real. Ele entra no
+          // golden porque a faixa deixou de ser reservada e vazia: os quatro
+          // ícones são agora a última linha da cena, e é aqui que se prova
+          // que eles cabem em 400 px e continuam legíveis no escuro.
+          HudViewProviders.state.overrideWith(
+            (ref) => AsyncValue<HudState>.data(hudTestState()),
+          ),
         ],
       ),
     );

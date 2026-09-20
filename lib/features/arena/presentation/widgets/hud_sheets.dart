@@ -99,6 +99,9 @@ class _HudSheet extends StatelessWidget {
     final palette = context.palette;
 
     return SafeArea(
+      // A chave nomeia a folha para o golden: as quatro são a mesma classe,
+      // e sem ela um PNG não sabe dizer qual delas fotografou.
+      key: ValueKey('hud-sheet-${slot.name}'),
       child: Padding(
         padding: AppSpacing.allMd,
         child: Column(

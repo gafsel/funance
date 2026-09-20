@@ -28,28 +28,40 @@ final ExpectedIncome hudTestIncome = ExpectedIncome(
 );
 
 /// As seis faturas reais, somando R$ 20.187,80.
+///
+/// A do Nubank de R$ 8.300,55 é a única de ciclo FECHADO: ela venceu em
+/// 17/09 e continua pendente. As outras cinco ainda estão acumulando.
 List<HudInvoiceReading> hudTestInvoices() => [
-  _invoice('samsclub', 'Cartão Samsclub', 286.22, due: 12),
-  _invoice('nubank1', 'Cartão Nubank', 2717.10, due: 10),
-  _invoice('inter', 'Cartão Inter', 3634.86, due: 10),
-  _invoice('itau', 'Cartão Itaú', 2843.07, due: 10),
-  _invoice('c6', 'Cartão C6', 2406.00, due: 10),
-  _invoice('nubank2', 'Cartão Nubank', 8300.55, due: 1, open: false),
+  _invoice('samsclub', 'Cartão Samsclub', 286.22, closing: 10, due: 12),
+  _invoice('nubank1', 'Cartão Nubank', 2717.10, closing: 4, due: 10),
+  _invoice('inter', 'Cartão Inter', 3634.86, closing: 4, due: 10),
+  _invoice('itau', 'Cartão Itaú', 2843.07, closing: 4, due: 10),
+  _invoice('c6', 'Cartão C6', 2406.00, closing: 4, due: 10),
+  HudInvoiceReading(
+    accountId: 'nubank2',
+    name: 'Cartão Nubank',
+    amount: 8300.55,
+    closingDate: DateTime(2026, 9, 10),
+    dueDate: DateTime(2026, 9, 17),
+    isOpenCycle: false,
+    color: '#8A05BE',
+    installmentId: 'inst-nubank2',
+  ),
 ];
 
 HudInvoiceReading _invoice(
   String id,
   String name,
   double amount, {
+  required int closing,
   required int due,
-  bool open = true,
 }) => HudInvoiceReading(
   accountId: id,
   name: name,
   amount: amount,
-  closingDate: DateTime(2026, 10, 4),
+  closingDate: DateTime(2026, 10, closing),
   dueDate: DateTime(2026, 10, due),
-  isOpenCycle: open,
+  isOpenCycle: true,
   color: '#8A05BE',
   installmentId: 'inst-$id',
 );
