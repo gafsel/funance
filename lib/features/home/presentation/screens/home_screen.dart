@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_breakpoints.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/theme/app_spacing.dart';
+import 'package:funances/core/widgets/app_scaffold.dart';
 import 'package:funances/features/auth/presentation/providers.dart';
 import 'package:funances/features/home/presentation/widgets/home/home_bottom_bar_item.dart';
 import 'package:funances/features/home/presentation/widgets/home/workspace_selector.dart';
@@ -87,8 +88,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         // aba reorganizava. Agora rail e conteúdo leem o MESMO `AppLayout`.
         final isLargeScreen = constraints.layout.usesRail;
 
-        return Scaffold(
-          extendBody: true,
+        // `AppScaffold` e não `Scaffold`: é ele que decide entre rail e barra
+        // inferior pelo MESMO `AppLayout` que as abas leem, e que põe o botão
+        // de lançar no lugar certo de cada um dos dois. Antes essa decisão
+        // estava escrita três vezes aqui — `isLargeScreen` para o rail, de
+        // novo para a barra e uma terceira para a posição do FAB — e nada
+        // garantia que as três concordassem.
+        //
+        // `constrained: false` porque quem limita a largura é cada aba: a
+        // Jornada cabe na largura de conteúdo, o Histórico é uma lista de
+        // borda a borda.
+        return AppScaffold(
+          constrained: false,
           appBar: isLargeScreen
               ? null
               : AppBar(
@@ -113,30 +124,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   // uma no anel da barra, outra no selo do corpo.
                   actions: const [WorkspaceLevelBadge()],
                 ),
-          body: Row(
-            children: [
-              if (isLargeScreen) _buildNavigationRail(context, authUser),
-              Expanded(
-                child: TabBarView(
-                  controller: _tabController,
-                  physics: isLargeScreen
-                      ? const NeverScrollableScrollPhysics()
-                      : null,
-                  children: const [
-                    JourneyTab(),
-                    OverviewTab(),
-                    HistoryTab(),
-                    WorkspaceSettingsScreen(),
-                  ],
-                ),
-              ),
+          rail: _buildNavigationRail(context, authUser),
+          bottomBar: _buildBottomBar(context),
+          launchAction: const LaunchFab(),
+          body: TabBarView(
+            controller: _tabController,
+            physics: isLargeScreen
+                ? const NeverScrollableScrollPhysics()
+                : null,
+            children: const [
+              JourneyTab(),
+              OverviewTab(),
+              HistoryTab(),
+              WorkspaceSettingsScreen(),
             ],
           ),
-          bottomNavigationBar: isLargeScreen ? null : _buildBottomBar(context),
-          floatingActionButton: const LaunchFab(),
-          floatingActionButtonLocation: isLargeScreen
-              ? FloatingActionButtonLocation.endFloat
-              : FloatingActionButtonLocation.centerDocked,
         );
       },
     );
