@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:funances/core/celebration/celebration_event.dart';
 import 'package:funances/core/celebration/celebration_service.dart';
+import 'package:funances/core/router/app_router.dart';
 import 'package:funances/core/theme/app_theme.dart';
 import 'package:funances/core/widgets/celebration_overlay.dart';
 import 'package:funances/core/widgets/reward_toast.dart';
@@ -15,6 +16,7 @@ import 'package:funances/features/workspace/domain/models/workspace_model.dart';
 import 'package:funances/features/workspace/presentation/model/workspace_view_model.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
+import 'package:go_router/go_router.dart';
 
 import 'support/journey_fakes.dart';
 
@@ -89,6 +91,51 @@ class _Harness extends StatelessWidget {
     );
   }
 }
+
+/// O host montado como em produção: no `builder` de um `MaterialApp.router`,
+/// ou seja ACIMA do `Router` na árvore. É essa posição — e só ela — que fazia
+/// `GoRouter.of(context)` estourar quando alguém tocava no toast.
+class _RouterHarness extends StatelessWidget {
+  const _RouterHarness({required this.container, required this.router});
+
+  final ProviderContainer container;
+  final GoRouter router;
+
+  @override
+  Widget build(BuildContext context) {
+    return UncontrolledProviderScope(
+      container: container,
+      child: MaterialApp.router(
+        theme: AppTheme.light,
+        routerConfig: router,
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: const Locale('pt'),
+        builder: (context, child) =>
+            CelebrationHost(child: child ?? const SizedBox.shrink()),
+      ),
+    );
+  }
+}
+
+GoRouter _fakeRouter() => GoRouter(
+  initialLocation: '/',
+  routes: [
+    GoRoute(
+      path: '/',
+      builder: (_, _) => const Scaffold(body: Text('uma tela qualquer')),
+    ),
+    GoRoute(
+      path: '/workspace/badges',
+      builder: (_, _) => const Scaffold(body: Text('cofre de conquistas')),
+    ),
+  ],
+);
 
 void main() {
   group('CelebrationService', () {
@@ -487,6 +534,109 @@ void main() {
       await tester.pump(const Duration(milliseconds: 500));
 
       expect(find.text('Conquista desbloqueada'), findsNothing);
+    });
+  });
+
+  /// B2 — tocar no toast derrubava o app.
+  ///
+  /// O host mora no `builder` do `MaterialApp.router`, acima do `Router`.
+  /// `GoRouter.of(context)` sobe a árvore procurando um `InheritedGoRouter`
+  /// que, daquele ponto, não existe: o toque respondia com
+  /// "No GoRouter found in context" em vez de abrir o cofre. Quem ganhava a
+  /// primeira badge do app tinha o app fechado na cara.
+  group('CelebrationHost — o toque no toast', () {
+    late TestWorkspaceNotifier notifier;
+
+    ProviderContainer build(GoRouter router) {
+      notifier = TestWorkspaceNotifier(
+        WorkspaceState(currentWorkspace: _workspace()),
+      );
+      return ProviderContainer(
+        overrides: [
+          WorkspaceViewProviders.workspace.overrideWith((ref) => notifier),
+          JourneyDomainProviders.repository.overrideWithValue(
+            FakeJourneyRepository(),
+          ),
+          routerProvider.overrideWithValue(router),
+        ],
+      );
+    }
+
+    testWidgets('badge: o toque abre o cofre em vez de estourar', (
+      tester,
+    ) async {
+      final router = _fakeRouter();
+      addTearDown(router.dispose);
+      final container = build(router);
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        _RouterHarness(container: container, router: router),
+      );
+      await tester.pump();
+
+      notifier.state = WorkspaceState(
+        currentWorkspace: _workspace(
+          badges: const {'primeiro_passo': '2026-09-17T10:00:00.000Z'},
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+
+      await tester.tap(find.text('Conquista desbloqueada'));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('cofre de conquistas'), findsOneWidget);
+    });
+
+    testWidgets('nível: o toque abre o cofre em vez de estourar', (
+      tester,
+    ) async {
+      final router = _fakeRouter();
+      addTearDown(router.dispose);
+      final container = build(router);
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        _RouterHarness(container: container, router: router),
+      );
+      await tester.pump();
+
+      notifier.state = WorkspaceState(
+        currentWorkspace: _workspace(level: 2, xp: 500),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+
+      await tester.tap(find.text('Nível 2'));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('cofre de conquistas'), findsOneWidget);
+    });
+
+    testWidgets('XP não navega para lugar nenhum', (tester) async {
+      final router = _fakeRouter();
+      addTearDown(router.dispose);
+      final container = build(router);
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        _RouterHarness(container: container, router: router),
+      );
+      await tester.pump();
+
+      notifier.state = WorkspaceState(currentWorkspace: _workspace(xp: 40));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+
+      await tester.tap(find.text('+40 XP'));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('cofre de conquistas'), findsNothing);
+      expect(find.text('uma tela qualquer'), findsOneWidget);
     });
   });
 }

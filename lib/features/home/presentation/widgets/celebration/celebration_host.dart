@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/celebration/celebration_event.dart';
 import 'package:funances/core/celebration/celebration_service.dart';
+import 'package:funances/core/router/app_router.dart';
 import 'package:funances/core/theme/app_durations.dart';
 import 'package:funances/core/widgets/celebration_overlay.dart';
 import 'package:funances/core/widgets/reward_toast.dart';
@@ -16,7 +17,6 @@ import 'package:funances/features/workspace/domain/models/badge_catalog_model.da
 import 'package:funances/features/workspace/presentation/model/workspace_view_model.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
-import 'package:go_router/go_router.dart';
 
 /// Quem escuta as conquistas e as coloca na tela, de qualquer tela.
 ///
@@ -236,11 +236,20 @@ class _CelebrationHostState extends ConsumerState<CelebrationHost> {
     );
   }
 
+  /// Abre o que a conquista promete, quando ela promete algo.
+  ///
+  /// A rota sai de `ref.read(routerProvider)`, e não de `GoRouter.of(context)`.
+  /// O host mora no `builder` do `MaterialApp.router` — ou seja, ACIMA do
+  /// `Router` na árvore —, e lá `GoRouter.of` não encontra o
+  /// `InheritedGoRouter`: tocar no toast de badge ou de nível derrubava o app
+  /// com "No GoRouter found in context". O provider é a mesma instância que o
+  /// `MaterialApp.router` recebe como `routerConfig`, só que alcançada por
+  /// fora da árvore de widgets.
   void _openFor(CelebrationEvent event) {
     switch (event.kind) {
       case CelebrationKind.badge:
       case CelebrationKind.level:
-        GoRouter.of(context).push('/workspace/badges');
+        ref.read(routerProvider).push('/workspace/badges');
       case CelebrationKind.tier:
       case CelebrationKind.mission:
       case CelebrationKind.xp:
