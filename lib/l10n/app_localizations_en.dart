@@ -2492,4 +2492,8 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get arenaInvoiceCocoon => 'Card statement';
+
+  @override
+  String get arenaHint =>
+      'Tap the monster to confirm a payment. Hold to open the history.';
 }

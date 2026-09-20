@@ -72,7 +72,15 @@ class ArenaHpBar extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Row(
+              // `Wrap`, e não `Row`: o selo mais longo ("Enfurecido:
+              // +R$ 1.234,56 atrasado") não cabe na mesma linha do rótulo e
+              // do valor num celular. Com `Row` ele saía cortado em
+              // "Enfureci…" — que não informa nada. Aqui ele desce para uma
+              // segunda linha e continua legível.
+              Wrap(
+                spacing: AppSpacing.xs,
+                runSpacing: AppSpacing.xxs,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   Text(
                     label,
@@ -80,7 +88,6 @@ class ArenaHpBar extends StatelessWidget {
                       color: palette.onGame2,
                     ),
                   ),
-                  AppSpacing.gapXs,
                   // O número NUNCA troca seco: ele rola. É o que faz um
                   // pagamento parecer um golpe e não um refresh.
                   AnimatedDouble.currency(
@@ -94,12 +101,7 @@ class ArenaHpBar extends StatelessWidget {
                       color: palette.onGame,
                     ),
                   ),
-                  const Spacer(),
-                  // `Flexible` porque o selo mais longo — "Enfurecido:
-                  // +R$ 1.234,56 atrasado" — é mais largo que a barra num
-                  // celular. A `StatusPill` já corta com reticências; o que
-                  // faltava era deixá-la encolher.
-                  if (trailing != null) Flexible(child: trailing!),
+                  ?trailing,
                 ],
               ),
               AppSpacing.gapXxs,
@@ -107,11 +109,15 @@ class ArenaHpBar extends StatelessWidget {
                 borderRadius: AppRadius.brSm,
                 child: SizedBox(
                   height: _height,
+                  // `StackFit.expand` é obrigatório, não estilo: num `Stack`
+                  // frouxo o `FractionallySizedBox` recebe altura nenhuma, e
+                  // o `ColoredBox` dentro dele não tem tamanho próprio — a
+                  // barra desenhava com ZERO de altura e a tela mostrava só a
+                  // calha escura, com os números certos ao lado.
                   child: Stack(
+                    fit: StackFit.expand,
                     children: [
-                      Positioned.fill(
-                        child: ColoredBox(color: AppColors.surfaceDeep),
-                      ),
+                      ColoredBox(color: AppColors.surfaceDeep),
                       // 1. O fantasma: mesma fração, mas com atraso e mais
                       //    devagar. Fica POR BAIXO do preenchimento, então só
                       //    aparece no rastro do que encolheu.
@@ -205,18 +211,29 @@ class _CommittedBand extends StatelessWidget {
       tween: Tween<double>(end: start.clamp(0.0, 1.0)),
       duration: duration,
       curve: AppDurations.curve,
+      // Três caixas fracionárias encadeadas, e as DUAS precisam de
+      // `heightFactor: 1`: um `Align` entrega restrição frouxa ao filho, e
+      // sem a fração de altura a cadeia inteira colapsa para zero — a faixa
+      // some sem erro nenhum, que foi exatamente o que aconteceu.
       builder: (context, value, child) => Align(
         alignment: Alignment.centerLeft,
         child: FractionallySizedBox(
           alignment: Alignment.centerLeft,
           widthFactor: (value + extent).clamp(0.0, 1.0),
+          heightFactor: 1,
           child: Align(
             alignment: Alignment.centerRight,
             child: FractionallySizedBox(
               widthFactor: (value + extent) <= 0
                   ? 0
                   : (extent / (value + extent)).clamp(0.0, 1.0),
-              child: CustomPaint(painter: _HatchPainter(color)),
+              heightFactor: 1,
+              child: CustomPaint(
+                painter: _HatchPainter(color),
+                // Um `CustomPaint` sem filho prefere `Size.zero`; o filho
+                // expandido é o que o faz ocupar a faixa inteira.
+                child: const SizedBox.expand(),
+              ),
             ),
           ),
         ),

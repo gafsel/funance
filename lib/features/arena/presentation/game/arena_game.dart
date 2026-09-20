@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
+import 'package:flutter/foundation.dart' show clampDouble;
 import 'package:flutter/painting.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/features/arena/domain/models/arena_state.dart';
@@ -10,17 +11,38 @@ import 'package:funances/features/arena/presentation/game/arena_effects.dart';
 import 'package:funances/features/arena/presentation/game/arena_sprites.dart';
 import 'package:funances/features/arena/presentation/game/arena_theme.dart';
 
-/// Altura da cena em unidades de mundo.
+/// Altura de mundo que a cena PREFERE mostrar.
 ///
-/// A cena é desenhada sempre em 100 unidades de altura e a LARGURA é a que
-/// sobrar: `camera.viewfinder.zoom` converte para pixels. É o que faz a Arena
-/// caber tanto num celular de 360 pt quanto numa janela de macOS de 1400 sem
-/// tarja preta, sem `FixedResolutionViewport` e sem duas artes.
-const double arenaSceneHeight = 100;
+/// Preferência, não regra: quem manda de verdade é a faixa de largura abaixo.
+/// A conversão para pixels é do `camera.viewfinder.zoom` — sem
+/// `FixedResolutionViewport`, sem tarja preta e com uma arte só do celular ao
+/// macOS.
+const double arenaPreferredHeight = 110;
+
+/// A cena nunca é mais estreita que isto, em unidades de mundo.
+///
+/// É o que impede a armadilha do celular em pé: numa caixa alta e estreita, o
+/// zoom pela altura deixaria o mundo com ~70 unidades de largura — dois
+/// heróis de 19 e um monstro de 26 não cabem lado a lado, e a "luta" vira uma
+/// pilha de sprites encostados. Quando a caixa é alta demais para esta
+/// largura, o que sobra vira ALTURA DE PAREDE, que é cenário de graça.
+const double arenaMinWorldWidth = 130;
+
+/// E nunca mais larga que isto: num monitor, um mundo largo demais deixaria
+/// os bonecos do tamanho de formigas em lados opostos da tela.
+const double arenaMaxWorldWidth = 280;
 
 /// Abaixo desta largura de mundo a cena é "compacta": bonecos mais juntos,
-/// monstro um pouco menor, casulo colado na borda.
-const double arenaCompactWidth = 160;
+/// monstro um pouco menor.
+const double arenaCompactWidth = 165;
+
+/// Altura MÍNIMA da faixa de chão, em unidades de mundo. O resto, para cima,
+/// é parede.
+///
+/// Numa caixa alta o chão cresce junto (ver `_floorBand`): com uma faixa fixa,
+/// um celular em pé virava uma parede de tijolo de três quartos de tela com
+/// uma tirinha de areia embaixo.
+const double arenaMinFloorBand = 58;
 
 /// O cenário: parede de tijolo em cima, chão de areia embaixo.
 ///
@@ -28,50 +50,83 @@ const double arenaCompactWidth = 160;
 /// `drawImageRect` por quadro, o que um tilemap faria de qualquer jeito, e
 /// cabe em trinta linhas em vez de uma dependência a mais.
 class _ArenaBackdrop extends Component {
-  _ArenaBackdrop(this.sprites);
+  _ArenaBackdrop(this.sprites, this.theme);
 
   final ArenaSprites sprites;
-
-  /// Onde a parede termina e o chão começa, em unidades de mundo.
-  static const double horizon = 46;
+  final ArenaTheme theme;
 
   /// Lado do tile desenhado. Não é 16: a folha é de 16 px, e aqui ela é
   /// esticada para a escala da cena.
   static const double drawn = 13;
 
-  double _worldWidth = arenaCompactWidth;
+  double _worldWidth = arenaMinWorldWidth;
+  double _worldHeight = arenaPreferredHeight;
+  double _horizon = arenaPreferredHeight - arenaMinFloorBand;
 
-  set worldWidth(double value) => _worldWidth = value;
+  void resize(double width, double height, double horizon) {
+    _worldWidth = width;
+    _worldHeight = height;
+    _horizon = horizon;
+  }
 
   @override
   void render(Canvas canvas) {
     final columns = (_worldWidth / drawn).ceil() + 1;
+    final line = _horizon;
 
-    for (var row = 0; row * drawn < horizon; row++) {
+    // A parede é desenhada de BAIXO PARA CIMA, a partir do horizonte: assim a
+    // fiada que encosta no chão é sempre inteira, e o corte — que existe em
+    // qualquer altura de caixa — fica lá em cima, fora do olhar.
+    for (var row = 0; row * drawn < line + drawn; row++) {
       for (var column = 0; column < columns; column++) {
         sprites.wall.render(
           canvas,
-          position: Vector2(column * drawn, row * drawn),
+          position: Vector2(column * drawn, line - (row + 1) * drawn),
           size: Vector2.all(drawn),
           overridePaint: ArenaSprites.pixelPaint,
         );
       }
     }
 
-    for (var row = 0; horizon + row * drawn < arenaSceneHeight; row++) {
+    for (var row = 0; line + row * drawn < _worldHeight; row++) {
       for (var column = 0; column < columns; column++) {
-        // A variação salpicada entra em um de cada cinco tiles, por posição e
-        // não por sorteio: um `Random` por quadro faria o chão cintilar.
-        final speckled = (row * 3 + column) % 5 == 0;
+        // A variação salpicada entra em um de cada ONZE tiles, por posição e
+        // não por sorteio: um `Random` por quadro faria o chão cintilar, e um
+        // de cada cinco cobria o chão de cascalho branco.
+        final speckled = (row * 7 + column * 3) % 11 == 0;
 
         (speckled ? sprites.floorSpeckled : sprites.floor).render(
           canvas,
-          position: Vector2(column * drawn, horizon + row * drawn),
+          position: Vector2(column * drawn, line + row * drawn),
           size: Vector2.all(drawn),
           overridePaint: ArenaSprites.pixelPaint,
         );
       }
     }
+
+    _renderWallShade(canvas, line);
+  }
+
+  /// Escurece a parede de cima para baixo.
+  ///
+  /// Duas coisas de uma vez: mata a monotonia de um campo de tijolo que num
+  /// celular em pé toma metade da tela, e amarra o cinza do Kenney ao azul
+  /// profundo da identidade — a luz parece vir dos braseiros, que é onde a
+  /// cena quer que se olhe.
+  void _renderWallShade(Canvas canvas, double line) {
+    if (line <= 0) return;
+
+    final rect = Rect.fromLTWH(0, 0, _worldWidth, line);
+
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: <Color>[theme.wallShadeTop, theme.wallShadeBottom],
+        ).createShader(rect),
+    );
   }
 }
 
@@ -82,8 +137,12 @@ class _ArenaBackdrop extends Component {
 /// onde e como isso aparece. A conta mora em `ArenaCalculator`, e é
 /// justamente essa separação que permite testar o número sem montar o jogo.
 class ArenaGame extends FlameGame {
-  ArenaGame({required this.theme, this.onMonsterTap, this.onMonsterLongPress,
-    this.onCocoonTap});
+  ArenaGame({
+    required this.theme,
+    this.onMonsterTap,
+    this.onMonsterLongPress,
+    this.onCocoonTap,
+  });
 
   final ArenaTheme theme;
   final VoidCallback? onMonsterTap;
@@ -112,8 +171,33 @@ class ArenaGame extends FlameGame {
 
   bool get isSceneReady => _monster != null;
 
-  double get _worldWidth =>
-      size.y <= 0 ? arenaCompactWidth : size.x * arenaSceneHeight / size.y;
+  /// O zoom: a altura preferida, PRESA na faixa de largura de mundo.
+  ///
+  /// `clampDouble` com os dois limites vindos da largura da caixa — é a regra
+  /// inteira da responsividade da cena, em uma linha.
+  double get _zoom {
+    if (size.x <= 0 || size.y <= 0) return 1;
+
+    return clampDouble(
+      size.y / arenaPreferredHeight,
+      size.x / arenaMaxWorldWidth,
+      size.x / arenaMinWorldWidth,
+    );
+  }
+
+  double get _worldWidth => size.x <= 0 ? arenaMinWorldWidth : size.x / _zoom;
+
+  double get _worldHeight =>
+      size.y <= 0 ? arenaPreferredHeight : size.y / _zoom;
+
+  /// Faixa de chão: cresce com a altura da caixa, nunca menor que o mínimo.
+  double get _floorBand => math.max(arenaMinFloorBand, _worldHeight * 0.46);
+
+  /// Onde a parede termina e o chão começa.
+  double get _horizon => _worldHeight - _floorBand;
+
+  /// A linha do chão: onde os pés dos bonecos pousam.
+  double get _groundY => _worldHeight - _floorBand * 0.22;
 
   bool get _isCompact => _worldWidth < arenaCompactWidth;
 
@@ -127,8 +211,8 @@ class ArenaGame extends FlameGame {
     camera.viewfinder.anchor = Anchor.topLeft;
     _applyZoom();
 
-    final backdrop = _ArenaBackdrop(sprites)
-      ..worldWidth = _worldWidth
+    final backdrop = _ArenaBackdrop(sprites, theme)
+      ..resize(_worldWidth, _worldHeight, _horizon)
       ..priority = 0;
     _backdrop = backdrop;
     world.add(backdrop);
@@ -154,22 +238,24 @@ class ArenaGame extends FlameGame {
 
   void _applyZoom() {
     if (size.y <= 0) return;
-    camera.viewfinder.zoom = size.y / arenaSceneHeight;
+    camera.viewfinder.zoom = _zoom;
     camera.viewfinder.position = Vector2.zero();
   }
 
+  final List<SpriteComponent> _braziers = <SpriteComponent>[];
+
   void _addBraziers() {
-    for (final x in <double>[7, _worldWidth - 7]) {
-      world.add(
-        SpriteComponent(
-          sprite: sprites.brazier,
-          position: Vector2(x, _ArenaBackdrop.horizon - 2),
-          size: Vector2.all(14),
-          anchor: Anchor.bottomCenter,
-          priority: 10,
-          paint: ArenaSprites.pixelPaint,
-        ),
+    for (var i = 0; i < 2; i++) {
+      final brazier = SpriteComponent(
+        sprite: sprites.brazier,
+        position: Vector2.zero(),
+        size: Vector2.all(14),
+        anchor: Anchor.bottomCenter,
+        priority: 10,
+        paint: ArenaSprites.pixelPaint,
       );
+      _braziers.add(brazier);
+      world.add(brazier);
     }
   }
 
@@ -292,8 +378,8 @@ class ArenaGame extends FlameGame {
     // um cartão que já vale mais que a semana inteira aparece maior que o
     // bicho, e essa é exatamente a leitura que se quer provocar.
     final reference = math.max(next.monsterMaxHp, 1.0);
-    final ratio = (next.invoiceAmount! / reference).clamp(0.35, 1.6);
-    final side = (_isCompact ? 14.0 : 16.0) * ratio;
+    final ratio = (next.invoiceAmount! / reference).clamp(0.6, 1.5);
+    final side = (_isCompact ? 15.0 : 17.0) * ratio;
 
     final existing = _cocoon;
     if (existing == null) {
@@ -314,27 +400,32 @@ class ArenaGame extends FlameGame {
   /// Onde cada um fica. Chamado no resize e a cada estado novo.
   void _layout() {
     final width = _worldWidth;
-    _backdrop?.worldWidth = width;
+    final height = _worldHeight;
+    final horizon = _horizon;
+    _backdrop?.resize(width, height, horizon);
 
-    const groundY = 88.0;
+    final groundY = _groundY;
 
-    // Compacto aproxima os heróis do monstro: numa largura de celular, as
-    // posições largas deixariam um vazio no meio e os bonecos nas bordas.
-    final heroXs = _isCompact
-        ? <double>[width * 0.26, width * 0.11]
-        : <double>[width * 0.24, width * 0.12];
+    for (var i = 0; i < _braziers.length; i++) {
+      _braziers[i].position = Vector2(i == 0 ? 11 : width - 11, horizon - 2);
+    }
+
+    // A distância entre os dois heróis sai da LARGURA DO SPRITE, não de uma
+    // fração da tela. Com fração, num celular (mundo de ~80 unidades) os dois
+    // bonecos de 19 unidades caíam um em cima do outro — e os nomes também.
+    final lead = width * (_isCompact ? 0.30 : 0.26);
 
     for (var index = 0; index < _heroes.length; index++) {
-      _heroes[index].position = Vector2(
-        heroXs[index % heroXs.length],
-        // O segundo herói fica um degrau atrás, para os dois não se
-        // sobreporem quando a largura aperta.
+      final hero = _heroes[index];
+      hero.position = Vector2(
+        lead - index * hero.size.x * 1.15,
+        // Um degrau atrás: dá profundidade e separa os dois nomes.
         groundY - (index == 1 ? 6 : 0),
       );
     }
 
     _monster?.position = Vector2(width * (_isCompact ? 0.68 : 0.70), groundY);
-    _cocoon?.position = Vector2(width * (_isCompact ? 0.92 : 0.90), groundY);
+    _cocoon?.position = Vector2(width * 0.88, groundY - 3);
   }
 
   // ── Eventos ──────────────────────────────────────────────────────────────

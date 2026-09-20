@@ -89,7 +89,11 @@ ArenaState arenaTestState({
 );
 
 /// A Arena dentro de um router de verdade, para os toques terem para onde ir.
-Widget arenaApp(ArenaState state, {ThemeData? theme}) => ProviderScope(
+Widget arenaApp(
+  ArenaState state, {
+  ThemeData? theme,
+  bool reduceMotion = false,
+}) => ProviderScope(
   overrides: [
     ArenaViewProviders.state.overrideWith(
       (ref) => AsyncValue<ArenaState>.data(state),
@@ -99,6 +103,12 @@ Widget arenaApp(ArenaState state, {ThemeData? theme}) => ProviderScope(
   child: MaterialApp.router(
     debugShowCheckedModeBanner: false,
     theme: theme ?? AppTheme.light,
+    // "Reduzir movimento" do sistema. A Arena inteira consulta isto — e é o
+    // único jeito de um teste provar que ela consulta.
+    builder: (context, child) => MediaQuery(
+      data: MediaQuery.of(context).copyWith(disableAnimations: reduceMotion),
+      child: child!,
+    ),
     routerConfig: GoRouter(
       initialLocation: '/arena',
       routes: [

@@ -117,9 +117,7 @@ class _InstallmentRow extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
-                  DateFormat.MMMEd(
-                    context.locale,
-                  ).format(installment.dueDate),
+                  DateFormat.MMMEd(context.locale).format(installment.dueDate),
                   style: theme.textTheme.labelSmall,
                 ),
               ],

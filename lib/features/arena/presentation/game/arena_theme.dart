@@ -22,6 +22,8 @@ class ArenaTheme {
     required this.ink2,
     required this.shadow,
     required this.exhaustion,
+    required this.wallShadeTop,
+    required this.wallShadeBottom,
     required this.numberStyle,
     required this.labelStyle,
     required this.reduceMotion,
@@ -41,7 +43,9 @@ class ArenaTheme {
       // profundo, em opacidades diferentes: qualquer outro cinza brigaria com
       // o azul da identidade.
       shadow: AppColors.surfaceDeep.withValues(alpha: 0.35),
-      exhaustion: AppColors.surfaceDeep.withValues(alpha: 0.55),
+      exhaustion: AppColors.surfaceDeep.withValues(alpha: 0.45),
+      wallShadeTop: AppColors.surfaceDeep.withValues(alpha: 0.92),
+      wallShadeBottom: AppColors.surfaceDeep.withValues(alpha: 0.05),
       numberStyle: AppTypography.counter(palette.onGame),
       labelStyle: AppTypography.body14(palette.onGame2),
       reduceMotion: AppDurations.reduceMotion(context),
@@ -55,6 +59,10 @@ class ArenaTheme {
   final Color ink2;
   final Color shadow;
   final Color exhaustion;
+
+  /// Degradê da parede: escuro em cima, quase limpo na altura dos braseiros.
+  final Color wallShadeTop;
+  final Color wallShadeBottom;
 
   /// Base dos números flutuantes (+R$ / −R$). O tamanho é reescrito para
   /// unidades de mundo por quem desenha.
@@ -77,6 +85,8 @@ class ArenaTheme {
       other.ink2 == ink2 &&
       other.shadow == shadow &&
       other.exhaustion == exhaustion &&
+      other.wallShadeTop == wallShadeTop &&
+      other.wallShadeBottom == wallShadeBottom &&
       other.numberStyle == numberStyle &&
       other.labelStyle == labelStyle &&
       other.reduceMotion == reduceMotion;
@@ -90,6 +100,8 @@ class ArenaTheme {
     ink2,
     shadow,
     exhaustion,
+    wallShadeTop,
+    wallShadeBottom,
     numberStyle,
     labelStyle,
     reduceMotion,

@@ -53,13 +53,16 @@ abstract class _BreathingActor extends SpriteComponent {
   /// Sombra elíptica no chão. Sem ela, o boneco flutua.
   @override
   void render(Canvas canvas) {
+    // A sombra segue a OPACIDADE do boneco. Ela é desenhada com tinta
+    // própria, então o `OpacityEffect` da fuga do monstro não a alcançava: o
+    // bicho sumia e ficava uma mancha escura sozinha no chão.
     canvas.drawOval(
       Rect.fromCenter(
         center: Offset(size.x / 2, size.y - size.y * 0.06),
         width: size.x * 0.62,
         height: size.y * 0.12,
       ),
-      Paint()..color = theme.shadow,
+      Paint()..color = theme.shadow.withValues(alpha: theme.shadow.a * opacity),
     );
     super.render(canvas);
   }
@@ -145,11 +148,7 @@ class HeroActor extends _BreathingActor {
     add(
       MoveByEffect(
         Vector2(-size.x * 0.12, 0),
-        EffectController(
-          duration: 0.05,
-          reverseDuration: 0.05,
-          repeatCount: 3,
-        ),
+        EffectController(duration: 0.05, reverseDuration: 0.05, repeatCount: 3),
       ),
     );
     add(
@@ -207,11 +206,7 @@ class MonsterActor extends _BreathingActor with TapCallbacks {
     add(
       MoveByEffect(
         Vector2(size.x * 0.14, 0),
-        EffectController(
-          duration: 0.04,
-          reverseDuration: 0.04,
-          repeatCount: 4,
-        ),
+        EffectController(duration: 0.04, reverseDuration: 0.04, repeatCount: 4),
       ),
     );
     add(
@@ -270,7 +265,10 @@ class MonsterActor extends _BreathingActor with TapCallbacks {
       anchor: Anchor.bottomCenter,
       position: Vector2(size.x / 2, -1),
       textRenderer: TextPaint(
-        style: theme.labelStyle.copyWith(fontSize: 5, color: theme.damage),
+        // 4, e não 5: o texto completo ("Enfurecido: +R$ 640,00 atrasado")
+        // atravessava a cena inteira. Na cicatriz vai só o VALOR; a frase
+        // inteira está no selo da barra, onde há largura para ela.
+        style: theme.labelStyle.copyWith(fontSize: 4, color: theme.damage),
       ),
     );
     add(_scar!);

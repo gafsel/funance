@@ -1361,6 +1361,7 @@
   "arenaTeamExtra": "+{count} on the team",
   "arenaExhausted": "Exhausted",
   "arenaInvoiceCocoon": "Card statement",
+  "arenaHint": "Tap the monster to confirm a payment. Hold to open the history.",
   "@arenaEnraged": {
     "placeholders": {
       "amount": {

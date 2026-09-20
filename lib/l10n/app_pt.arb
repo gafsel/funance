@@ -1361,6 +1361,7 @@
   "arenaTeamExtra": "+{count} na equipe",
   "arenaExhausted": "Exausto",
   "arenaInvoiceCocoon": "Fatura do cartão",
+  "arenaHint": "Toque no monstro para confirmar um pagamento. Segure para abrir o histórico.",
   "@arenaEnraged": {
     "placeholders": {
       "amount": {

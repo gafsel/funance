@@ -4471,6 +4471,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Fatura do cartão'**
   String get arenaInvoiceCocoon;
+
+  /// No description provided for @arenaHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque no monstro para confirmar um pagamento. Segure para abrir o histórico.'**
+  String get arenaHint;
 }
 
 class _AppLocalizationsDelegate

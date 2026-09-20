@@ -177,9 +177,8 @@ abstract final class ArenaCalculator {
         ),
     ];
 
-    final pending =
-        expenses.where((i) => !_isSettled(i)).toList()
-          ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
+    final pending = expenses.where((i) => !_isSettled(i)).toList()
+      ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
 
     return ArenaState(
       weekId: inputs.weekId,

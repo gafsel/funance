@@ -2,6 +2,7 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:funances/features/arena/domain/models/arena_state.dart';
+import 'package:funances/features/arena/presentation/game/arena_effects.dart';
 import 'package:funances/features/arena/presentation/game/arena_game.dart';
 import 'package:funances/features/arena/presentation/widgets/arena_hp_bar.dart';
 import 'package:funances/features/arena/presentation/widgets/arena_monster_sheet.dart';
@@ -25,13 +26,16 @@ Future<void> pumpArena(
   WidgetTester tester, {
   ArenaState? state,
   Size size = const Size(420, 860),
+  bool reduceMotion = false,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
 
   await tester.runAsync(() async {
-    await tester.pumpWidget(arenaApp(state ?? arenaTestState()));
+    await tester.pumpWidget(
+      arenaApp(state ?? arenaTestState(), reduceMotion: reduceMotion),
+    );
     // Quadro falso + espera REAL, alternados: o quadro deixa o `GameWidget`
     // pedir o carregamento, e a espera é o único jeito de o codec de imagem
     // — que roda fora do relógio falso — devolver a folha.
@@ -148,6 +152,47 @@ void main() {
 
     expect(find.byType(GameWidget<ArenaGame>), findsNothing);
     expect(find.textContaining('arena está vazia'), findsOneWidget);
+  });
+
+  testWidgets('o golpe põe um número flutuante em cima do monstro', (
+    tester,
+  ) async {
+    await pumpArena(tester);
+
+    final game = tester
+        .widget<GameWidget<ArenaGame>>(find.byType(GameWidget<ArenaGame>))
+        .game!;
+
+    game.playStrike(amountLabel: '−R\$ 1.200,00', striker: 'u1');
+    // O clarão e o número esperam o avanço do herói: sem avançar o relógio,
+    // o `TimerComponent` do golpe nem chegou a disparar.
+    await frames(tester, count: 6);
+
+    expect(
+      game.world.children.whereType<FloatingNumber>().length,
+      1,
+      reason: 'o golpe precisa DIZER quanto tirou, não só sacudir o bicho',
+    );
+  });
+
+  testWidgets('com "reduzir movimento" o golpe informa sem animar', (
+    tester,
+  ) async {
+    await pumpArena(tester, reduceMotion: true);
+
+    final game = tester
+        .widget<GameWidget<ArenaGame>>(find.byType(GameWidget<ArenaGame>))
+        .game!;
+
+    expect(game.theme.reduceMotion, isTrue);
+
+    game.playStrike(amountLabel: '−R\$ 1.200,00', striker: 'u1');
+    await frames(tester, count: 4);
+
+    // O NÚMERO continua: quem pediu menos movimento pediu menos movimento,
+    // não menos informação. O que some é a moeda voando.
+    expect(game.world.children.whereType<FloatingNumber>().length, 1);
+    expect(game.world.children.whereType<CoinBurst>(), isEmpty);
   });
 
   testWidgets('a cena cabe numa janela larga sem estourar o layout', (

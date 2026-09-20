@@ -101,10 +101,7 @@ void main() {
             _expense(id: 'aluguel', amount: 1200),
             _expense(id: 'luz', amount: 180, dayOffset: 3),
           ],
-          summary: _summary({
-            'mercado': (400, 0),
-            'lazer': (150, 0),
-          }),
+          summary: _summary({'mercado': (400, 0), 'lazer': (150, 0)}),
         ),
       );
 
@@ -310,7 +307,11 @@ void main() {
           liquidBalance: 100,
           week: [
             _income(id: 'salario', amount: 4200),
-            _income(id: 'freela', amount: 800, status: InstallmentStatus.pending),
+            _income(
+              id: 'freela',
+              amount: 800,
+              status: InstallmentStatus.pending,
+            ),
           ],
         ),
       );
@@ -359,10 +360,7 @@ void main() {
       );
 
       expect(state.heroes.map((h) => h.name), ['Gabriel', 'Ana']);
-      expect(state.heroes.map((h) => h.skin), [
-        HeroSkin.knight,
-        HeroSkin.mage,
-      ]);
+      expect(state.heroes.map((h) => h.skin), [HeroSkin.knight, HeroSkin.mage]);
       expect(state.extraMembers, 2);
     });
 
@@ -410,10 +408,7 @@ void main() {
         ),
       );
 
-      expect(state.pendingInstallments.map((i) => i.id), [
-        'segunda',
-        'sexta',
-      ]);
+      expect(state.pendingInstallments.map((i) => i.id), ['segunda', 'sexta']);
     });
 
     test('o casulo lê a fatura do servidor, sem calcular nada', () {

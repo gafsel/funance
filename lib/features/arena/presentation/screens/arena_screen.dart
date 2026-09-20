@@ -1,7 +1,6 @@
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:funances/core/theme/app_breakpoints.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/theme/app_palette.dart';
 import 'package:funances/core/theme/app_spacing.dart';
@@ -178,8 +177,18 @@ class _ArenaScreenState extends ConsumerState<ArenaScreen>
       constrained: false,
       backgroundColor: AppColors.surfaceDeep,
       appBar: AppBar(
-        title: Text(l10n.arenaTitle),
+        // A barra da Arena é de JOGO: fundo profundo e tinta clara nos dois
+        // temas. O `titleTextStyle` precisa vir junto — o `appBarTheme` do
+        // app fixa a cor do título, e sozinho o `foregroundColor` deixava
+        // "Arena" preto sobre azul-escuro no tema claro.
+        title: Text(
+          l10n.arenaTitle,
+          style: Theme.of(
+            context,
+          ).appBarTheme.titleTextStyle?.copyWith(color: AppColors.inkInverse),
+        ),
         backgroundColor: AppColors.surfaceDeep,
+        foregroundColor: AppColors.inkInverse,
       ),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -227,11 +236,12 @@ class _ArenaBody extends StatelessWidget {
     final theme = Theme.of(context);
     final palette = context.palette;
 
-    // A etiqueta da cicatriz é montada AQUI porque é aqui que existem
-    // tradução e formatação de moeda — o componente do Flame só recebe texto.
-    game.overdueLabel = (value) => l10n.arenaEnraged(
-      value.overdueAmount.asCurrency(locale: context.locale),
-    );
+    // A cicatriz é montada AQUI porque é aqui que existe formatação de moeda
+    // — o componente do Flame só recebe texto pronto. E é SÓ O VALOR: a frase
+    // inteira ("Enfurecido: +R$ 640,00 atrasado") mora no selo da barra, que
+    // tem largura para ela; em cima do bicho ela atravessava a cena.
+    game.overdueLabel = (value) =>
+        '+${value.overdueAmount.asCurrency(locale: context.locale)}';
 
     if (state.isEmpty) {
       return EmptyState.centered(
@@ -241,102 +251,103 @@ class _ArenaBody extends StatelessWidget {
       );
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final layout = constraints.layout;
-
-        // A cena fica com metade da altura no compacto e um pouco mais no
-        // largo, e nunca menos de 180 — abaixo disso os bonecos ficam do
-        // tamanho de um ícone e a animação deixa de comunicar.
-        final sceneHeight = (constraints.maxHeight *
-                (layout.usesRail ? 0.62 : 0.52))
-            .clamp(180.0, 420.0);
-
-        return Column(
-          children: [
-            SizedBox(
-              height: sceneHeight,
-              width: double.infinity,
-              child: GameWidget(game: game),
+    return Column(
+      children: [
+        // A cena toma TODO o espaço que sobra. Quem garante que ela não
+        // vira uma faixa alta e estreita é o próprio jogo: o zoom é
+        // preso entre uma largura mínima e uma máxima de mundo
+        // (`ArenaGame`), e o que crescer a mais vira altura de parede.
+        Expanded(
+          // O `GameWidget` não recorta sozinho, e a última fileira de
+          // tiles do chão passa da borda: sem isto, o cenário vazava por
+          // cima da barra de vida.
+          child: ClipRect(child: GameWidget(game: game)),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.xs,
+            AppSpacing.sm,
+            AppSpacing.xs,
+            AppSpacing.xs,
+          ),
+          child: Column(
+            children: [
+              ArenaHpBar(
+                label: l10n.arenaHeroLife,
+                value: state.heroHp,
+                ratio: state.heroHpRatio,
+                committedRatio: state.committedRatio,
+                color: state.heroMood == HeroMood.exhausted
+                    ? palette.dangerText
+                    : AppColors.teal,
+                onTap: onOpenPlanning,
+                semanticsHint: l10n.arenaCommitted,
+                trailing: _heroTrailing(context),
+              ),
+              AppSpacing.gapXs,
+              ArenaHpBar(
+                label: l10n.arenaWeekMonster,
+                value: state.monsterHp,
+                ratio: state.monsterHpRatio,
+                color: AppColors.violet,
+                onTap: onOpenMonster,
+                trailing: state.hasFled
+                    ? StatusPill(
+                        label: l10n.arenaMonsterFled,
+                        tone: StatusTone.ok,
+                        dense: true,
+                        onGame: true,
+                      )
+                    : state.isEnraged
+                    ? StatusPill(
+                        label: l10n.arenaEnraged(
+                          state.overdueAmount.asCurrency(
+                            locale: context.locale,
+                          ),
+                        ),
+                        tone: StatusTone.danger,
+                        dense: true,
+                        onGame: true,
+                      )
+                    : null,
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.xxs,
+          ),
+          child: Text(
+            l10n.arenaHint,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.labelSmall?.copyWith(color: palette.onGame2),
+          ),
+        ),
+        if ((state.invoiceAmount ?? 0) > 0)
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.xxs,
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.xs,
-                AppSpacing.sm,
-                AppSpacing.xs,
-                AppSpacing.xs,
-              ),
-              child: Column(
-                children: [
-                  ArenaHpBar(
-                    label: l10n.arenaHeroLife,
-                    value: state.heroHp,
-                    ratio: state.heroHpRatio,
-                    committedRatio: state.committedRatio,
-                    color: state.heroMood == HeroMood.exhausted
-                        ? palette.dangerText
-                        : AppColors.teal,
-                    onTap: onOpenPlanning,
-                    semanticsHint: l10n.arenaCommitted,
-                    trailing: _heroTrailing(context),
+            child: Row(
+              children: [
+                Icon(Icons.egg_outlined, size: 14, color: palette.onGame2),
+                AppSpacing.gapXxs,
+                Text(
+                  '${l10n.arenaInvoiceCocoon} · '
+                  '${state.invoiceAmount!.asCurrency(locale: context.locale)}',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: palette.onGame2,
                   ),
-                  AppSpacing.gapXs,
-                  ArenaHpBar(
-                    label: l10n.arenaWeekMonster,
-                    value: state.monsterHp,
-                    ratio: state.monsterHpRatio,
-                    color: AppColors.violet,
-                    onTap: onOpenMonster,
-                    trailing: state.hasFled
-                        ? StatusPill(
-                            label: l10n.arenaMonsterFled,
-                            tone: StatusTone.ok,
-                            dense: true,
-                            onGame: true,
-                          )
-                        : state.isEnraged
-                        ? StatusPill(
-                            label: l10n.arenaEnraged(
-                              state.overdueAmount.asCurrency(
-                                locale: context.locale,
-                              ),
-                            ),
-                            tone: StatusTone.danger,
-                            dense: true,
-                            onGame: true,
-                          )
-                        : null,
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-            if ((state.invoiceAmount ?? 0) > 0)
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.md,
-                  vertical: AppSpacing.xxs,
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.egg_outlined,
-                      size: 14,
-                      color: palette.onGame2,
-                    ),
-                    AppSpacing.gapXxs,
-                    Text(
-                      '${l10n.arenaInvoiceCocoon} · '
-                      '${state.invoiceAmount!.asCurrency(locale: context.locale)}',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: palette.onGame2,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-          ],
-        );
-      },
+          ),
+        // Respiro para a barra inferior do sistema.
+        AppSpacing.gapXs,
+      ],
     );
   }
 
@@ -364,4 +375,3 @@ class _ArenaBody extends StatelessWidget {
     return null;
   }
 }
-

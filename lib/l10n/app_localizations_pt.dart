@@ -2510,4 +2510,8 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get arenaInvoiceCocoon => 'Fatura do cartão';
+
+  @override
+  String get arenaHint =>
+      'Toque no monstro para confirmar um pagamento. Segure para abrir o histórico.';
 }

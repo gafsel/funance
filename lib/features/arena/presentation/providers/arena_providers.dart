@@ -37,16 +37,15 @@ sealed class ArenaViewProviders {
   /// servidor (ver [JourneyViewProviders.currentWeekId]); só o recorte de
   /// datas da CONSULTA é local, porque uma query do Firestore precisa de
   /// `DateTime` e o servidor grava id, não intervalo.
-  static final weekWindow = Provider.autoDispose<({DateTime start, DateTime end})>(
-    (ref) {
-      final start = ProductWeek.startOf(ref.watch(todayProvider));
-      final end = start
-          .addCalendarDays(6)
-          .add(const Duration(hours: 23, minutes: 59, seconds: 59));
+  static final weekWindow =
+      Provider.autoDispose<({DateTime start, DateTime end})>((ref) {
+        final start = ProductWeek.startOf(ref.watch(todayProvider));
+        final end = start
+            .addCalendarDays(6)
+            .add(const Duration(hours: 23, minutes: 59, seconds: 59));
 
-      return (start: start, end: end);
-    },
-  );
+        return (start: start, end: end);
+      });
 
   /// Parcelas cuja `referenceDate` cai na semana.
   ///
@@ -70,7 +69,9 @@ sealed class ArenaViewProviders {
         return ref
             .watch(FinanceDomainProviders.service)
             .watchInstallments(
-              startDate: window.start.addCalendarDays(-arenaOverdueLookbackDays),
+              startDate: window.start.addCalendarDays(
+                -arenaOverdueLookbackDays,
+              ),
               endDate: window.start.add(const Duration(seconds: -1)),
               status: InstallmentStatus.pending,
             );

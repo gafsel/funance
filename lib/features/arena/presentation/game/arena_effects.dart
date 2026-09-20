@@ -92,4 +92,3 @@ class CoinBurst extends ParticleSystemComponent {
          ),
        );
 }
-

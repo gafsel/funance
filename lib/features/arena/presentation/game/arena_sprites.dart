@@ -41,10 +41,7 @@ class ArenaSprites {
   /// Um tile pelo índice na folha.
   Sprite byIndex(int index) => Sprite(
     _sheet,
-    srcPosition: Vector2(
-      (index % _columns) * tile,
-      (index ~/ _columns) * tile,
-    ),
+    srcPosition: Vector2((index % _columns) * tile, (index ~/ _columns) * tile),
     srcSize: Vector2.all(tile),
   );
 
@@ -64,8 +61,16 @@ class ArenaSprites {
   });
 
   Sprite get cocoon => byIndex(82);
-  Sprite get floor => byIndex(48);
-  Sprite get floorSpeckled => byIndex(49);
+
+  /// Chão da arena.
+  ///
+  /// Marrom escuro, e não a areia do tile 48, por um motivo de ARTE e não de
+  /// gosto: todo personagem desta folha vem com um cartão escuro de fundo
+  /// (`#3F2631`, medido) que é parte do sprite e não dá para recortar. Sobre
+  /// a areia clara cada boneco vira um adesivo colado na cena; sobre o chão
+  /// escuro o cartão quase some.
+  Sprite get floor => byIndex(0);
+  Sprite get floorSpeckled => byIndex(24);
   Sprite get wall => byIndex(40);
   Sprite get brazier => byIndex(29);
 

@@ -143,8 +143,9 @@ sealed class ArenaState with _$ArenaState {
       ? (committed > 0 ? 1 : 0)
       : (committed / liquidBalance).clamp(0.0, 1.0).toDouble();
 
-  double get monsterHpRatio =>
-      monsterMaxHp <= 0 ? 0 : (monsterHp / monsterMaxHp).clamp(0.0, 1.0).toDouble();
+  double get monsterHpRatio => monsterMaxHp <= 0
+      ? 0
+      : (monsterHp / monsterMaxHp).clamp(0.0, 1.0).toDouble();
 
   bool get isEnraged => overdueAmount > 0;
 
