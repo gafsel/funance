@@ -2585,6 +2585,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hudDropTitle => 'Poison';
 
   @override
+  String get hudExplanationTitle => 'How it works';
+
+  @override
+  String get hudExplanationGotIt => 'Got it';
+
+  @override
+  String get hudPotionHowItWorks => 'How the Potion works';
+
+  @override
+  String get hudVillageHowItWorks => 'How the Village works';
+
+  @override
+  String get hudEggHowItWorks => 'How Incubating monsters work';
+
+  @override
+  String get hudDropHowItWorks => 'How the Poison works';
+
+  @override
   String get hudTierSemi => 'semi';
 
   @override

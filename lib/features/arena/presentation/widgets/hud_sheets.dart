@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/theme/app_palette.dart';
 import 'package:funances/core/theme/app_radius.dart';
@@ -13,6 +16,8 @@ import 'package:funances/core/widgets/app_progress_bar.dart';
 import 'package:funances/core/widgets/app_ring.dart';
 import 'package:funances/core/widgets/money_text.dart';
 import 'package:funances/features/arena/domain/models/hud_state.dart';
+import 'package:funances/features/arena/presentation/providers/hud_intro_store.dart';
+import 'package:funances/features/arena/presentation/widgets/hud_explanation.dart';
 import 'package:funances/features/arena/presentation/widgets/hud_format.dart';
 import 'package:funances/features/arena/presentation/widgets/hud_glyph.dart';
 import 'package:go_router/go_router.dart';
@@ -24,12 +29,16 @@ import 'package:go_router/go_router.dart';
 /// "de onde saiu este ícone?" — e uma delas com layout próprio faria o
 /// usuário reaprender a ler a cada toque.
 ///
-/// A ordem de cada folha é sempre a mesma: **o número grande**, a **mini
-/// explicação em três partes** — jogo, financeiro e XP — e só então as linhas
-/// que compõem o número. A explicação vem ANTES da lista, e não depois: ela é
-/// o que a folha existe para entregar na primeira vez, e uma lista de dezoito
-/// aldeões empurraria as três frases para fora da tela justamente para quem
-/// nunca as leu.
+/// A ordem de cada folha é sempre a mesma: **o número grande**, o chip e as
+/// linhas curtas que o qualificam, e logo em seguida os DADOS — os envelopes,
+/// a grade de aldeões, as faturas, as dívidas.
+///
+/// A mini explicação em três partes — jogo, financeiro e XP — não está mais
+/// no meio do caminho. Ela vinha entre o número e a lista, e o dono mediu o
+/// resultado: *"a descrição ocupa muito espaço e o que importa fica espremido
+/// num scroll na parte de baixo da tela"*. Agora ela mora atrás do ícone de
+/// informação do cabeçalho ([HudExplanationButton]) e se apresenta sozinha na
+/// primeira abertura de cada folha — ver [HudIntroStore].
 abstract final class HudSheets {
   static Future<void> potion(BuildContext context, HudState hud) {
     return _show(context, (context) => _PotionSheet(hud: hud));
@@ -67,10 +76,11 @@ abstract final class HudSheets {
 }
 
 /// O esqueleto de uma folha do HUD.
-class _HudSheet extends StatelessWidget {
+class _HudSheet extends ConsumerStatefulWidget {
   const _HudSheet({
     required this.slot,
     required this.title,
+    required this.howItWorks,
     required this.headline,
     required this.color,
     required this.explanation,
@@ -83,6 +93,11 @@ class _HudSheet extends StatelessWidget {
 
   final HudSlot slot;
   final String title;
+
+  /// "Como funciona a Poção". É o tooltip e o rótulo de leitor de tela do
+  /// ícone de informação — a frase INTEIRA, porque um "i" sozinho não diz
+  /// de que ele é a explicação.
+  final String howItWorks;
 
   /// O número grande: o total, a razão, a contagem de aldeões.
   final Widget headline;
@@ -108,6 +123,84 @@ class _HudSheet extends StatelessWidget {
   final List<Widget> children;
 
   @override
+  ConsumerState<_HudSheet> createState() => _HudSheetState();
+}
+
+class _HudSheetState extends ConsumerState<_HudSheet> {
+  /// Onde o balão do desktop se ancora.
+  final GlobalKey _infoKey = GlobalKey();
+
+  /// A apresentação automática acontece UMA vez por montagem da folha, e o
+  /// campo é o que garante isso: `addPostFrameCallback` roda por quadro, e
+  /// sem ele um rebuild abriria um segundo painel por cima do primeiro.
+  bool _introduced = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeIntroduce());
+  }
+
+  /// A primeira abertura desta folha mostra a explicação sozinha.
+  ///
+  /// A pergunta ao disco vem ANTES de qualquer espera de animação: quem já
+  /// leu não pode pagar nem um quadro de atraso por causa de quem nunca leu.
+  Future<void> _maybeIntroduce() async {
+    if (_introduced) return;
+    _introduced = true;
+
+    final store = ref.read(HudIntroProviders.store);
+    if (await store.wasSeen(widget.slot)) return;
+    if (!mounted) return;
+
+    // Esperar a folha TERMINAR de subir é o que tira o piscar: um painel que
+    // aparece enquanto a folha ainda desliza mostra as duas em movimento e
+    // faz o usuário achar que apertou duas vezes.
+    await _entered();
+    if (!mounted) return;
+
+    await _openExplanation();
+    await store.markSeen(widget.slot);
+  }
+
+  /// Completa quando a folha parou de entrar.
+  Future<void> _entered() {
+    final animation = ModalRoute.of(context)?.animation;
+    if (animation == null || animation.isCompleted) return Future<void>.value();
+
+    final completer = Completer<void>();
+
+    void listener(AnimationStatus status) {
+      if (status == AnimationStatus.completed ||
+          status == AnimationStatus.dismissed) {
+        animation.removeStatusListener(listener);
+        if (!completer.isCompleted) completer.complete();
+      }
+    }
+
+    animation.addStatusListener(listener);
+    return completer.future;
+  }
+
+  Future<void> _openExplanation() {
+    return showHudExplanation(
+      context,
+      lines: widget.explanation,
+      anchor: _anchor(),
+    );
+  }
+
+  /// O retângulo do ícone na tela, para o balão do desktop nascer colado
+  /// nele. Sem render box — folha ainda não medida — o painel cai no formato
+  /// de folha modal, que não depende de âncora.
+  Rect? _anchor() {
+    final box = _infoKey.currentContext?.findRenderObject();
+    if (box is! RenderBox || !box.hasSize) return null;
+
+    return box.localToGlobal(Offset.zero) & box.size;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final palette = context.palette;
@@ -115,7 +208,7 @@ class _HudSheet extends StatelessWidget {
     return SafeArea(
       // A chave nomeia a folha para o golden: as quatro são a mesma classe,
       // e sem ela um PNG não sabe dizer qual delas fotografou.
-      key: ValueKey('hud-sheet-${slot.name}'),
+      key: ValueKey('hud-sheet-${widget.slot.name}'),
       child: Padding(
         padding: AppSpacing.allMd,
         child: Column(
@@ -128,15 +221,15 @@ class _HudSheet extends StatelessWidget {
                 // toque ao que ele abriu: uma folha que começa com outro
                 // desenho faz o usuário conferir se apertou o certo.
                 HudRing(
-                  progress: progress,
-                  color: color,
+                  progress: widget.progress,
+                  color: widget.color,
                   size: 44,
                   stroke: 3.5,
                   child: HudGlyph(
-                    slot: slot,
-                    color: color,
+                    slot: widget.slot,
+                    color: widget.color,
                     size: 28,
-                    stage: stage,
+                    stage: widget.stage,
                   ),
                 ),
                 AppSpacing.gapSm,
@@ -144,30 +237,38 @@ class _HudSheet extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(title, style: theme.textTheme.titleLarge),
+                      Text(widget.title, style: theme.textTheme.titleLarge),
                       DefaultTextStyle.merge(
                         style: theme.textTheme.titleMedium,
-                        child: headline,
+                        child: widget.headline,
                       ),
                     ],
                   ),
                 ),
+                // A porta da explicação, no canto do cabeçalho: longe do
+                // número grande, que é o que a folha existe para mostrar, e
+                // no mesmo lugar nas quatro folhas.
+                HudExplanationButton(
+                  key: _infoKey,
+                  label: widget.howItWorks,
+                  onPressed: _openExplanation,
+                ),
               ],
             ),
-            if (chip != null) ...[
+            if (widget.chip != null) ...[
               AppSpacing.gapXs,
               Align(
                 alignment: AlignmentDirectional.centerStart,
                 child: StatusPill(
                   key: const ValueKey('hud-potion-months'),
-                  label: chip!,
+                  label: widget.chip!,
                   tone: StatusTone.info,
                   icon: Icons.hourglass_bottom_outlined,
                   dense: true,
                 ),
               ),
             ],
-            for (final linha in subtitles) ...[
+            for (final linha in widget.subtitles) ...[
               AppSpacing.gapXxs,
               Text(
                 linha,
@@ -175,56 +276,14 @@ class _HudSheet extends StatelessWidget {
               ),
             ],
             AppSpacing.gapSm,
-            _Explanation(lines: explanation),
-            AppSpacing.gapXs,
-            // A lista rola; a explicação e o cabeçalho, não. O que muda de
-            // tamanho entre uma folha e outra é o número de linhas, e é só
-            // ele que pode empurrar conteúdo para fora da vista.
-            Flexible(child: ListView(shrinkWrap: true, children: children)),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// A mini explicação: jogo, financeiro e XP, nessa ordem e sempre as três.
-///
-/// As três linhas existem juntas porque cada uma responde a uma pessoa
-/// diferente lendo a MESMA tela: quem está jogando, quem quer o número e quem
-/// quer saber se isso rende. Tirar a de XP quando o ícone não dá XP seria
-/// justamente esconder a resposta — "nenhum" é uma resposta.
-class _Explanation extends StatelessWidget {
-  const _Explanation({required this.lines});
-
-  final List<String> lines;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final palette = context.palette;
-
-    return Container(
-      key: const ValueKey('hud-explanation'),
-      width: double.infinity,
-      padding: AppSpacing.allSm,
-      decoration: BoxDecoration(
-        color: palette.paper2,
-        borderRadius: AppRadius.brMd,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          for (final (index, line) in lines.indexed) ...[
-            if (index > 0) AppSpacing.gapXxs,
-            Text(
-              line,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: index == 0 ? palette.ink : palette.ink2,
-              ),
+            // Os DADOS começam aqui, e é a mudança inteira deste pacote: o
+            // que era o topo da lista ficava abaixo de três parágrafos e só
+            // aparecia rolando. A lista rola; o cabeçalho, não.
+            Flexible(
+              child: ListView(shrinkWrap: true, children: widget.children),
             ),
           ],
-        ],
+        ),
       ),
     );
   }
@@ -434,6 +493,7 @@ class _PotionSheet extends StatelessWidget {
     return _HudSheet(
       slot: HudSlot.potion,
       title: l10n.hudPotionTitle,
+      howItWorks: l10n.hudPotionHowItWorks,
       color: potion.isFilled ? AppColors.success : context.palette.ink3,
       progress: potion.ratio.fill,
       headline: Text(potion.total.format(locale: locale)),
@@ -512,8 +572,10 @@ class _VillageSheet extends StatelessWidget {
     return _HudSheet(
       slot: HudSlot.village,
       // "Vila" nos dois workspaces: o título é o nome do JOGO. Quem fala em
-      // centro de custo é a linha financeira da mini explicação, logo abaixo.
+      // centro de custo é a linha financeira da mini explicação, atrás do
+      // ícone de informação.
       title: l10n.hudVillageTitle,
+      howItWorks: l10n.hudVillageHowItWorks,
       color: color,
       progress: village.ring,
       headline: Text(
@@ -915,6 +977,7 @@ class _EggSheet extends StatelessWidget {
       // rótulo curto existe por largura, e não por conteúdo: quem abriu a
       // folha tem espaço para ouvir o nome completo do que está chocando ali.
       title: l10n.hudEggSheetTitle,
+      howItWorks: l10n.hudEggHowItWorks,
       color: color,
       stage: egg.stage,
       progress: egg.ratio.fill,
@@ -1113,6 +1176,7 @@ class _DropSheet extends StatelessWidget {
     return _HudSheet(
       slot: HudSlot.drop,
       title: l10n.hudDropTitle,
+      howItWorks: l10n.hudDropHowItWorks,
       color: drop.isBlinking ? AppColors.violet : context.palette.ink3,
       progress: drop.ratio.fill,
       headline: Text(drop.total.format(locale: locale)),

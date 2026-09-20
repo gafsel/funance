@@ -4550,6 +4550,42 @@ abstract class AppLocalizations {
   /// **'Veneno'**
   String get hudDropTitle;
 
+  /// No description provided for @hudExplanationTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Como funciona'**
+  String get hudExplanationTitle;
+
+  /// No description provided for @hudExplanationGotIt.
+  ///
+  /// In pt, this message translates to:
+  /// **'Entendi'**
+  String get hudExplanationGotIt;
+
+  /// No description provided for @hudPotionHowItWorks.
+  ///
+  /// In pt, this message translates to:
+  /// **'Como funciona a Poção'**
+  String get hudPotionHowItWorks;
+
+  /// No description provided for @hudVillageHowItWorks.
+  ///
+  /// In pt, this message translates to:
+  /// **'Como funciona a Vila'**
+  String get hudVillageHowItWorks;
+
+  /// No description provided for @hudEggHowItWorks.
+  ///
+  /// In pt, this message translates to:
+  /// **'Como funcionam os Monstros incubados'**
+  String get hudEggHowItWorks;
+
+  /// No description provided for @hudDropHowItWorks.
+  ///
+  /// In pt, this message translates to:
+  /// **'Como funciona o Veneno'**
+  String get hudDropHowItWorks;
+
   /// No description provided for @hudTierSemi.
   ///
   /// In pt, this message translates to:
