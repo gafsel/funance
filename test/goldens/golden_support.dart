@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -27,9 +30,53 @@ import 'package:funances/l10n/app_localizations.dart';
 /// que virou `Container`, uma ordem de blocos trocada — o golden quebra. O
 /// refactor é estrutural: a árvore renderizada tem de ser a mesma.
 ///
-/// Os goldens rodam no comparador local do `flutter_test`, com a fonte de
-/// teste padrão: são determinísticos entre máquinas e não dependem de fonte
-/// instalada.
+/// Os goldens rodam no comparador local do `flutter_test`. As fontes são as
+/// EMPACOTADAS do app, carregadas por [loadAppFonts] — ver o porquê lá.
+
+/// Carrega Fredoka e Inter de `assets/fonts/` no ambiente de teste.
+///
+/// Sem isto, `flutter test` desenha tudo com a fonte de teste (aqueles blocos
+/// pretos) e o golden fica cego justamente para a maior mudança visual deste
+/// pacote: a tipografia. Como os .ttf estão versionados no repositório e não
+/// dependem de nada instalado na máquina, carregá-los mantém o golden
+/// determinístico entre máquinas — que é a razão de existir da fonte de teste.
+///
+/// Lê do disco em vez de `rootBundle` porque o bundle de asset do `flutter
+/// test` não inclui as fontes declaradas no `pubspec`.
+///
+/// O `MaterialIcons-Regular.otf` fica DE FORA de propósito, e é por isso que
+/// os ícones saem como quadrados vazios nos goldens. Ele não é do
+/// repositório: mora no cache de artefatos do SDK, muda junto com a versão do
+/// Flutter instalada e nem sempre está lá. Carregá-lo faria o golden comparar
+/// duas coisas diferentes em duas máquinas — que é exatamente o que a fonte
+/// de teste existe para evitar. Quadrado no lugar de um pictograma é um
+/// prejuízo pequeno perto de um golden que quebra sozinho quando alguém
+/// atualiza o Flutter; o que estes goldens guardam é layout, tinta e
+/// tipografia, e os três continuam visíveis.
+Future<void> loadAppFonts() async {
+  if (_fontsLoaded) return;
+  _fontsLoaded = true;
+
+  const families = <String, List<String>>{
+    'Fredoka': ['Fredoka-Medium', 'Fredoka-SemiBold', 'Fredoka-Bold'],
+    'Inter': ['Inter-Regular', 'Inter-Medium', 'Inter-SemiBold', 'Inter-Bold'],
+  };
+
+  for (final entry in families.entries) {
+    final loader = FontLoader(entry.key);
+    for (final file in entry.value) {
+      // Leitura SÍNCRONA de propósito: dentro de `testWidgets` o relógio é
+      // falso e um `await` de I/O real nunca completa — o golden travava.
+      final bytes = File('assets/fonts/$file.ttf').readAsBytesSync();
+      loader.addFont(
+        Future<ByteData>.value(ByteData.sublistView(bytes)),
+      );
+    }
+    await loader.load();
+  }
+}
+
+bool _fontsLoaded = false;
 
 /// Dia fixo. Nenhum golden pode depender de quando o teste roda.
 final goldenToday = DateTime(2026, 3, 15);
@@ -123,12 +170,22 @@ List<Override> goldenOverrides({
 
 /// Host comum: mesmo tema, mesmo locale e mesmas delegates em todos os
 /// goldens, para que a única variável seja a tela.
-Widget goldenApp(Widget home, {List<Override> overrides = const []}) {
+/// Host comum dos goldens, no tema pedido.
+///
+/// O `brightness` existe porque as quatro telas grandes só tinham golden no
+/// tema CLARO: metade das superfícies do app não tinha rede nenhuma, e foi
+/// justamente no escuro que a auditoria achou o pior contraste de texto do
+/// projeto (o vermelho de erro a 2,83:1).
+Widget goldenApp(
+  Widget home, {
+  List<Override> overrides = const [],
+  Brightness brightness = Brightness.light,
+}) {
   return ProviderScope(
     overrides: overrides,
     child: MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.theme,
+      theme: brightness == Brightness.dark ? AppTheme.dark : AppTheme.light,
       localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
@@ -145,6 +202,7 @@ Widget goldenApp(Widget home, {List<Override> overrides = const []}) {
 /// Fixa o tamanho da superfície: um golden feito em 800x600 e conferido em
 /// outro tamanho compararia duas telas diferentes.
 Future<void> setGoldenSurface(WidgetTester tester, Size size) async {
+  await loadAppFonts();
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);

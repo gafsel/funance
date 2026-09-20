@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_radius.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/features/home/presentation/provider.dart';
 
@@ -27,15 +30,15 @@ class WeeklyXp extends ConsumerWidget {
     final xp = ref.watch(JourneyViewProviders.weeklyXp).valueOrNull;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: AppSpacing.allMd,
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: AppRadius.brLg,
       ),
       child: Row(
         children: [
-          const Icon(Icons.bolt, color: AppColors.successGold),
-          const SizedBox(width: 12),
+          const Icon(Icons.bolt, color: AppColors.gold),
+          AppSpacing.gapSm,
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -45,8 +48,7 @@ class WeeklyXp extends ConsumerWidget {
                       ? l10n.journeyWeeklyXpEmpty
                       : l10n.xpValue(xp.round().toString()),
                   style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.deepTurquoise,
+                    color: context.palette.ink,
                   ),
                 ),
                 Text(

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_radius.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 
 /// Uma linha da legenda: bolinha da cor da categoria, nome, valor e — quando
 /// há progresso — a barra de execução.
@@ -18,8 +21,9 @@ Widget buildOverviewCategoryItem(
   double? secondaryProgress,
 }) {
   final theme = Theme.of(context);
+  final palette = context.palette;
   return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 8.0),
+    padding: AppSpacing.vXs,
     child: Column(
       children: [
         Row(
@@ -29,41 +33,41 @@ Widget buildOverviewCategoryItem(
               height: 12,
               decoration: BoxDecoration(color: color, shape: BoxShape.circle),
             ),
-            const SizedBox(width: 12),
+            AppSpacing.gapSm,
             Expanded(child: Text(name, style: theme.textTheme.bodyMedium)),
             Text(
               amount,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppColors.deepTurquoise,
-              ),
+              style: theme.textTheme.titleSmall?.copyWith(color: palette.ink),
             ),
           ],
         ),
         if (progress != null) ...[
-          const SizedBox(height: 8),
+          AppSpacing.gapXs,
+          // Duas camadas: a de trás é a fatia que veio do planejamento geral.
+          // `AppProgressBar` desenha uma só, e perder a segunda camada
+          // mudaria o que a linha informa.
           ClipRRect(
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: AppRadius.brXs,
             child: Stack(
               children: [
                 Container(
-                  height: 8,
+                  height: AppSpacing.xs,
                   width: double.infinity,
-                  color: AppColors.deepTurquoise.withValues(alpha: 0.1),
+                  color: palette.line,
                 ),
                 if (secondaryProgress != null)
                   FractionallySizedBox(
                     widthFactor: secondaryProgress,
                     child: Container(
-                      height: 8,
-                      color: Colors.grey.withValues(alpha: 0.5),
+                      height: AppSpacing.xs,
+                      color: palette.ink3,
                     ),
                   ),
                 FractionallySizedBox(
                   widthFactor: progress.clamp(0, 1),
                   child: Container(
-                    height: 8,
-                    color: progress > 1 ? AppColors.coralOrange : color,
+                    height: AppSpacing.xs,
+                    color: progress > 1 ? AppColors.warning : color,
                   ),
                 ),
               ],

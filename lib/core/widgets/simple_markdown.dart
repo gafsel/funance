@@ -1,5 +1,8 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_typography.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 
 /// Renderiza o pouco de Markdown que os textos do coaching realmente usam.
 ///
@@ -81,14 +84,16 @@ class _SimpleMarkdownState extends State<SimpleMarkdown> {
   Widget _render(MarkdownBlock block, TextStyle bodyStyle) {
     return switch (block) {
       MarkdownDivider() => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
         child: Divider(
           height: 1,
-          color: (bodyStyle.color ?? Colors.grey).withValues(alpha: 0.4),
+          color: (bodyStyle.color ?? AppColors.ink3Light).withValues(
+            alpha: 0.4,
+          ),
         ),
       ),
       MarkdownHeading(:final text, :final level) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.only(bottom: AppSpacing.xs),
         child: _text(
           text,
           bodyStyle.copyWith(
@@ -100,14 +105,16 @@ class _SimpleMarkdownState extends State<SimpleMarkdown> {
       // A citação é indentada e marcada por uma barra, como em qualquer
       // leitor de Markdown: sem isso ela se confundiria com o texto ao redor.
       MarkdownQuote(:final text) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
         child: Container(
-          padding: const EdgeInsets.only(left: 12),
+          padding: const EdgeInsets.only(left: AppSpacing.sm),
           decoration: BoxDecoration(
             border: Border(
               left: BorderSide(
                 width: 3,
-                color: (bodyStyle.color ?? Colors.grey).withValues(alpha: 0.5),
+                color: (bodyStyle.color ?? AppColors.ink3Light).withValues(
+                  alpha: 0.5,
+                ),
               ),
             ),
           ),
@@ -160,36 +167,21 @@ class _SimpleMarkdownState extends State<SimpleMarkdown> {
     final String? strongEm =
         match.group(_strongEmStar) ?? match.group(_strongEmUnderscore);
     if (strongEm != null) {
-      return TextSpan(
-        text: strongEm,
-        style: const TextStyle(
-          fontWeight: FontWeight.bold,
-          fontStyle: FontStyle.italic,
-        ),
-      );
+      return TextSpan(text: strongEm, style: AppTypography.strongEmphasis);
     }
 
     final String? strong =
         match.group(_strongStar) ?? match.group(_strongUnderscore);
     if (strong != null) {
-      return TextSpan(
-        text: strong,
-        style: const TextStyle(fontWeight: FontWeight.bold),
-      );
+      return TextSpan(text: strong, style: AppTypography.strong);
     }
 
     final String? emphasis = match.group(_emStar) ?? match.group(_emUnderscore);
     if (emphasis != null) {
-      return TextSpan(
-        text: emphasis,
-        style: const TextStyle(fontStyle: FontStyle.italic),
-      );
+      return TextSpan(text: emphasis, style: AppTypography.emphasis);
     }
 
-    return TextSpan(
-      text: match.group(_code),
-      style: const TextStyle(fontFamily: 'monospace'),
-    );
+    return TextSpan(text: match.group(_code), style: AppTypography.code);
   }
 
   InlineSpan _link(String text, String href, TextStyle bodyStyle) {

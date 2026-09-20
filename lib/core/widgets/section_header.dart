@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:funances/core/theme/app_colors.dart';
+
+import '../theme/app_palette.dart';
+import '../theme/app_radius.dart';
+import '../theme/app_spacing.dart';
+import 'app_chip.dart';
 
 /// Cabeçalho de seção.
 ///
@@ -9,14 +13,16 @@ import 'package:funances/core/theme/app_colors.dart';
 /// telas vizinhas de configurações. As duas classes `_SectionHeader` tinham
 /// APIs incompatíveis entre si.
 ///
-/// Os três construtores abaixo reproduzem exatamente as três aparências que
-/// existem hoje. Eles são parâmetros, não estilos novos: a unificação visual
-/// (um cabeçalho só para o app inteiro) é da passada de design, e depende de
-/// os quatro usos já estarem em um lugar só — que é o que este arquivo faz.
+/// A passada de design unificou a aparência: **um cabeçalho, com ou sem ícone,
+/// com ou sem contador**, sempre com o mesmo tamanho, o mesmo respiro e a
+/// mesma tinta. O que restou de variação é só a ênfase:
+///
+/// * [SectionHeader.label] — rótulo miúdo em caixa alta, para separar blocos
+///   dentro de uma mesma lista (configurações, membros).
+/// * [SectionHeader.withIcon] — título de seção com ícone em cápsula, para
+///   quando a seção é um assunto (categorias de emblema, grupos de conta).
+/// * [SectionHeader.sheet] — título de folha de ações, com subtítulo.
 class SectionHeader extends StatelessWidget {
-  /// Rótulo de seção em listas de configuração: caixa alta, pequeno, na cor
-  /// primária. É o padrão de `workspace_settings_screen` e
-  /// `workspace_members_screen`.
   const SectionHeader.label(this.title, {super.key})
     : _variant = _SectionHeaderVariant.label,
       subtitle = null,
@@ -24,19 +30,15 @@ class SectionHeader extends StatelessWidget {
       color = null,
       trailing = null;
 
-  /// Cabeçalho com ícone em cápsula e um contador à direita. É o padrão da
-  /// vitrine de emblemas.
   const SectionHeader.withIcon({
     super.key,
     required this.title,
     required this.icon,
-    required this.color,
+    this.color,
     this.trailing,
   }) : _variant = _SectionHeaderVariant.withIcon,
        subtitle = null;
 
-  /// Título de folha de ações: ícone e título dourados, com subtítulo
-  /// embaixo.
   const SectionHeader.sheet({
     super.key,
     required this.title,
@@ -49,44 +51,67 @@ class SectionHeader extends StatelessWidget {
   final String title;
   final String? subtitle;
   final IconData? icon;
+
+  /// Cor do assunto da seção (a de uma categoria de emblema, por exemplo).
+  /// `null` usa a tinta secundária do tema.
   final Color? color;
+
   final Widget? trailing;
   final _SectionHeaderVariant _variant;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final palette = context.palette;
 
+    // O TÍTULO é marcado como cabeçalho para o leitor de tela. Sem isto, os
+    // gestos de "próximo cabeçalho" — que é como se percorre uma tela longa
+    // sem enxergar — não encontravam nada: o app inteiro tinha zero nós de
+    // cabeçalho, e configurações, emblemas e grupos de conta se liam como uma
+    // lista contínua de texto. Só o texto entra no nó: o contador e o ícone
+    // continuam com a semântica deles.
     return switch (_variant) {
       _SectionHeaderVariant.label => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-        child: Text(
-          title.toUpperCase(),
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: theme.colorScheme.primary,
-            fontWeight: FontWeight.bold,
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.md,
+          AppSpacing.lg,
+          AppSpacing.md,
+          AppSpacing.xs,
+        ),
+        child: Semantics(
+          header: true,
+          child: Text(
+            title.toUpperCase(),
+            style: theme.textTheme.labelSmall?.copyWith(color: palette.ink2),
           ),
         ),
       ),
       _SectionHeaderVariant.withIcon => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.md,
+          AppSpacing.lg,
+          AppSpacing.md,
+          AppSpacing.xs,
+        ),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(6),
+              padding: AppSpacing.allXxs,
               decoration: BoxDecoration(
-                color: color!.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(8),
+                color: (color ?? palette.ink2).withValues(alpha: 0.12),
+                borderRadius: AppRadius.brSm,
               ),
-              child: Icon(icon, color: color, size: 18),
+              child: Icon(icon, color: color ?? palette.ink2, size: 18),
             ),
-            const SizedBox(width: 10),
+            AppSpacing.gapXs,
             Expanded(
-              child: Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+              child: Semantics(
+                header: true,
+                child: Text(
+                  title,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    color: palette.ink,
+                  ),
                 ),
               ),
             ),
@@ -99,23 +124,25 @@ class SectionHeader extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, color: AppColors.antiqueGold, size: 22),
-              const SizedBox(width: 8),
-              Text(
-                title,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.antiqueGold,
+              Icon(icon, color: palette.ink2, size: 22),
+              AppSpacing.gapXs,
+              Expanded(
+                child: Semantics(
+                  header: true,
+                  child: Text(
+                    title,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: palette.ink,
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          AppSpacing.gapXxs,
           Text(
             subtitle!,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: AppColors.pureWhite.withValues(alpha: 0.7),
-            ),
+            style: theme.textTheme.bodySmall?.copyWith(color: palette.ink2),
           ),
         ],
       ),
@@ -126,33 +153,15 @@ class SectionHeader extends StatelessWidget {
 enum _SectionHeaderVariant { label, withIcon, sheet }
 
 /// Contador "desbloqueados / total" que acompanha [SectionHeader.withIcon].
+///
+/// É uma [StatusPill] — antes era a quinta pílula feita à mão do app.
 class SectionHeaderCounter extends StatelessWidget {
-  const SectionHeaderCounter({
-    super.key,
-    required this.label,
-    required this.color,
-  });
+  const SectionHeaderCounter({super.key, required this.label, this.color});
 
   final String label;
-  final Color color;
+  final Color? color;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.25)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.bold,
-          fontSize: 13,
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      StatusPill(label: label, color: color, dense: true);
 }

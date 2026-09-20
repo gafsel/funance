@@ -1,6 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/features/goal/domain/models/goal_model.dart';
 import 'package:funances/features/goal/presentation/widgets/goal_detail/goal_chart_legend_dot.dart';
@@ -59,23 +60,22 @@ class GoalProgressChart extends StatelessWidget {
             Text(
               l10n.goalProgressChartTitle,
               style: theme.textTheme.labelMedium?.copyWith(
-                color: AppColors.pureWhite.withValues(alpha: 0.9),
-                fontWeight: FontWeight.bold,
+                color: AppColors.inkInverse2,
               ),
             ),
             const Spacer(),
             LegendDot(
-              color: AppColors.pureWhite.withValues(alpha: 0.5),
+              color: AppColors.inkInverse.withValues(alpha: 0.5),
               label: l10n.goalChartIdealLine,
             ),
-            const SizedBox(width: 12),
+            AppSpacing.gapSm,
             LegendDot(
-              color: AppColors.limeGreen,
+              color: AppColors.progressStart,
               label: l10n.goalChartRealLine,
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        AppSpacing.gapXs,
         SizedBox(
           height: 110,
           child: LineChart(
@@ -99,18 +99,16 @@ class GoalProgressChart extends StatelessWidget {
                       if (value == 0) {
                         return Text(
                           l10n.goalChartStartLabel,
-                          style: TextStyle(
-                            color: AppColors.pureWhite.withValues(alpha: 0.5),
-                            fontSize: 10,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: AppColors.inkInverse.withValues(alpha: 0.5),
                           ),
                         );
                       }
                       if (value == totalDays) {
                         return Text(
                           l10n.goalChartEndLabel,
-                          style: TextStyle(
-                            color: AppColors.pureWhite.withValues(alpha: 0.5),
-                            fontSize: 10,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: AppColors.inkInverse.withValues(alpha: 0.5),
                           ),
                         );
                       }
@@ -128,7 +126,7 @@ class GoalProgressChart extends StatelessWidget {
                 LineChartBarData(
                   spots: idealSpots,
                   isCurved: false,
-                  color: AppColors.pureWhite.withValues(alpha: 0.4),
+                  color: AppColors.inkInverse.withValues(alpha: 0.4),
                   barWidth: 1.5,
                   dotData: FlDotData(show: false),
                   dashArray: [6, 4],
@@ -137,15 +135,15 @@ class GoalProgressChart extends StatelessWidget {
                 LineChartBarData(
                   spots: realSpots,
                   isCurved: true,
-                  color: AppColors.limeGreen,
+                  color: AppColors.progressStart,
                   barWidth: 2.5,
                   dotData: FlDotData(show: true),
                   belowBarData: BarAreaData(
                     show: true,
                     gradient: LinearGradient(
                       colors: [
-                        AppColors.limeGreen.withValues(alpha: 0.3),
-                        AppColors.limeGreen.withValues(alpha: 0.0),
+                        AppColors.progressStart.withValues(alpha: 0.3),
+                        AppColors.progressStart.withValues(alpha: 0.0),
                       ],
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,

@@ -7,7 +7,11 @@ import 'package:flutter/material.dart';
 import 'package:funances/core/files/picked_document.dart';
 import 'package:funances/core/platform/app_platform.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_durations.dart';
 import 'package:funances/core/theme/app_gradients.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_radius.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/features/finance/domain/services/statement_upload_limits.dart';
 
@@ -236,9 +240,14 @@ class _StatementUploadPanelState extends State<StatementUploadPanel>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = context.palette;
+
+    // O acento do painel é o teal do tema corrente; arrastando, o teal vivo.
+    final accent = _dragging ? AppColors.teal : palette.tealText;
     final borderPainterColor = _dragging
-        ? AppColors.brightCyan
-        : AppColors.deepTurquoise.withValues(alpha: 0.5);
+        ? accent
+        : accent.withValues(alpha: 0.5);
 
     return DropTarget(
       onDragEntered: (_) => _onDragEntered(),
@@ -259,22 +268,23 @@ class _StatementUploadPanelState extends State<StatementUploadPanel>
               phase: _dragging ? _borderAnimationController.value : 0.0,
             ),
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+              duration: AppDurations.normal,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg,
+                vertical: AppSpacing.xxxl,
+              ),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: AppRadius.brLg,
                 gradient: _dragging
                     ? LinearGradient(
-                        colors: AppGradients.turquoiseBlue.colors
+                        colors: AppGradients.game.colors
                             .map((c) => c.withValues(alpha: 0.2))
                             .toList(),
-                        begin: AppGradients.turquoiseBlue.begin,
-                        end: AppGradients.turquoiseBlue.end,
+                        begin: AppGradients.game.begin,
+                        end: AppGradients.game.end,
                       )
                     : null,
-                color: _dragging
-                    ? null
-                    : AppColors.deepTurquoise.withValues(alpha: 0.05),
+                color: _dragging ? null : accent.withValues(alpha: 0.05),
               ),
               child: Center(
                 child: Column(
@@ -286,47 +296,30 @@ class _StatementUploadPanelState extends State<StatementUploadPanel>
                           ? Icons.file_download
                           : Icons.cloud_upload_outlined,
                       size: 64,
-                      color: _dragging
-                          ? AppColors.brightCyan
-                          : AppColors.deepTurquoise,
+                      color: accent,
                     ),
-                    const SizedBox(height: 16),
+                    AppSpacing.gapMd,
                     Text(
                       _dragging ? widget.dragOverTitle : widget.title,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: _dragging
-                            ? AppColors.brightCyan
-                            : AppColors.darkNavy,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: _dragging ? accent : palette.ink,
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 8),
+                    AppSpacing.gapXs,
                     Text(
                       widget.supportedFormatsText,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.black54,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: palette.ink2,
                       ),
                       textAlign: TextAlign.center,
                     ),
                     if (!_dragging) ...[
-                      const SizedBox(height: 24),
+                      AppSpacing.gapLg,
                       OutlinedButton.icon(
                         onPressed: _pickFile,
                         icon: const Icon(Icons.upload_file),
                         label: Text(widget.selectFileButtonText),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.deepTurquoise,
-                          side: const BorderSide(
-                            color: AppColors.deepTurquoise,
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 12,
-                          ),
-                        ),
                       ),
                     ],
                   ],
@@ -366,7 +359,7 @@ class DashedBorderPainter extends CustomPainter {
       ..addRRect(
         RRect.fromRectAndRadius(
           Rect.fromLTWH(0, 0, size.width, size.height),
-          const Radius.circular(16),
+          const Radius.circular(AppRadius.lg),
         ),
       );
 

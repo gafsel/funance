@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
+import 'package:funances/core/widgets/app_card.dart';
+import 'package:funances/core/widgets/app_chip.dart';
+import 'package:funances/core/widgets/app_progress_bar.dart';
 import 'package:funances/features/home/domain/models/weekly_mission_model.dart';
+import 'package:funances/features/home/presentation/widgets/missions/mission_labels.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 
@@ -18,25 +23,30 @@ class MissionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final palette = context.palette;
     final l10n = context.l10n;
 
     final completed = mission.status.isCompleted;
     final failed = mission.status.isFailed;
     final accent = completed
-        ? AppColors.success
+        ? palette.successText
         : failed
-        ? AppColors.error
-        : AppColors.deepTurquoise;
+        ? palette.dangerText
+        : palette.tealText;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(
-          alpha: 0.25,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: accent.withValues(alpha: 0.25)),
-      ),
+    // O caminho vem do DOCUMENTO, não de um `if` sobre o tipo da missão.
+    // Antes só a missão de organização tinha botão, e ele levava sempre para
+    // a conciliação — o catálogo já mandava o destino certo de cada uma e o
+    // app o ignorava.
+    final action = (completed || failed)
+        ? null
+        : missionActionLabel(l10n, mission.actionPath);
+
+    return AppCard(
+      // A missão cumprida ganha o aro dourado: é a única coisa neste cartão
+      // que é conquista.
+      rewarded: completed,
+      borderColor: failed ? palette.dangerText.withValues(alpha: 0.4) : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -51,38 +61,38 @@ class MissionCard extends StatelessWidget {
                 size: 20,
                 color: accent,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.xs),
               Expanded(
                 child: Text(
                   _labelOf(l10n, mission.type),
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: accent,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: theme.textTheme.labelMedium?.copyWith(color: accent),
                 ),
               ),
               if (mission.xp > 0)
-                Text(
-                  l10n.xpValue(mission.xp.toString()),
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: AppColors.successGold,
-                    fontWeight: FontWeight.bold,
-                  ),
+                StatusPill(
+                  label: l10n.xpValue(mission.xp.toString()),
+                  tone: StatusTone.reward,
+                  dense: true,
                 ),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(mission.name, style: theme.textTheme.bodyMedium),
+          AppSpacing.gapXs,
+          Text(
+            missionName(l10n, mission),
+            style: theme.textTheme.bodyMedium?.copyWith(color: palette.ink),
+          ),
           if (mission.target > 0) ...[
-            const SizedBox(height: 12),
-            LinearProgressIndicator(
+            AppSpacing.gapSm,
+            AppProgressBar(
               value: mission.completion,
-              minHeight: 8,
-              borderRadius: BorderRadius.circular(4),
-              backgroundColor: accent.withValues(alpha: 0.1),
-              valueColor: AlwaysStoppedAnimation(accent),
+              // `rewardText`, e não o ouro cheio: sobre papel claro o ouro dá
+              // 1,22:1 contra o trilho e a barra da missão CUMPRIDA — a que
+              // mais importa — era a única que não se via. O trilho sai
+              // daqui, diluído da própria tinta.
+              color: completed ? palette.rewardText : null,
+              semanticLabel: _labelOf(l10n, mission.type),
             ),
-            const SizedBox(height: 6),
+            AppSpacing.gapXxs,
             Text(
               completed
                   ? l10n.journeyMissionDone
@@ -90,31 +100,23 @@ class MissionCard extends StatelessWidget {
                       mission.displayProgress,
                       mission.target,
                     ),
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+              style: theme.textTheme.labelSmall?.copyWith(color: palette.ink2),
             ),
           ] else if (completed) ...[
-            const SizedBox(height: 8),
+            AppSpacing.gapXs,
             Text(
               l10n.journeyMissionDone,
               style: theme.textTheme.labelSmall?.copyWith(color: accent),
             ),
           ],
-          // A missão de ORGANIZAÇÃO é a de pôr a casa em ordem, e conciliar o
-          // extrato é o caminho mais curto para isso — mas a conciliação
-          // morava escondida dentro da tela de uma conta. Enquanto a missão
-          // estiver aberta, ela traz o caminho junto.
-          if (mission.type == WeeklyMissionType.organization &&
-              !completed &&
-              !failed) ...[
-            const SizedBox(height: 8),
+          if (action != null) ...[
+            AppSpacing.gapXs,
             Align(
               alignment: Alignment.centerLeft,
               child: TextButton.icon(
-                onPressed: () => context.push('/reconciliation'),
-                icon: const Icon(Icons.fact_check_outlined, size: 18),
-                label: Text(l10n.reconciliationMissionCta),
+                onPressed: () => context.push(mission.actionPath!),
+                icon: Icon(action.icon, size: 18),
+                label: Text(action.label),
                 style: TextButton.styleFrom(
                   foregroundColor: accent,
                   padding: EdgeInsets.zero,

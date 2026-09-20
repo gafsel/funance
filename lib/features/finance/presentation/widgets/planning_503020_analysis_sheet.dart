@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_radius.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
+import 'package:funances/core/widgets/app_card.dart';
 import 'package:funances/features/finance/domain/models/planning_503020_analysis.dart';
 import 'package:funances/features/finance/presentation/widgets/planning_analysis/allocation_bar.dart';
 import 'package:funances/features/finance/presentation/widgets/planning_analysis/category_tile.dart';
@@ -22,7 +26,7 @@ Future<void> showPlanning503020AnalysisSheet(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    backgroundColor: Colors.transparent,
+    backgroundColor: AppColors.transparent,
     builder: (context) => DraggableScrollableSheet(
       expand: false,
       initialChildSize: 0.85,
@@ -69,11 +73,13 @@ class _Planning503020AnalysisSheetState
     };
   }
 
-  Color _statusColor(Planning503020AnalysisStatus status) {
+  /// A cor do status vira TEXTO dentro da pílula da categoria, então vem dos
+  /// papéis de tinta da paleta e não dos acentos de preenchimento.
+  Color _statusColor(AppPalette palette, Planning503020AnalysisStatus status) {
     return switch (status) {
-      Planning503020AnalysisStatus.ok => AppColors.limeGreen,
-      Planning503020AnalysisStatus.above => AppColors.coralOrange,
-      Planning503020AnalysisStatus.below => AppColors.vibrantTeal,
+      Planning503020AnalysisStatus.ok => palette.successText,
+      Planning503020AnalysisStatus.above => palette.warningText,
+      Planning503020AnalysisStatus.below => palette.tealText,
     };
   }
 
@@ -134,7 +140,7 @@ class _Planning503020AnalysisSheetState
     final generatedAt = analysis.createdAt;
 
     final labelStyle = theme.textTheme.labelSmall?.copyWith(
-      color: theme.colorScheme.onSurfaceVariant,
+      color: context.palette.ink2,
     );
 
     return Column(
@@ -156,13 +162,13 @@ class _Planning503020AnalysisSheetState
             icon: const Icon(Icons.refresh, size: 16),
             label: Text(l10n.planningAnalysisGenerateNew),
             style: TextButton.styleFrom(
-              foregroundColor: theme.colorScheme.onSurfaceVariant,
+              foregroundColor: context.palette.ink2,
               textStyle: theme.textTheme.labelSmall,
             ),
           )
         else
           Padding(
-            padding: const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.only(top: AppSpacing.xxs),
             child: Text(
               l10n.planningAnalysisNextAvailable(analysis.daysUntilRenewal),
               textAlign: TextAlign.center,
@@ -177,6 +183,7 @@ class _Planning503020AnalysisSheetState
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
+    final palette = context.palette;
     final analysis = widget.analysis;
     final reclassifications = analysis.reclassifications
         .where((item) => !_appliedCategoryIds.contains(item.categoryId))
@@ -185,93 +192,82 @@ class _Planning503020AnalysisSheetState
     return Container(
       decoration: BoxDecoration(
         color: theme.scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: AppRadius.brSheet,
       ),
       child: ListView(
         controller: widget.scrollController,
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.md,
+          AppSpacing.xs,
+          AppSpacing.md,
+          AppSpacing.lg,
+        ),
         children: [
           Center(
             child: Container(
               width: 40,
               height: 4,
-              margin: const EdgeInsets.only(bottom: 12),
+              margin: const EdgeInsets.only(bottom: AppSpacing.sm),
               decoration: BoxDecoration(
-                color: theme.dividerColor,
-                borderRadius: BorderRadius.circular(2),
+                color: palette.line,
+                borderRadius: AppRadius.brXs,
               ),
             ),
           ),
           Row(
             children: [
-              const Icon(
-                Icons.auto_awesome,
-                color: AppColors.deepTurquoise,
-                size: 22,
-              ),
-              const SizedBox(width: 8),
+              Icon(Icons.auto_awesome, color: palette.ink, size: 22),
+              const SizedBox(width: AppSpacing.xs),
               Expanded(
                 child: Text(
                   l10n.planningAnalysisTitle,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: theme.textTheme.titleMedium,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          AppSpacing.gapXxs,
           Text(
             l10n.planningAnalysisProjectedIncome(
               analysis.projectedIncome.asCurrency(locale: context.locale),
             ),
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+            style: theme.textTheme.bodySmall?.copyWith(color: palette.ink2),
           ),
-          const SizedBox(height: 12),
+          AppSpacing.gapSm,
           if (analysis.summary.isNotEmpty)
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.deepTurquoise.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(12),
-              ),
+            AppCard(
+              padding: AppSpacing.allSm,
               child: Text(analysis.summary, style: theme.textTheme.bodyMedium),
             ),
-          const SizedBox(height: 16),
+          AppSpacing.gapMd,
           for (final group in analysis.groups) ...[
             AllocationBar(
               label: _allocationLabel(l10n, group.allocation),
               group: group,
             ),
-            const SizedBox(height: 12),
+            AppSpacing.gapSm,
           ],
           if (analysis.categories.isNotEmpty) ...[
-            const SizedBox(height: 8),
+            AppSpacing.gapXs,
             Text(
               l10n.planningAnalysisCategoriesTitle,
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: theme.textTheme.titleSmall,
             ),
-            const SizedBox(height: 8),
+            AppSpacing.gapXs,
             for (final category in analysis.categories)
               CategoryTile(
                 category: category,
-                statusColor: _statusColor(category.status),
+                statusColor: _statusColor(palette, category.status),
                 statusLabel: _statusLabel(l10n, category.status),
               ),
           ],
           if (reclassifications.isNotEmpty) ...[
-            const SizedBox(height: 16),
+            AppSpacing.gapMd,
             Text(
               l10n.planningAnalysisReclassTitle,
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: theme.textTheme.titleSmall,
             ),
-            const SizedBox(height: 8),
+            AppSpacing.gapXs,
             for (final item in reclassifications)
               ReclassificationTile(
                 item: item,
@@ -284,26 +280,24 @@ class _Planning503020AnalysisSheetState
               ),
           ],
           if (analysis.insights.isNotEmpty) ...[
-            const SizedBox(height: 16),
+            AppSpacing.gapMd,
             Text(
               l10n.planningAnalysisInsightsTitle,
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: theme.textTheme.titleSmall,
             ),
-            const SizedBox(height: 8),
+            AppSpacing.gapXs,
             for (final insight in analysis.insights)
               Padding(
-                padding: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.only(bottom: AppSpacing.xs),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Icon(
                       Icons.lightbulb_outline,
                       size: 16,
-                      color: AppColors.antiqueGold,
+                      color: AppColors.goldDeep,
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppSpacing.xs),
                     Expanded(
                       child: Text(insight, style: theme.textTheme.bodySmall),
                     ),
@@ -312,7 +306,7 @@ class _Planning503020AnalysisSheetState
               ),
           ],
           if (widget.onRefresh != null) ...[
-            const SizedBox(height: 8),
+            AppSpacing.gapXs,
             _buildCacheInfo(context, l10n, theme),
           ],
         ],

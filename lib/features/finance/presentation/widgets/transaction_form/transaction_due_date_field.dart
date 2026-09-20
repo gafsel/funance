@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:funances/core/form/date_form_field.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/features/finance/presentation/controllers/transaction_form_notifier.dart';
@@ -19,24 +21,21 @@ class TransactionDueDateField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final palette = context.palette;
     final l10n = context.l10n;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
       child: Row(
         children: [
           Text(
             "${l10n.transactionDateLabel}: ",
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.hintColor,
-            ),
+            style: theme.textTheme.bodyMedium?.copyWith(color: palette.ink2),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.xs),
           Text(
             state.dueDate.formated(l10n.formatSimpleDate),
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w500,
-            ),
+            style: theme.textTheme.titleSmall,
           ),
         ],
       ),
@@ -61,10 +60,7 @@ DateFormField transactionDueDateInput(
         notifier.updateDueDate(date);
       }
     },
-    decoration: InputDecoration(
-      labelText: l10n.transactionDateLabel,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-    ),
+    decoration: InputDecoration(labelText: l10n.transactionDateLabel),
     validator: v.all([v.notNull()]),
   );
 }

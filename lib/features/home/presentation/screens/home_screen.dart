@@ -1,24 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:funances/features/user/domain/models/user_model.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/theme/app_breakpoints.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_spacing.dart';
+import 'package:funances/core/widgets/app_scaffold.dart';
 import 'package:funances/features/auth/presentation/providers.dart';
 import 'package:funances/features/home/presentation/widgets/home/home_bottom_bar_item.dart';
 import 'package:funances/features/home/presentation/widgets/home/workspace_selector.dart';
-import 'package:funances/features/home/presentation/widgets/home/xp_gain_toast.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:go_router/go_router.dart';
-import 'package:funances/features/finance/presentation/widgets/transaction_action_sheet.dart';
+import 'package:funances/features/finance/presentation/widgets/launch_fab.dart';
 import 'package:funances/features/home/presentation/provider.dart';
 import 'package:funances/features/home/presentation/widgets/history_tab.dart';
 import 'package:funances/features/home/presentation/widgets/journey_tab.dart';
 import 'package:funances/features/home/presentation/widgets/overview_tab.dart';
 import 'package:funances/features/user/presentation/widgets/user_avatar.dart';
 import 'package:funances/features/workspace/presentation/screens/workspace_settings_screen.dart';
-import 'package:funances/features/workspace/presentation/widgets/workspace_level_indicator.dart';
+import 'package:funances/features/workspace/presentation/widgets/workspace_level_badge.dart';
 import 'package:funances/l10n/app_localizations.dart';
-import 'package:confetti/confetti.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -31,18 +31,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   bool _isNavigationRailExtended = false;
-  late ConfettiController _confettiController;
-  int? _xpGain;
-  int _xpGainSeq = 0;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this, initialIndex: 0);
     _tabController.addListener(_onTabChanged);
-    _confettiController = ConfettiController(
-      duration: const Duration(seconds: 4),
-    );
   }
 
   void _onTabChanged() {
@@ -63,7 +57,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   void dispose() {
     _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
-    _confettiController.dispose();
     super.dispose();
   }
 
@@ -81,70 +74,37 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       }
     });
 
-    // Reage às atualizações em tempo real do workspace (XP, badges, nível
-    // concedidos pelo servidor) com celebrações imediatas.
-    ref.listen(WorkspaceViewProviders.gamification, (previous, next) {
-      final prevWorkspace = previous;
-      final currWorkspace = next;
-
-      if (prevWorkspace == null) return;
-      if (prevWorkspace.workspaceId == null ||
-          currWorkspace.workspaceId == null) {
-        return;
-      }
-      if (prevWorkspace.workspaceId != currWorkspace.workspaceId) return;
-
-      final leveledUp = currWorkspace.level > prevWorkspace.level;
-      final xpDelta = currWorkspace.xp - prevWorkspace.xp;
-
-      if (leveledUp) {
-        HapticFeedback.heavyImpact();
-        _confettiController.play();
-        _showLevelUpDialog(context, currWorkspace.level);
-      } else if (xpDelta > 0) {
-        HapticFeedback.mediumImpact();
-        setState(() {
-          _xpGain = xpDelta;
-          _xpGainSeq++;
-        });
-      }
-
-      final newBadges = currWorkspace.unlockedBadges.keys.toSet().difference(
-        prevWorkspace.unlockedBadges.keys.toSet(),
-      );
-      if (newBadges.isNotEmpty) {
-        HapticFeedback.heavyImpact();
-        final l10n = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.emoji_events, color: Colors.amber),
-                const SizedBox(width: 12),
-                Expanded(child: Text(l10n.badgeUnlockedToast)),
-              ],
-            ),
-            action: SnackBarAction(
-              label: l10n.badgeUnlockedView,
-              onPressed: () => context.push('/workspace/badges'),
-            ),
-            duration: const Duration(seconds: 5),
-          ),
-        );
-      }
-    });
+    // O feedback de conquista NÃO mora mais aqui. Ele subiu para o
+    // `CelebrationHost`, pendurado no `builder` do `MaterialApp`: enquanto
+    // este `ref.listen` estava na Home, quem ganhava XP dentro da
+    // Conciliação, do 50-30-20 ou do formulário de transação — telas que
+    // empilham rota por cima — não via retorno nenhum, porque a Home não
+    // estava montada. Ver `core/celebration/`.
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isLargeScreen = constraints.maxWidth > 800;
+        // Um corte só. O rail abria em 800 e o conteúdo das abas em 900: na
+        // faixa de 801 a 900px a Home já pagava a largura do rail e nenhuma
+        // aba reorganizava. Agora rail e conteúdo leem o MESMO `AppLayout`.
+        final isLargeScreen = constraints.layout.usesRail;
 
-        return Scaffold(
-          extendBody: true,
+        // `AppScaffold` e não `Scaffold`: é ele que decide entre rail e barra
+        // inferior pelo MESMO `AppLayout` que as abas leem, e que põe o botão
+        // de lançar no lugar certo de cada um dos dois. Antes essa decisão
+        // estava escrita três vezes aqui — `isLargeScreen` para o rail, de
+        // novo para a barra e uma terceira para a posição do FAB — e nada
+        // garantia que as três concordassem.
+        //
+        // `constrained: false` porque quem limita a largura é cada aba: a
+        // Jornada cabe na largura de conteúdo, o Histórico é uma lista de
+        // borda a borda.
+        return AppScaffold(
+          constrained: false,
           appBar: isLargeScreen
               ? null
               : AppBar(
                   leading: Padding(
-                    padding: const EdgeInsets.only(left: 8.0),
+                    padding: const EdgeInsets.only(left: AppSpacing.xs),
                     child: InkWell(
                       onTap: () => context.push('/profile'),
                       child: Center(
@@ -158,79 +118,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   ),
                   title: const WorkspaceSelector(isNavigationRail: false),
                   centerTitle: true,
-                  actions: const [WorkspaceLevelIndicator()],
+                  // A identidade do cofre mora AQUI e só aqui: nome, selo de
+                  // tipo e nível. O corpo da Jornada repetia os três num
+                  // cabeçalho próprio, e o nível ainda aparecia duas vezes —
+                  // uma no anel da barra, outra no selo do corpo.
+                  actions: const [WorkspaceLevelBadge()],
                 ),
-          body: Stack(
-            children: [
-              Row(
-                children: [
-                  if (isLargeScreen) _buildNavigationRail(context, authUser),
-                  Expanded(
-                    child: TabBarView(
-                      controller: _tabController,
-                      physics: isLargeScreen
-                          ? const NeverScrollableScrollPhysics()
-                          : null,
-                      children: const [
-                        JourneyTab(),
-                        OverviewTab(),
-                        HistoryTab(),
-                        WorkspaceSettingsScreen(),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              Align(
-                alignment: Alignment.topCenter,
-                child: ConfettiWidget(
-                  confettiController: _confettiController,
-                  blastDirectionality: BlastDirectionality.explosive,
-                  shouldLoop: false,
-                  numberOfParticles: 30,
-                  maxBlastForce: 40,
-                  minBlastForce: 10,
-                  emissionFrequency: 0.05,
-                  colors: const [
-                    AppColors.vibrantTeal,
-                    AppColors.successGold,
-                    AppColors.limeGreen,
-                    AppColors.deepTurquoise,
-                    Colors.pink,
-                    Colors.purple,
-                  ],
-                ),
-              ),
-              if (_xpGain != null)
-                Align(
-                  alignment: Alignment.topCenter,
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 16),
-                    child: XpGainToast(
-                      key: ValueKey(_xpGainSeq),
-                      amount: _xpGain!,
-                    ),
-                  ),
-                ),
+          rail: _buildNavigationRail(context, authUser),
+          bottomBar: _buildBottomBar(context),
+          launchAction: const LaunchFab(),
+          body: TabBarView(
+            controller: _tabController,
+            physics: isLargeScreen
+                ? const NeverScrollableScrollPhysics()
+                : null,
+            children: const [
+              JourneyTab(),
+              OverviewTab(),
+              HistoryTab(),
+              WorkspaceSettingsScreen(),
             ],
           ),
-          bottomNavigationBar: isLargeScreen ? null : _buildBottomBar(context),
-          floatingActionButton: FloatingActionButton(
-            onPressed: () {
-              showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                backgroundColor: Colors.transparent,
-                builder: (context) => const TransactionActionSheet(),
-              );
-            },
-            backgroundColor: AppColors.successGold,
-            shape: const CircleBorder(),
-            child: const Icon(Icons.add, color: AppColors.darkNavy),
-          ),
-          floatingActionButtonLocation: isLargeScreen
-              ? FloatingActionButtonLocation.endFloat
-              : FloatingActionButtonLocation.centerDocked,
         );
       },
     );
@@ -240,25 +148,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final l10n = AppLocalizations.of(context)!;
     return NavigationRail(
       extended: _isNavigationRailExtended,
-      minExtendedWidth: 200,
-      backgroundColor: AppColors.deepTurquoise,
-      unselectedIconTheme: const IconThemeData(
-        color: AppColors.pureWhite,
-        opacity: 0.7,
-      ),
-      selectedIconTheme: const IconThemeData(color: AppColors.pureWhite),
-      unselectedLabelTextStyle: const TextStyle(color: AppColors.pureWhite),
-      selectedLabelTextStyle: const TextStyle(
-        color: AppColors.pureWhite,
-        fontWeight: FontWeight.bold,
-      ),
       leading: Column(
         children: [
-          const SizedBox(height: 16),
+          AppSpacing.gapMd,
           IconButton(
             icon: Icon(
               _isNavigationRailExtended ? Icons.menu_open : Icons.menu,
-              color: AppColors.pureWhite,
+              color: AppColors.inkInverse,
             ),
             onPressed: () {
               setState(() {
@@ -266,11 +162,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               });
             },
           ),
-          const SizedBox(height: 16),
+          AppSpacing.gapMd,
           if (_isNavigationRailExtended)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: const WorkspaceSelector(isNavigationRail: true),
+            const Padding(
+              padding: AppSpacing.hMd,
+              child: WorkspaceSelector(isNavigationRail: true),
             )
           else
             InkWell(
@@ -281,12 +177,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               ),
               child: const Icon(
                 Icons.account_balance_wallet,
-                color: AppColors.pureWhite,
+                color: AppColors.inkInverse,
               ),
             ),
-          const SizedBox(height: 24),
-          const WorkspaceLevelIndicator(),
-          const SizedBox(height: 16),
+          AppSpacing.gapLg,
+          const WorkspaceLevelBadge(onGame: true),
+          AppSpacing.gapMd,
         ],
       ),
       trailing: Expanded(
@@ -302,16 +198,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               ),
             ),
             if (_isNavigationRailExtended) ...[
-              const SizedBox(height: 8),
+              AppSpacing.gapXs,
               Text(
                 authUser?.displayName ?? '',
-                style: const TextStyle(
-                  color: AppColors.pureWhite,
-                  fontSize: 12,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppColors.inkInverse),
               ),
             ],
-            const SizedBox(height: 16),
+            AppSpacing.gapMd,
           ],
         ),
       ),
@@ -346,8 +241,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final l10n = AppLocalizations.of(context)!;
     return BottomAppBar(
       shape: const CircularNotchedRectangle(),
-      notchMargin: 8.0,
-      color: AppColors.deepTurquoise,
+      notchMargin: AppSpacing.xs,
       child: SizedBox(
         height: 60,
         child: Row(
@@ -367,7 +261,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               isSelected: _tabController.index == 1,
               onTap: () => _tabController.animateTo(1),
             ),
-            const SizedBox(width: 48), // Espaço para o FAB
+            const SizedBox(width: AppSpacing.xxxl), // Espaço para o FAB
             HomeBottomBarItem(
               icon: Icons.history_outlined,
               selectedIcon: Icons.history,
@@ -384,70 +278,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  void _showLevelUpDialog(BuildContext context, int newLevel) {
-    final l10n = AppLocalizations.of(context)!;
-    showDialog(
-      context: context,
-      // Barreira mais leve para o confetti atrás do diálogo continuar visível.
-      barrierColor: Colors.black26,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.stars, color: Colors.amber, size: 28),
-            const SizedBox(width: 8),
-            Text(
-              l10n.levelUpTitle,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.5,
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              l10n.levelUpSubtitle,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              l10n.levelUpContent(newLevel),
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              l10n.levelUpMessage,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.grey, fontSize: 14),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(l10n.closeButton),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              context.push('/workspace/badges');
-            },
-            child: Text(
-              l10n.viewAchievementsButton,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
       ),
     );
   }

@@ -1,10 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:funances/core/time/clock.dart';
 import 'package:funances/core/utils/date_extension.dart';
+import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/home/data/repositories/journey_repository_impl.dart';
+import 'package:funances/features/home/domain/models/due_soon_model.dart';
 import 'package:funances/features/home/domain/models/financial_health_model.dart';
 import 'package:funances/features/home/domain/models/mission_model.dart';
 import 'package:funances/features/home/domain/models/monthly_available_model.dart';
@@ -100,6 +103,37 @@ sealed class JourneyViewProviders {
             .watch(JourneyDomainProviders.service)
             .watchHealthHistory(months: 6);
       });
+
+  /// O que vence HOJE e AMANHÃ: parcelas pendentes e faturas fechando.
+  ///
+  /// Janela de dois dias, e não "os próximos sete": o bloco existe para o que
+  /// ainda dá para resolver antes de virar atraso. Sete dias viram uma lista
+  /// que ninguém lê, e o que vence hoje se perde no meio dela.
+  ///
+  /// A consulta pede até depois de amanhã de propósito — a data de vencimento
+  /// é gravada ao meio-dia, e um recorte no fim do dia de amanhã dependeria
+  /// do fuso para não cortar o último item. Quem decide o que entra é
+  /// [dueSoonFrom], comparando dia a dia.
+  static final dueSoon = StreamProvider.autoDispose<DueSoon>((ref) {
+    final today = ref.watch(todayProvider);
+    final start = DateTime(today.year, today.month, today.day);
+
+    final installments = ref
+        .watch(FinanceDomainProviders.service)
+        .watchInstallments(
+          startDate: start,
+          endDate: start.add(const Duration(days: 2)),
+          status: InstallmentStatus.pending,
+        );
+    final accounts = ref.watch(AccountDomainProviders.service).getAccounts();
+
+    return Rx.combineLatest2(
+      installments,
+      accounts,
+      (List<InstallmentModel> pending, List<AccountModel> accs) =>
+          dueSoonFrom(today: today, pending: pending, accounts: accs),
+    );
+  });
 
   /// "Quanto posso gastar até o fim do mês".
   ///

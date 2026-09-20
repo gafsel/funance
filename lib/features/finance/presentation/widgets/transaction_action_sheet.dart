@@ -1,20 +1,21 @@
-  import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'package:funances/core/theme/app_breakpoints.dart';
+import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_elevation.dart';
 import 'package:funances/core/theme/app_gradients.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_radius.dart';
+import 'package:funances/core/theme/app_spacing.dart';
+import 'package:funances/core/widgets/section_header.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
+import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
-
-import '../../../../core/theme/app_colors.dart';
-import '../../../../l10n/app_localizations.dart';
-import 'package:funances/core/widgets/section_header.dart';
 
 class TransactionActionSheet extends StatefulWidget {
   final Function(OrderType)? onSelect;
 
-  const TransactionActionSheet({
-    super.key,
-    this.onSelect,
-  });
+  const TransactionActionSheet({super.key, this.onSelect});
 
   @override
   State<TransactionActionSheet> createState() => _TransactionActionSheetState();
@@ -30,49 +31,52 @@ class _TransactionActionSheetState extends State<TransactionActionSheet> {
       height: MediaQuery.of(context).size.height * 0.85,
       width: double.infinity,
       decoration: const BoxDecoration(
-        gradient: AppGradients.backgroundGradient,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        gradient: AppGradients.background,
+        borderRadius: AppRadius.brSheet,
       ),
       child: Column(
         children: [
-          const SizedBox(height: 12),
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: AppColors.pureWhite.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 24),
+          // O respiro que sobrou do puxador desenhado à mão: quem o desenha
+          // agora é o `bottomSheetTheme`.
+          const SizedBox(height: AppSpacing.xxl),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: AppSpacing.hMd,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   l10n.homeNewTransaction,
                   style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.pureWhite,
+                    color: AppColors.inkInverse,
                   ),
                 ),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close, color: AppColors.pureWhite, size: 20),
+                  icon: const Icon(
+                    Icons.close,
+                    color: AppColors.inkInverse,
+                    size: 20,
+                  ),
                   constraints: const BoxConstraints(),
-                  padding: const EdgeInsets.all(8),
+                  padding: AppSpacing.allXs,
                   style: IconButton.styleFrom(
-                    backgroundColor: AppColors.pureWhite.withValues(alpha: 0.1),
+                    backgroundColor: AppColors.inkInverse.withValues(
+                      alpha: 0.1,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          AppSpacing.gapLg,
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                0,
+                AppSpacing.md,
+                AppSpacing.xl,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -81,23 +85,23 @@ class _TransactionActionSheetState extends State<TransactionActionSheet> {
                     subtitle: l10n.transactionRealizedSubtitle,
                     icon: Icons.check_circle_outline,
                   ),
-                  const SizedBox(height: 12),
+                  AppSpacing.gapSm,
                   _buildActionGrid(context, InstallmentStatus.paid),
-                  const SizedBox(height: 32),
+                  AppSpacing.gapXl,
                   SectionHeader.sheet(
                     title: l10n.transactionPlannedSection,
                     subtitle: l10n.transactionPlannedSubtitle,
                     icon: Icons.calendar_month_outlined,
                   ),
-                  const SizedBox(height: 12),
+                  AppSpacing.gapSm,
                   _buildActionGrid(context, InstallmentStatus.pending),
-                  const SizedBox(height: 32),
+                  AppSpacing.gapXl,
                   SectionHeader.sheet(
                     title: l10n.planningSectionTitle,
                     subtitle: l10n.planningSectionSubtitle,
                     icon: Icons.insights_outlined,
                   ),
-                  const SizedBox(height: 12),
+                  AppSpacing.gapSm,
                   _buildPlanningToolsGrid(context),
                 ],
               ),
@@ -108,118 +112,118 @@ class _TransactionActionSheetState extends State<TransactionActionSheet> {
     );
   }
 
-  Widget _buildActionGrid(BuildContext context, InstallmentStatus status) {
-    final isScheduled = status == InstallmentStatus.pending;
-    final l10n = AppLocalizations.of(context)!;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final maxGridWidth = screenWidth > 600 ? 480.0 : screenWidth;
-    
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: SizedBox(
-        width: maxGridWidth,
-        child: GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 3,
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          childAspectRatio: 0.85,
-          children: [
-            _buildActionItem(
-              context,
-              icon: isScheduled ? Icons.savings_outlined : Icons.add_circle_outline,
-              color: AppColors.limeGreen,
-              label: isScheduled ? l10n.transactionPlanIncome : l10n.transactionAddIncome,
-              onTap: () => _navigateToForm(context, OrderType.income, status),
-            ),
-            _buildActionItem(
-              context,
-              icon: isScheduled ? Icons.event_note_outlined : Icons.remove_circle_outline,
-              color: AppColors.error,
-              label: isScheduled ? l10n.transactionPlanExpense : l10n.transactionAddExpense,
-              onTap: () => _navigateToForm(context, OrderType.expense, status),
-            ),
-            _buildActionItem(
-              context,
-              icon: isScheduled ? Icons.pending_actions_outlined : Icons.swap_horiz,
-              color: AppColors.vibrantTeal,
-              label: isScheduled ? l10n.transactionPlanTransfer : l10n.transactionTransfer,
-              onTap: () => _navigateToForm(context, OrderType.transfer, status),
-            ),
-          ],
+  /// A largura da grade vem das constraints da FOLHA, não da janela: uma
+  /// janela larga com a folha estreita (ou com o `NavigationRail` comendo
+  /// 200px) media o espaço errado.
+  Widget _grid(BuildContext context, List<Widget> children) {
+    return LayoutBuilder(
+      builder: (context, constraints) => Align(
+        alignment: Alignment.centerLeft,
+        child: SizedBox(
+          width: constraints.layout.isCompact ? constraints.maxWidth : 480.0,
+          child: GridView.count(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisCount: 3,
+            mainAxisSpacing: AppSpacing.sm,
+            crossAxisSpacing: AppSpacing.sm,
+            childAspectRatio: 0.85,
+            children: children,
+          ),
         ),
       ),
     );
+  }
+
+  Widget _buildActionGrid(BuildContext context, InstallmentStatus status) {
+    final isScheduled = status == InstallmentStatus.pending;
+    final l10n = AppLocalizations.of(context)!;
+    final palette = context.palette;
+
+    return _grid(context, [
+      _buildActionItem(
+        context,
+        icon: isScheduled ? Icons.savings_outlined : Icons.add_circle_outline,
+        color: palette.successText,
+        label: isScheduled
+            ? l10n.transactionPlanIncome
+            : l10n.transactionAddIncome,
+        onTap: () => _navigateToForm(context, OrderType.income, status),
+      ),
+      _buildActionItem(
+        context,
+        icon: isScheduled
+            ? Icons.event_note_outlined
+            : Icons.remove_circle_outline,
+        color: palette.dangerText,
+        label: isScheduled
+            ? l10n.transactionPlanExpense
+            : l10n.transactionAddExpense,
+        onTap: () => _navigateToForm(context, OrderType.expense, status),
+      ),
+      _buildActionItem(
+        context,
+        icon: isScheduled ? Icons.pending_actions_outlined : Icons.swap_horiz,
+        color: palette.tealText,
+        label: isScheduled
+            ? l10n.transactionPlanTransfer
+            : l10n.transactionTransfer,
+        onTap: () => _navigateToForm(context, OrderType.transfer, status),
+      ),
+    ]);
   }
 
   Widget _buildPlanningToolsGrid(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final maxGridWidth = screenWidth > 600 ? 480.0 : screenWidth;
+    final palette = context.palette;
 
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: SizedBox(
-        width: maxGridWidth,
-        child: GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 3,
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          childAspectRatio: 0.85,
-          children: [
-            _buildActionItem(
-              context,
-              icon: Icons.assignment_turned_in_outlined,
-              color: AppColors.limeGreen,
-              label: l10n.planningIncomeLimits,
-              onTap: () {
-                Navigator.pop(context);
-                context.push('/planning?type=income');
-              },
-            ),
-            _buildActionItem(
-              context,
-              icon: Icons.assignment_outlined,
-              color: AppColors.error,
-              label: l10n.planningExpenseLimits,
-              onTap: () {
-                Navigator.pop(context);
-                context.push('/planning?type=expense');
-              },
-            ),
-            _buildActionItem(
-              context,
-              icon: Icons.pie_chart_outline,
-              color: AppColors.antiqueGold,
-              label: l10n.planning503020Title,
-              onTap: () {
-                Navigator.pop(context);
-                context.push('/planning-50-30-20');
-              },
-            ),
-            // A conciliação era uma ação escondida dentro da tela de UMA conta:
-            // quem nunca entrou no extrato de uma conta nunca soube que ela
-            // existia. Aqui ela é uma ferramenta de estratégia como as outras,
-            // e a escolha da conta acontece depois.
-            _buildActionItem(
-              context,
-              icon: Icons.fact_check_outlined,
-              color: AppColors.vibrantTeal,
-              label: l10n.reconciliationAction,
-              onTap: () {
-                Navigator.pop(context);
-                context.push('/reconciliation');
-              },
-            ),
-          ],
-        ),
+    return _grid(context, [
+      _buildActionItem(
+        context,
+        icon: Icons.assignment_turned_in_outlined,
+        color: palette.successText,
+        label: l10n.planningIncomeLimits,
+        onTap: () {
+          Navigator.pop(context);
+          context.push('/planning?type=income');
+        },
       ),
-    );
+      _buildActionItem(
+        context,
+        icon: Icons.assignment_outlined,
+        color: palette.dangerText,
+        label: l10n.planningExpenseLimits,
+        onTap: () {
+          Navigator.pop(context);
+          context.push('/planning?type=expense');
+        },
+      ),
+      _buildActionItem(
+        context,
+        icon: Icons.pie_chart_outline,
+        color: AppColors.goldDeep,
+        label: l10n.planning503020Title,
+        onTap: () {
+          Navigator.pop(context);
+          context.push('/planning-50-30-20');
+        },
+      ),
+      // A conciliação era uma ação escondida dentro da tela de UMA conta:
+      // quem nunca entrou no extrato de uma conta nunca soube que ela
+      // existia. Aqui ela é uma ferramenta de estratégia como as outras,
+      // e a escolha da conta acontece depois.
+      _buildActionItem(
+        context,
+        icon: Icons.fact_check_outlined,
+        color: palette.tealText,
+        label: l10n.reconciliationAction,
+        onTap: () {
+          Navigator.pop(context);
+          context.push('/reconciliation');
+        },
+      ),
+    ]);
   }
-
 
   Widget _buildActionItem(
     BuildContext context, {
@@ -229,48 +233,41 @@ class _TransactionActionSheetState extends State<TransactionActionSheet> {
     required VoidCallback onTap,
   }) {
     final theme = Theme.of(context);
+    final palette = context.palette;
+
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: AppRadius.brMd,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.xxs,
+          vertical: AppSpacing.xs,
+        ),
         decoration: BoxDecoration(
-          color: AppColors.pureWhite,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          color: palette.paper,
+          borderRadius: AppRadius.brMd,
+          boxShadow: AppElevation.raised(palette.brightness),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Flexible(
               child: Container(
-                padding: const EdgeInsets.all(8),
+                padding: AppSpacing.allXs,
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: FittedBox(
-                  child: Icon(icon, color: color, size: 24),
-                ),
+                child: FittedBox(child: Icon(icon, color: color, size: 24)),
               ),
             ),
-            const SizedBox(height: 4),
+            AppSpacing.gapXxs,
             Text(
               label,
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppColors.darkNavy,
-                letterSpacing: 0,
-              ),
+              style: theme.textTheme.labelMedium?.copyWith(color: palette.ink),
             ),
           ],
         ),
@@ -281,7 +278,11 @@ class _TransactionActionSheetState extends State<TransactionActionSheet> {
   /// O ponto de entrada decide o status: "Registrei" abre o lançamento como
   /// pago e "Agendar" como pendente. Não há mais seletor de status no
   /// formulário.
-  void _navigateToForm(BuildContext context, OrderType type, InstallmentStatus status) {
+  void _navigateToForm(
+    BuildContext context,
+    OrderType type,
+    InstallmentStatus status,
+  ) {
     Navigator.pop(context);
     context.push('/transactions/form?type=${type.name}&status=${status.name}');
   }

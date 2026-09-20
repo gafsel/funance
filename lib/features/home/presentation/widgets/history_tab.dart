@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/theme/app_breakpoints.dart';
+import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_radius.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
+import 'package:funances/core/widgets/app_chip.dart';
+import 'package:funances/core/widgets/app_scaffold.dart';
 import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
@@ -25,19 +31,11 @@ class HistoryTab extends ConsumerWidget {
     TransactionQuery query,
   ) {
     final l10n = context.l10n;
-    final theme = Theme.of(context);
 
     return TextFormField(
       decoration: InputDecoration(
         hintText: l10n.historyFilterDescriptionLabel,
         prefixIcon: const Icon(Icons.search),
-        fillColor: theme.colorScheme.surfaceContainerHighest,
-        filled: true,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        contentPadding: const EdgeInsets.symmetric(vertical: 0),
       ),
       onChanged: (value) {
         historyNotifier.reset(
@@ -53,13 +51,13 @@ class HistoryTab extends ConsumerWidget {
     TransactionListNotifier historyNotifier,
   ) {
     return Material(
-      color: Colors.transparent,
+      color: AppColors.transparent,
       child: InkWell(
         onTap: () {
           showModalBottomSheet(
             context: context,
             isScrollControlled: true,
-            backgroundColor: Colors.transparent,
+            backgroundColor: AppColors.transparent,
             builder: (context) => TransactionFilterBottomSheet(
               initialQuery: query,
               onApply: (newQuery) {
@@ -68,12 +66,12 @@ class HistoryTab extends ConsumerWidget {
             ),
           );
         },
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.brMd,
         child: Container(
-          padding: const EdgeInsets.all(12),
+          padding: AppSpacing.allSm,
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: AppRadius.brMd,
             border: Border.all(
               color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
             ),
@@ -101,60 +99,26 @@ class HistoryTab extends ConsumerWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isMobile = constraints.maxWidth <= 800;
+        // O corte é o mesmo do rail: abaixo de `wide` a linha de filtros não
+        // cabe lado a lado.
+        final isMobile = !constraints.layout.isWide;
 
-        return Column(
-          children: [
-            // Topo: Filtros
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: isMobile
-                  ? Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        HistoryPeriodFilter(
-                          selectedType: periodType,
-                          startDate: query.startDate,
-                          endDate: query.endDate,
-                          onSelected: (type, start, end) {
-                            ref
-                                .read(
-                              HomeViewProviders
-                                  .historyPeriodType
-                                  .notifier,
-                            )
-                                .state =
-                                type;
-                            historyNotifier.reset(
-                              query: query.copyWith(
-                                startDate: start,
-                                endDate: end,
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildSearchField(
-                                context,
-                                historyNotifier,
-                                query,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            _buildFilterButton(context, query, historyNotifier),
-                          ],
-                        ),
-                      ],
-                    )
-                  : Row(
-                      children: [
-                        // Filtro de Período (Fixo à esquerda)
-                        SizedBox(
-                          width: 350,
-                          child: HistoryPeriodFilter(
+        // A largura de leitura do design system. Sem isto o Histórico
+        // renderizava a 1400px: filtros de ponta a ponta e linhas de extrato
+        // com duzentos caracteres entre a descrição e o valor, com o olho
+        // perdendo a linha no meio do caminho.
+        return AppContentWidth(
+          gutter: 0,
+          child: Column(
+            children: [
+              // Topo: Filtros
+              Padding(
+                padding: AppSpacing.allMd,
+                child: isMobile
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          HistoryPeriodFilter(
                             selectedType: periodType,
                             startDate: query.startDate,
                             endDate: query.endDate,
@@ -175,126 +139,173 @@ class HistoryTab extends ConsumerWidget {
                               );
                             },
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        // Filtro por Texto
-                        Expanded(
-                          child: _buildSearchField(
-                            context,
-                            historyNotifier,
-                            query,
+                          AppSpacing.gapSm,
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildSearchField(
+                                  context,
+                                  historyNotifier,
+                                  query,
+                                ),
+                              ),
+                              AppSpacing.gapSm,
+                              _buildFilterButton(
+                                context,
+                                query,
+                                historyNotifier,
+                              ),
+                            ],
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        // Botão de Filtro Avançado
-                        _buildFilterButton(context, query, historyNotifier),
+                        ],
+                      )
+                    : Row(
+                        children: [
+                          // Filtro de Período (Fixo à esquerda)
+                          SizedBox(
+                            width: 350,
+                            child: HistoryPeriodFilter(
+                              selectedType: periodType,
+                              startDate: query.startDate,
+                              endDate: query.endDate,
+                              onSelected: (type, start, end) {
+                                ref
+                                        .read(
+                                          HomeViewProviders
+                                              .historyPeriodType
+                                              .notifier,
+                                        )
+                                        .state =
+                                    type;
+                                historyNotifier.reset(
+                                  query: query.copyWith(
+                                    startDate: start,
+                                    endDate: end,
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          AppSpacing.gapSm,
+                          // Filtro por Texto
+                          Expanded(
+                            child: _buildSearchField(
+                              context,
+                              historyNotifier,
+                              query,
+                            ),
+                          ),
+                          AppSpacing.gapSm,
+                          // Botão de Filtro Avançado
+                          _buildFilterButton(context, query, historyNotifier),
+                        ],
+                      ),
+              ),
+              // Badges para filtros da modal
+              if (_hasAdvancedFilters(query))
+                Padding(
+                  padding: AppSpacing.hMd,
+                  child: SizedBox(
+                    height: 40,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      children: [
+                        if (query.accountId != null)
+                          Consumer(
+                            builder: (context, ref, child) {
+                              final accountAsync = ref.watch(
+                                AccountViewProviders.byId(query.accountId!),
+                              );
+                              final accountName = accountAsync.when(
+                                data: (account) =>
+                                    account?.name ?? query.accountId,
+                                loading: () => query.accountId,
+                                error: (_, _) => query.accountId,
+                              );
+
+                              return _FilterBadge(
+                                label:
+                                    '${l10n.historyAccountLabel}: $accountName',
+                                onClear: () => historyNotifier.reset(
+                                  query: query.copyWith(accountId: null),
+                                ),
+                              );
+                            },
+                          ),
+                        if (query.categoryId != null)
+                          Consumer(
+                            builder: (context, ref, child) {
+                              final categoryAsync = ref.watch(
+                                CategoryViewProviders.byId(query.categoryId!),
+                              );
+                              final categoryName = categoryAsync.when(
+                                data: (category) =>
+                                    category?.name ?? query.categoryId,
+                                loading: () => query.categoryId,
+                                error: (_, _) => query.categoryId,
+                              );
+
+                              return _FilterBadge(
+                                label:
+                                    '${l10n.historyFilterCategoryLabel}: $categoryName',
+                                onClear: () => historyNotifier.reset(
+                                  query: query.copyWith(categoryId: null),
+                                ),
+                              );
+                            },
+                          ),
+                        if (query.type != null)
+                          _FilterBadge(
+                            label:
+                                '${l10n.historyFilterTypeLabel}: ${query.type == OrderType.income
+                                    ? l10n.transactionTypeIncome
+                                    : query.type == OrderType.expense
+                                    ? l10n.transactionTypeExpense
+                                    : l10n.transactionTypeTransfer}',
+                            onClear: () => historyNotifier.reset(
+                              query: query.copyWith(type: null),
+                            ),
+                          ),
+                        if (query.status != null)
+                          _FilterBadge(
+                            label:
+                                '${l10n.historyFilterStatusLabel}: ${query.status == InstallmentStatus.paid
+                                    ? l10n.statusPaid
+                                    : query.status == InstallmentStatus.pending
+                                    ? l10n.statusPending
+                                    : l10n.statusSettled}',
+                            onClear: () => historyNotifier.reset(
+                              query: query.copyWith(status: null),
+                            ),
+                          ),
+                        if (query.minAmount != null)
+                          _FilterBadge(
+                            label:
+                                '${l10n.historyFilterMinAmountLabel}: ${query.minAmount!.asCurrency()}',
+                            onClear: () => historyNotifier.reset(
+                              query: query.copyWith(minAmount: null),
+                            ),
+                          ),
+                        if (query.maxAmount != null)
+                          _FilterBadge(
+                            label:
+                                '${l10n.historyFilterMaxAmountLabel}: ${query.maxAmount!.asCurrency()}',
+                            onClear: () => historyNotifier.reset(
+                              query: query.copyWith(maxAmount: null),
+                            ),
+                          ),
                       ],
                     ),
-            ),
-            // Badges para filtros da modal
-            if (_hasAdvancedFilters(query))
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: SizedBox(
-                  height: 40,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    children: [
-                      if (query.accountId != null)
-                        Consumer(
-                          builder: (context, ref, child) {
-                            final accountAsync = ref.watch(
-                              AccountViewProviders.byId(query.accountId!),
-                            );
-                            final accountName = accountAsync.when(
-                              data: (account) =>
-                                  account?.name ?? query.accountId,
-                              loading: () => query.accountId,
-                              error: (_, _) => query.accountId,
-                            );
-
-                            return _FilterBadge(
-                              label:
-                                  '${l10n.historyAccountLabel}: $accountName',
-                              onClear: () => historyNotifier.reset(
-                                query: query.copyWith(accountId: null),
-                              ),
-                            );
-                          },
-                        ),
-                      if (query.categoryId != null)
-                        Consumer(
-                          builder: (context, ref, child) {
-                            final categoryAsync = ref.watch(
-                              CategoryViewProviders.byId(query.categoryId!),
-                            );
-                            final categoryName = categoryAsync.when(
-                              data: (category) =>
-                                  category?.name ?? query.categoryId,
-                              loading: () => query.categoryId,
-                              error: (_, _) => query.categoryId,
-                            );
-
-                            return _FilterBadge(
-                              label:
-                                  '${l10n.historyFilterCategoryLabel}: $categoryName',
-                              onClear: () => historyNotifier.reset(
-                                query: query.copyWith(categoryId: null),
-                              ),
-                            );
-                          },
-                        ),
-                      if (query.type != null)
-                        _FilterBadge(
-                          label:
-                              '${l10n.historyFilterTypeLabel}: ${query.type == OrderType.income
-                                  ? l10n.transactionTypeIncome
-                                  : query.type == OrderType.expense
-                                  ? l10n.transactionTypeExpense
-                                  : l10n.transactionTypeTransfer}',
-                          onClear: () => historyNotifier.reset(
-                            query: query.copyWith(type: null),
-                          ),
-                        ),
-                      if (query.status != null)
-                        _FilterBadge(
-                          label:
-                              '${l10n.historyFilterStatusLabel}: ${query.status == InstallmentStatus.paid
-                                  ? l10n.statusPaid
-                                  : query.status == InstallmentStatus.pending
-                                  ? l10n.statusPending
-                                  : l10n.statusSettled}',
-                          onClear: () => historyNotifier.reset(
-                            query: query.copyWith(status: null),
-                          ),
-                        ),
-                      if (query.minAmount != null)
-                        _FilterBadge(
-                          label:
-                              '${l10n.historyFilterMinAmountLabel}: ${query.minAmount!.asCurrency()}',
-                          onClear: () => historyNotifier.reset(
-                            query: query.copyWith(minAmount: null),
-                          ),
-                        ),
-                      if (query.maxAmount != null)
-                        _FilterBadge(
-                          label:
-                              '${l10n.historyFilterMaxAmountLabel}: ${query.maxAmount!.asCurrency()}',
-                          onClear: () => historyNotifier.reset(
-                            query: query.copyWith(maxAmount: null),
-                          ),
-                        ),
-                    ],
                   ),
                 ),
+              Expanded(
+                child: TransactionListView(
+                  provider: FinanceViewProviders.history,
+                  footerBuilder: (context) => HistoryPeriodSummary(),
+                ),
               ),
-            Expanded(
-              child: TransactionListView(
-                provider: FinanceViewProviders.history,
-                footerBuilder: (context) => HistoryPeriodSummary(),
-              ),
-            ),
-          ],
+            ],
+          ),
         );
       },
     );
@@ -310,6 +321,12 @@ class HistoryTab extends ConsumerWidget {
   }
 }
 
+/// A pílula de um filtro ativo, com a ação de limpar.
+///
+/// Era desenhada à mão (raio 20, 11px w600, duas opacidades do
+/// `primaryContainer`). Agora é o [AppChip] do design system: a variante com
+/// `onDeleted` é a única pílula do app que carrega uma ação — [StatusPill] não
+/// tem onde encostar para limpar o filtro.
 class _FilterBadge extends StatelessWidget {
   final String label;
   final VoidCallback onClear;
@@ -318,45 +335,9 @@ class _FilterBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.only(right: 8.0),
-      child: Material(
-        color: Colors.transparent,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.primaryContainer.withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: theme.colorScheme.primary.withValues(alpha: 0.2),
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(width: 4),
-              InkWell(
-                onTap: onClear,
-                borderRadius: BorderRadius.circular(10),
-                child: Icon(
-                  Icons.close,
-                  size: 14,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+      padding: const EdgeInsets.only(right: AppSpacing.xs),
+      child: AppChip(label: label, onDeleted: onClear),
     );
   }
 }

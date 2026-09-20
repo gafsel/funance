@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/form/loading_button.dart';
+import 'package:funances/core/theme/app_breakpoints.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_radius.dart';
+import 'package:funances/core/theme/app_spacing.dart';
+import 'package:funances/core/theme/app_theme.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/widgets/error_view.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
@@ -30,7 +35,7 @@ class Planning503020Screen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Row(
-          spacing: 8,
+          spacing: AppSpacing.xs,
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
@@ -71,7 +76,9 @@ class Planning503020Screen extends ConsumerWidget {
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final isMobile = constraints.maxWidth < 800;
+          // Três colunas só existem em tela de desktop: o corte é o do design
+          // system, medido no PAINEL e não na janela.
+          final isMobile = !constraints.layout.isWide;
 
           final allocations = CategoryAllocation.values;
 
@@ -83,7 +90,7 @@ class Planning503020Screen extends ConsumerWidget {
           if (erro != null) {
             return Center(
               child: Padding(
-                padding: const EdgeInsets.all(24),
+                padding: AppSpacing.allLg,
                 child: ErrorView.forError(
                   context,
                   erro,
@@ -103,8 +110,8 @@ class Planning503020Screen extends ConsumerWidget {
           }
 
           final header = Container(
-            padding: const EdgeInsets.all(16.0),
-            color: Theme.of(context).cardColor,
+            padding: AppSpacing.allMd,
+            color: context.palette.paper,
             child: PlanningSummaryHeader(isMobile: isMobile),
           );
 
@@ -115,23 +122,7 @@ class Planning503020Screen extends ConsumerWidget {
                 child: Column(
                   children: [
                     header,
-                    TabBar(
-                      indicator: BoxDecoration(
-                        color: AppColors.deepTurquoise,
-                        borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(8),
-                        ),
-                      ),
-                      labelStyle: const TextStyle(fontSize: 12),
-                      unselectedLabelStyle: const TextStyle(fontSize: 12),
-                      tabs: [
-                        for (final allocation in allocations)
-                          Tab(
-                            height: 60,
-                            child: AllocationTabLabel(allocation: allocation),
-                          ),
-                      ],
-                    ),
+                    _AllocationTabBar(allocations: allocations),
                     Expanded(
                       child: TabBarView(
                         children: [
@@ -172,6 +163,67 @@ class Planning503020Screen extends ConsumerWidget {
   }
 }
 
+/// As abas dos três pools, com a aba selecionada em superfície de jogo.
+///
+/// A aba escolhida é pintada com `surfaceDeep` — a "pasta" escura que dá a
+/// cara de fichário à tela. O conteúdo dela, porém, continuava lendo a paleta
+/// CLARA: o rótulo saía em `ink` sobre o fundo escuro (1,23:1, praticamente
+/// invisível), e o ícone de status em `successInk`/`dangerInk` (2,02:1 e
+/// 1,23:1, abaixo do piso de 3:1 de elemento gráfico). No tema claro a aba
+/// aberta era a única que não dava para ler.
+///
+/// A correção é a do design system, não um hexadecimal escolhido a dedo: onde
+/// a superfície é de jogo, o conteúdo passa a ler [AppTheme.onGame]. O rótulo
+/// vira `inkInverse` (12,64:1), o ícone de estouro vira `danger` vivo
+/// (3,39:1) e a marca da meta vira `inkInverse2` (8,01:1).
+///
+/// O `AnimatedBuilder` existe porque só o `TabController` sabe qual aba está
+/// aberta, e o `Tab` não recebe esse estado — o `TabBar` só interpola a COR
+/// do rótulo, nunca o tema de dentro dele.
+class _AllocationTabBar extends StatelessWidget {
+  const _AllocationTabBar({required this.allocations});
+
+  final List<CategoryAllocation> allocations;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final controller = DefaultTabController.of(context);
+
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) => TabBar(
+        indicator: const BoxDecoration(
+          color: AppColors.surfaceDeep,
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(AppRadius.sm),
+          ),
+        ),
+        labelColor: AppColors.inkInverse,
+        unselectedLabelColor: context.palette.ink2,
+        // A tipografia sai do design system: a tela escrevia os rótulos em
+        // `bodySmall` (texto corrido, peso 400) enquanto o resto do app usa
+        // `labelLarge` nas abas. Era a mesma família, mas com outro peso e
+        // outro tamanho — e de longe lia como "a fonte desta tela é outra".
+        labelStyle: theme.textTheme.labelLarge,
+        unselectedLabelStyle: theme.textTheme.labelLarge?.copyWith(
+          fontWeight: FontWeight.w500,
+        ),
+        tabs: [
+          for (var i = 0; i < allocations.length; i++)
+            Tab(
+              height: 60,
+              child: AllocationTabLabel(
+                allocation: allocations[i],
+                onGame: controller.index == i,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 /// O mês em foco, por extenso quando cabe e abreviado quando não.
 class _MonthLabel extends ConsumerWidget {
   const _MonthLabel();
@@ -184,7 +236,7 @@ class _MonthLabel extends ConsumerWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isSmallScreen = constraints.maxWidth < 600;
+        final isSmallScreen = constraints.layout.isCompact;
 
         return Text(
           isSmallScreen

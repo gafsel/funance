@@ -27,6 +27,9 @@ import 'package:funances/features/finance/presentation/screens/transaction_wizar
 import 'package:funances/features/goal/domain/models/goal_model.dart';
 import 'package:funances/features/goal/presentation/provider.dart';
 import 'package:funances/features/goal/presentation/screen/goal_form_screen.dart';
+import 'package:funances/features/finance/presentation/screens/automatic_transactions_screen.dart';
+import 'package:funances/features/goal/presentation/screen/goals_screen.dart';
+import 'package:funances/features/home/presentation/screens/missions_screen.dart';
 import 'package:funances/features/goal/presentation/screen/goal_detail_screen.dart';
 import 'package:funances/features/home/presentation/screens/home_screen.dart';
 import 'package:funances/features/onboarding/presentation/screens/onboarding_screen.dart';
@@ -95,7 +98,6 @@ class _RouterRefreshNotifier extends ChangeNotifier {
 /// provider (ver [EntityRoute]). Nada de objeto no `extra`: `extra` é memória
 /// do processo, some no F5 da web e no hot restart, e o que sobrava disso era
 /// um redirect para a home no meio da navegação de quem só apertou "atualizar".
-
 
 /// Id vindo da query. **Vazio é ausente.**
 ///
@@ -295,8 +297,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           provider: FinanceViewProviders.installmentById(
             state.pathParameters['id']!,
           ),
-          onRetry: (ref) =>
-              Retry.installment(ref, state.pathParameters['id']!),
+          onRetry: (ref) => Retry.installment(ref, state.pathParameters['id']!),
           builder: (context, invoice) => InvoiceDetailScreen(invoice: invoice),
         ),
       ),
@@ -385,6 +386,15 @@ final routerProvider = Provider<GoRouter>((ref) {
           return CategoryReportDetailScreen(type: type);
         },
       ),
+      GoRoute(
+        path: '/automatic-transactions',
+        builder: (context, state) => const AutomaticTransactionsScreen(),
+      ),
+      GoRoute(
+        path: '/missions',
+        builder: (context, state) => const MissionsScreen(),
+      ),
+      GoRoute(path: '/goals', builder: (context, state) => const GoalsScreen()),
       GoRoute(
         path: '/goals/form',
         builder: (context, state) {

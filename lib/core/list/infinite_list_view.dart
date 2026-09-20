@@ -4,6 +4,8 @@ import 'package:funances/core/list/infinite_list_notifier.dart';
 import 'package:funances/core/model/core_models.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:funances/core/widgets/empty_state.dart';
+import 'package:funances/core/theme/app_spacing.dart';
+import 'package:funances/core/widgets/error_view.dart';
 
 typedef ItemBuilder<T> = Widget Function(BuildContext context, T item);
 typedef SeparatorBuilder<T> =
@@ -101,22 +103,18 @@ class InfiniteListView<Q, T> extends ConsumerWidget {
         if (index == itemCount - 1 && showLoader) {
           if (state.status == InfiniteListStatus.loading) {
             return const Padding(
-              padding: EdgeInsets.all(16.0),
+              padding: AppSpacing.allMd,
               child: Center(child: CircularProgressIndicator()),
             );
           } else if (state.status == InfiniteListStatus.error) {
-            return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.error_outline, color: Colors.red),
-                  SizedBox(height: 8),
-                  Text(l10n.errorLoadingData),
-                  TextButton(
-                    onPressed: () => notifier.reset(),
-                    child: Text(l10n.retry),
-                  ),
-                ],
+            // Antes havia aqui um SEGUNDO error view, com um vermelho cru do
+            // Material: toda lista paginada do app mostrava um erro
+            // visualmente diferente do resto. Agora é o mesmo componente.
+            return Padding(
+              padding: AppSpacing.allMd,
+              child: ErrorView(
+                message: l10n.errorLoadingData,
+                onRetry: notifier.reset,
               ),
             );
           } else if (state.hasNextChunk) {

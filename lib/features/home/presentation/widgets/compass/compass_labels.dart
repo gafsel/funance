@@ -49,7 +49,7 @@ IconData compassComponentIcon(FreedomComponent c) => switch (c) {
 /// ou "precisa de atenção" sem obrigar ninguém a interpretar o número.
 Color compassScoreColor(double score) {
   if (score >= 75) return AppColors.success;
-  if (score >= 50) return AppColors.vibrantTeal;
-  if (score >= 25) return AppColors.antiqueGold;
-  return AppColors.coralOrange;
+  if (score >= 50) return AppColors.tealInk;
+  if (score >= 25) return AppColors.goldDeep;
+  return AppColors.warning;
 }

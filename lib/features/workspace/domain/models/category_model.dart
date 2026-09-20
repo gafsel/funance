@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:funances/core/observability/app_logger.dart';
 import 'package:funances/features/workspace/domain/models/virtual_category.dart';
 
 part 'category_model.freezed.dart';
@@ -46,8 +47,48 @@ sealed class CategoryModel with _$CategoryModel {
     @Default(false) bool isDeleted,
   }) = _CategoryModel;
 
+  /// Leitura TOLERANTE dos quatro campos de texto.
+  ///
+  /// O gerado faz `json['name'] as String`, e um `null` ali estoura com
+  /// "type 'Null' is not a subtype of type 'String'".
+  ///
+  /// Os dois produtores conhecidos escrevem a categoria inteira ou não
+  /// escrevem nada: o leitor de notificação OMITE `suggestedCategory` quando
+  /// não classifica, e a sugestão da IA sempre vem com `name`, `icon` e
+  /// `color`. A tolerância aqui não descreve nenhum dos dois — ela existe
+  /// porque a categoria vem EMBUTIDA num documento que o app não escreve, e
+  /// uma forma que ninguém promete é exatamente a que não tem quem a corrija.
+  /// A defesa de verdade é a fronteira da leitura
+  /// (`parsePendingTransactions`), que pula o documento inteiro; esta aqui
+  /// salva o caso em que só o texto falta e o resto do documento serve.
+  ///
+  /// O default é string vazia e não um texto inventado, porque a camada de
+  /// dados não escolhe palavra: `displayName` já troca vazio por "Sem
+  /// categoria" no idioma de quem lê, `asIcon()` cai em `Icons.category` e
+  /// `asColor()` tem `orElse`. [toJson] não muda — o app continua gravando
+  /// exatamente o que tem.
   factory CategoryModel.fromJson(Map<String, dynamic> json) =>
-      _$CategoryModelFromJson(json);
+      _$CategoryModelFromJson(_withTextDefaults(json));
+
+  static Map<String, dynamic> _withTextDefaults(Map<String, dynamic> json) {
+    const textFields = ['id', 'name', 'icon', 'color'];
+
+    // Só copia o mapa se houver algo a consertar: o caminho normal é o de
+    // todo lançamento da lista e não deve pagar uma alocação por categoria.
+    final broken = textFields.where((f) => json[f] is! String).toList();
+    if (broken.isEmpty) return json;
+
+    // O fallback é registrado. Ele é silencioso por desenho — a tela continua
+    // funcionando —, e silêncio por desenho é exatamente o que faz um
+    // documento malformado virar normal sem ninguém notar. Os NOMES dos
+    // campos entram; o conteúdo, não.
+    AppLogger.info(
+      'CategoryModel: campos sem texto, usando vazio — ${broken.join(', ')}',
+      name: 'parse',
+    );
+
+    return {...json, for (final field in broken) field: ''};
+  }
 
   /// Categoria SINTÉTICA do agrupamento "Outros": não existe no Firestore, é
   /// montada pela apresentação quando a lista passa de dez linhas. O nome sai

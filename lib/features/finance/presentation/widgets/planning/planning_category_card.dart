@@ -2,9 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/presentation/display_names.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_radius.dart';
+import 'package:funances/core/theme/app_spacing.dart';
+import 'package:funances/core/theme/app_typography.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/icons_extension.dart';
+import 'package:funances/core/widgets/app_card.dart';
 import 'package:funances/core/widgets/money_form_field.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
@@ -37,15 +42,13 @@ class PlanningCategoryCard extends ConsumerWidget {
     return Draggable<String>(
       data: item.category.id,
       feedback: Material(
-        child: Container(
+        type: MaterialType.transparency,
+        child: SizedBox(
           width: 200,
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
+          child: AppCard(
+            padding: AppSpacing.allXs,
+            child: Text(item.category.displayName(context.l10n)),
           ),
-          child: Text(item.category.displayName(context.l10n)),
         ),
       ),
       childWhenDragging: Opacity(opacity: 0.5, child: body),
@@ -63,6 +66,8 @@ class _PlanningCategoryCardBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
+    final theme = Theme.of(context);
+    final palette = context.palette;
     final currencyFormat = NumberFormat.simpleCurrency(locale: context.locale);
 
     // O limite mensal ("geral") manda quando existe; sem ele, a régua é a
@@ -74,135 +79,110 @@ class _PlanningCategoryCardBody extends ConsumerWidget {
     final specificOverLimit =
         isOverGeneral && item.specificAmount > item.generalAmount;
 
-    return Card(
-      elevation: 4,
-      color: Colors.white,
-      shadowColor: Colors.black.withValues(alpha: 0.3),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide.none,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: item.category.color.asColor().withValues(alpha: 0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    item.category.icon.asIcon(),
-                    color: item.category.color.asColor(),
-                    size: 20,
-                  ),
+    return AppCard(
+      variant: AppCardVariant.raised,
+      padding: AppSpacing.allSm,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: AppSpacing.allXs,
+                decoration: BoxDecoration(
+                  // A cor é DADO: é a que o usuário escolheu para a categoria.
+                  color: item.category.color.asColor().withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    item.category.displayName(context.l10n),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.darkNavy,
-                    ),
-                  ),
-                ),
-                if (isMobile)
-                  PopupMenuButton<CategoryAllocation>(
-                    icon: const Icon(Icons.more_vert, size: 20),
-                    onSelected: (allocation) {
-                      ref
-                          .read(FinanceViewProviders.planning503020.notifier)
-                          .moveCategory(item.category.id, allocation);
-                    },
-                    itemBuilder: (context) => [
-                      for (final allocation in CategoryAllocation.values)
-                        PopupMenuItem(
-                          value: allocation,
-                          child: Text(switch (allocation) {
-                            CategoryAllocation.essential =>
-                              l10n.planning503020Essential,
-                            CategoryAllocation.comfort =>
-                              l10n.planning503020Comfort,
-                            CategoryAllocation.investment =>
-                              l10n.planning503020Investment,
-                          }),
-                        ),
-                    ],
-                  ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            MoneyFormField(
-              key: ValueKey("${item.planningId}_${item.category.id}"),
-              initialValue: item.generalAmount > 0 ? item.generalAmount : null,
-              decoration: InputDecoration(
-                labelText: l10n.planning503020MonthlyLimitLabel,
-                fillColor: Colors.grey.withValues(alpha: 0.05),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(
-                    color: Colors.grey.withValues(alpha: 0.3),
-                  ),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
+                child: Icon(
+                  item.category.icon.asIcon(),
+                  color: item.category.color.asColor(),
+                  size: 20,
                 ),
               ),
-              onChanged: (value) {
-                ref
-                    .read(FinanceViewProviders.planning503020.notifier)
-                    .updateAmount(item.category.id, value ?? 0.0);
-              },
-            ),
-            const SizedBox(height: 8),
-            _AmountRow(
-              label: l10n.planning503020ActualLabel,
-              value: currencyFormat.format(item.actualAmount),
-              isOver: actualOverLimit,
-            ),
-            const SizedBox(height: 4),
-            _AmountRow(
-              label: context.l10n.planning503020AlreadyPlanned,
-              value: currencyFormat.format(item.specificAmount),
-              isOver: specificOverLimit,
-            ),
-            if (specificOverLimit) ...[
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+              const SizedBox(width: AppSpacing.xs),
+              Expanded(
+                child: Text(
+                  item.category.displayName(context.l10n),
+                  style: theme.textTheme.titleSmall,
                 ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.warning, color: Colors.orange, size: 14),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        l10n.planning503020AlertSpecificGreater,
-                        style: const TextStyle(
-                          color: Colors.orange,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
+              ),
+              if (isMobile)
+                PopupMenuButton<CategoryAllocation>(
+                  icon: const Icon(Icons.more_vert, size: 20),
+                  onSelected: (allocation) {
+                    ref
+                        .read(FinanceViewProviders.planning503020.notifier)
+                        .moveCategory(item.category.id, allocation);
+                  },
+                  itemBuilder: (context) => [
+                    for (final allocation in CategoryAllocation.values)
+                      PopupMenuItem(
+                        value: allocation,
+                        child: Text(switch (allocation) {
+                          CategoryAllocation.essential =>
+                            l10n.planning503020Essential,
+                          CategoryAllocation.comfort =>
+                            l10n.planning503020Comfort,
+                          CategoryAllocation.investment =>
+                            l10n.planning503020Investment,
+                        }),
                       ),
-                    ),
                   ],
                 ),
-              ),
             ],
+          ),
+          AppSpacing.gapSm,
+          MoneyFormField(
+            key: ValueKey("${item.planningId}_${item.category.id}"),
+            initialValue: item.generalAmount > 0 ? item.generalAmount : null,
+            // Preenchimento, borda e respiro do campo já vêm do tema.
+            decoration: InputDecoration(
+              labelText: l10n.planning503020MonthlyLimitLabel,
+            ),
+            onChanged: (value) {
+              ref
+                  .read(FinanceViewProviders.planning503020.notifier)
+                  .updateAmount(item.category.id, value ?? 0.0);
+            },
+          ),
+          AppSpacing.gapXs,
+          _AmountRow(
+            label: l10n.planning503020ActualLabel,
+            value: currencyFormat.format(item.actualAmount),
+            isOver: actualOverLimit,
+          ),
+          AppSpacing.gapXxs,
+          _AmountRow(
+            label: context.l10n.planning503020AlreadyPlanned,
+            value: currencyFormat.format(item.specificAmount),
+            isOver: specificOverLimit,
+          ),
+          if (specificOverLimit) ...[
+            AppSpacing.gapXs,
+            Container(
+              padding: AppSpacing.allXs,
+              decoration: BoxDecoration(
+                color: AppColors.warning.withValues(alpha: 0.1),
+                borderRadius: AppRadius.brSm,
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.warning, color: palette.warningText, size: 14),
+                  const SizedBox(width: AppSpacing.xxs),
+                  Expanded(
+                    child: Text(
+                      l10n.planning503020AlertSpecificGreater,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: palette.warningText,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -223,20 +203,20 @@ class _AmountRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = context.palette;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: AppColors.darkNavy.withValues(alpha: 0.7),
-          ),
+          style: theme.textTheme.bodySmall?.copyWith(color: palette.ink2),
         ),
         Text(
           value,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: isOver ? Colors.red : AppColors.darkNavy,
+          style: theme.textTheme.labelMedium?.tabularFigures.copyWith(
+            color: isOver ? palette.dangerText : palette.ink,
           ),
         ),
       ],

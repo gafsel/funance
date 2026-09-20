@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:funances/core/firestore/offline_write.dart';
 import 'package:funances/core/firestore/write_failures.dart';
+import 'package:funances/features/finance/data/models/automatic_transaction_mapper.dart';
 import 'package:funances/features/finance/domain/models/automatic_transaction_model.dart';
 import 'package:funances/features/finance/domain/repositories/automatic_transaction_repository.dart';
 
@@ -24,13 +25,13 @@ class AutomaticTransactionRepositoryImpl
         .where('isIgnored', isEqualTo: false)
         .get();
 
-    return snapshot.docs
-        .map(
-          (doc) => AutomaticTransactionModel.fromJson(
-            doc.data() as Map<String, dynamic>,
-          ),
-        )
-        .toList();
+    // Documento a documento, e não `.map()` sobre a coleção: um único
+    // documento ilegível derrubava a lista INTEIRA de pendências. Ver
+    // `parsePendingTransactions`.
+    return parsePendingTransactions([
+      for (final doc in snapshot.docs)
+        (id: doc.id, data: doc.data() as Map<String, dynamic>?),
+    ]);
   }
 
   @override

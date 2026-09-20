@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/icons_extension.dart';
@@ -62,7 +65,7 @@ class CategoryPickerSheet extends ConsumerWidget {
     if (categoriesAsync.hasError) {
       return SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: AppSpacing.allLg,
           child: ErrorView.forError(
             context,
             categoriesAsync.error,
@@ -93,7 +96,7 @@ class CategoryPickerSheet extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: AppSpacing.allMd,
             child: Text(
               title ?? l10n.transactionCategoriesSection,
               style: Theme.of(context).textTheme.titleMedium,
@@ -103,7 +106,8 @@ class CategoryPickerSheet extends ConsumerWidget {
             child: ListView.builder(
               shrinkWrap: true,
               padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).padding.bottom + 16,
+                bottom:
+                    MediaQuery.of(context).padding.bottom + AppSpacing.md,
               ),
               itemCount: categories.length +
                   (showAddOption ? 2 : 0) +
@@ -131,9 +135,9 @@ class CategoryPickerSheet extends ConsumerWidget {
                   if (index == currentIndex) return const Divider();
                   if (index == currentIndex + 1) {
                     return ListTile(
-                      leading: const CircleAvatar(
-                        backgroundColor: Colors.transparent,
-                        child: Icon(Icons.add, color: Colors.grey),
+                      leading: CircleAvatar(
+                        backgroundColor: AppColors.transparent,
+                        child: Icon(Icons.add, color: context.palette.ink3),
                       ),
                       title: Text(l10n.categoryCreateTitle),
                       onTap: () {
@@ -153,9 +157,9 @@ class CategoryPickerSheet extends ConsumerWidget {
                   if (index == currentIndex) return const Divider();
                   if (index == currentIndex + 1) {
                     return ListTile(
-                      leading: const CircleAvatar(
-                        backgroundColor: Colors.transparent,
-                        child: Icon(Icons.clear, color: Colors.grey),
+                      leading: CircleAvatar(
+                        backgroundColor: AppColors.transparent,
+                        child: Icon(Icons.clear, color: context.palette.ink3),
                       ),
                       title: Text(l10n.clear),
                       onTap: () => Navigator.pop(context, null),

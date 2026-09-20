@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:funances/core/form/chip_form_field.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/theme/app_gradients.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_radius.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
@@ -87,13 +90,13 @@ class _ReconciliationTransactionFormState
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
       decoration: const BoxDecoration(
-        gradient: AppGradients.backgroundGradient,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        gradient: AppGradients.background,
+        borderRadius: AppRadius.brSheet,
       ),
       child: SafeArea(
         top: false,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: AppSpacing.allLg,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -104,17 +107,16 @@ class _ReconciliationTransactionFormState
                   Text(
                     l10n.reconciliationActionRegister,
                     style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.pureWhite,
+                      color: AppColors.inkInverse,
                     ),
                   ),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close, color: AppColors.pureWhite),
+                    icon: const Icon(Icons.close, color: AppColors.inkInverse),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              AppSpacing.gapMd,
               // Valor, data, status e conta vêm do extrato: são leitura.
               _ReadOnlyMetadataGrid(
                 amount: dTx != null
@@ -129,7 +131,7 @@ class _ReconciliationTransactionFormState
                           : l10n.transactionFromAccountLabel)
                     : l10n.reconciliationAccountLabel,
               ),
-              const SizedBox(height: 16),
+              AppSpacing.gapMd,
               TextFormField(
                 initialValue: description,
                 onChanged: (value) => setState(() => description = value),
@@ -137,9 +139,11 @@ class _ReconciliationTransactionFormState
                   labelText: l10n.transactionDescriptionLabel,
                   prefixIcon: const Icon(Icons.description_outlined),
                 ),
-                style: const TextStyle(color: AppColors.pureWhite),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: AppColors.inkInverse,
+                ),
               ),
-              const SizedBox(height: 16),
+              AppSpacing.gapMd,
               ChipFormField<OrderType>(
                 initialValue: type,
                 onChanged: (value) {
@@ -172,7 +176,7 @@ class _ReconciliationTransactionFormState
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              AppSpacing.gapMd,
               if (type == OrderType.transfer) ...[
                 AccountFormField(
                   initialValue: targetAccountId,
@@ -191,11 +195,13 @@ class _ReconciliationTransactionFormState
                   onChanged: (value) => setState(() => category = value),
                 ),
               ],
-              const SizedBox(height: 16),
+              AppSpacing.gapMd,
               SwitchListTile(
                 title: Text(
                   l10n.transactionTypeInstallment,
-                  style: const TextStyle(color: AppColors.pureWhite),
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: AppColors.inkInverse,
+                  ),
                 ),
                 value: isRecurring,
                 onChanged: (value) => setState(() {
@@ -207,7 +213,7 @@ class _ReconciliationTransactionFormState
                 activeThumbColor: theme.colorScheme.primary,
               ),
               if (isRecurring) ...[
-                const SizedBox(height: 16),
+                AppSpacing.gapMd,
                 TextFormField(
                   initialValue: installmentCount?.toString(),
                   keyboardType: TextInputType.number,
@@ -217,10 +223,12 @@ class _ReconciliationTransactionFormState
                     labelText: l10n.transactionInstallmentsLabel,
                     prefixIcon: const Icon(Icons.repeat),
                   ),
-                  style: const TextStyle(color: AppColors.pureWhite),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: AppColors.inkInverse,
+                  ),
                 ),
               ],
-              const SizedBox(height: 32),
+              AppSpacing.gapXl,
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -235,9 +243,6 @@ class _ReconciliationTransactionFormState
                     );
                     Navigator.pop(context, updatedMatch);
                   },
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
                   child: Text(l10n.saveButton),
                 ),
               ),
@@ -285,7 +290,7 @@ class _ReadOnlyMetadataGrid extends StatelessWidget {
                 icon: Icons.attach_money,
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: AppSpacing.md),
             Expanded(
               child: _ReadOnlyField(
                 value: date,
@@ -295,7 +300,7 @@ class _ReadOnlyMetadataGrid extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        AppSpacing.gapMd,
         Row(
           children: [
             Expanded(
@@ -305,7 +310,7 @@ class _ReadOnlyMetadataGrid extends StatelessWidget {
                 icon: Icons.assignment_turned_in,
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: AppSpacing.md),
             Expanded(
               child: _ReadOnlyField(
                 value: accountName,
@@ -333,17 +338,23 @@ class _ReadOnlyField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    // A folha é escura; o campo desabilitado precisa da tinta terciária, que
+    // é a mesma nos dois temas, e não da linha clara do tema de papel.
+    final disabled = context.palette.ink3;
+
     return TextFormField(
       initialValue: value,
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, color: Colors.grey),
-        disabledBorder: const OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.grey),
+        prefixIcon: Icon(icon, color: disabled),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: AppRadius.brSm,
+          borderSide: BorderSide(color: disabled),
         ),
       ),
       enabled: false,
-      style: const TextStyle(color: Colors.grey),
+      style: theme.textTheme.bodyMedium?.copyWith(color: disabled),
     );
   }
 }

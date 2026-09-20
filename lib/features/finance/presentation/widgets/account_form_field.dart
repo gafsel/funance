@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/enum_messages.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
@@ -41,6 +43,8 @@ class AccountFormField extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
+    final theme = Theme.of(context);
+    final palette = context.palette;
 
     return FormField<String?>(
       initialValue: initialValue,
@@ -112,7 +116,7 @@ class AccountFormField extends ConsumerWidget {
                 return Row(
                   children: [
                     AccountLogo(account: account, size: 24, showMembers: true),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: AppSpacing.sm),
                     Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -121,8 +125,8 @@ class AccountFormField extends ConsumerWidget {
                           account.name,
                           style:
                               style ??
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: enabled ? null : Colors.black38,
+                              theme.textTheme.bodyMedium?.copyWith(
+                                color: enabled ? null : palette.ink3,
                               ),
                         ),
                         const SizedBox(height: 2),
@@ -130,12 +134,12 @@ class AccountFormField extends ConsumerWidget {
                           l10n.fromAccountType(account.type),
                           style:
                               style?.copyWith(
-                                color: style?.color?.withValues(alpha: .75) ?? Colors.black38,
+                                color:
+                                    style?.color?.withValues(alpha: .75) ??
+                                    palette.ink3,
                               ) ??
-                              Theme.of(context).textTheme.labelSmall?.copyWith(
-                                color: enabled
-                                    ? Theme.of(context).hintColor
-                                    : Colors.black38,
+                              theme.textTheme.labelSmall?.copyWith(
+                                color: enabled ? palette.ink2 : palette.ink3,
                               ),
                         ),
                       ],
@@ -154,18 +158,14 @@ class AccountFormField extends ConsumerWidget {
               error: (error, _) => Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    Icons.cloud_off,
-                    size: 18,
-                    color: Theme.of(context).colorScheme.error,
-                  ),
-                  const SizedBox(width: 8),
+                  Icon(Icons.cloud_off, size: 18, color: palette.dangerText),
+                  const SizedBox(width: AppSpacing.xs),
                   Flexible(
                     child: Text(
                       errorMessageFor(context, error),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall,
+                      style: theme.textTheme.bodySmall,
                     ),
                   ),
                   IconButton(

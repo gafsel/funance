@@ -14,7 +14,7 @@ import 'package:funances/features/home/domain/models/financial_health_model.dart
 import 'package:funances/features/home/domain/models/monthly_available_model.dart';
 import 'package:funances/features/home/presentation/model/overview_view_model.dart';
 import 'package:funances/features/home/presentation/provider.dart';
-import 'package:funances/features/home/presentation/widgets/freedom_compass.dart';
+import 'package:funances/features/home/presentation/widgets/compass/freedom_compass_sheet.dart';
 import 'package:funances/features/home/presentation/widgets/journey_header.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/domain/repositories/category_repository.dart';
@@ -124,10 +124,6 @@ class _UnusedCategoryRepository implements ICategoryRepository {
 }
 
 const _locale = Locale('pt', 'BR');
-
-/// Restringe a busca ao sheet: o card atrás dele mostra o mesmo score no anel.
-Finder _inSheet(Finder matching) =>
-    find.descendant(of: find.byType(FreedomCompassSheet), matching: matching);
 
 Widget _app(List<Override> overrides, Widget child) {
   return ProviderScope(
@@ -453,14 +449,29 @@ void main() {
     });
   });
 
-  group('FreedomCompassCard', () {
-    testWidgets('mostra score, patente e os quatro componentes', (
+  /// B1 — o que sobrou da Bússola em CARTÃO.
+  ///
+  /// `FreedomCompassCard`, `CompassContent` e `CompassShell` morreram quando
+  /// a Home v2 trocou o cartão pela linha: ninguém os montava, e o único
+  /// lugar que ainda os citava era este grupo de testes — que assim provava a
+  /// existência do próprio teste. A FOLHA, que a linha abre, continua viva, e
+  /// é ela que estes casos passam a montar direto.
+  group('FreedomCompassSheet', () {
+    testWidgets('explica cada componente e mostra o histórico', (
       tester,
     ) async {
       await tester.pumpWidget(
         _app(
-          _compassOverrides(FakeJourneyRepository(health: _health)),
-          const FreedomCompassCard(),
+          _compassOverrides(
+            FakeJourneyRepository(
+              health: _health,
+              history: const [
+                FinancialHealthPoint(monthKey: '2026-09', score: 62),
+                FinancialHealthPoint(monthKey: '2026-08', score: 55),
+              ],
+            ),
+          ),
+          const FreedomCompassSheet(health: _health),
         ),
       );
       await tester.pump();
@@ -468,118 +479,9 @@ void main() {
       final l10n = await AppLocalizations.delegate.load(_locale);
 
       expect(find.text(l10n.compassTitle), findsOneWidget);
-      expect(find.text(l10n.compassTierEstrategista), findsOneWidget);
-      expect(find.text('62'), findsOneWidget);
-      expect(find.text(l10n.compassFolego), findsOneWidget);
-      expect(find.text(l10n.compassPoupanca), findsOneWidget);
-      expect(find.text(l10n.compassDisciplina), findsOneWidget);
-      expect(find.text(l10n.compassAlivio), findsOneWidget);
-    });
-
-    testWidgets('sem índice publicado, diz que a bússola está calibrando', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        _app(
-          _compassOverrides(FakeJourneyRepository()),
-          const FreedomCompassCard(),
-        ),
-      );
-      await tester.pump();
-
-      final l10n = await AppLocalizations.delegate.load(_locale);
-
-      expect(find.text(l10n.compassCalibratingTitle), findsOneWidget);
-      expect(find.text(l10n.compassCalibratingMessage), findsOneWidget);
-    });
-
-    testWidgets('tocar abre o sheet com explicações e histórico', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        _app(
-          _compassOverrides(
-            FakeJourneyRepository(
-              health: _health,
-              history: const [
-                FinancialHealthPoint(monthKey: '2026-08', score: 62),
-                FinancialHealthPoint(monthKey: '2026-07', score: 55),
-                FinancialHealthPoint(monthKey: '2026-06', score: 48),
-              ],
-            ),
-          ),
-          const FreedomCompassCard(),
-        ),
-      );
-      await tester.pump();
-
-      await tester.tap(find.byType(InkWell).first);
-      await tester.pumpAndSettle();
-
-      final l10n = await AppLocalizations.delegate.load(_locale);
-
       expect(find.text(l10n.compassFolegoDesc), findsOneWidget);
       expect(find.text(l10n.compassDisciplinaDetail(8, 10)), findsOneWidget);
       expect(find.text(l10n.compassHistoryTitle), findsOneWidget);
-
-      // Do mais antigo para o mais recente: a linha anda com o tempo. Cada
-      // extremo mostra o SEU mês e o SEU score — antes era
-      // `06/2026   48 → 62   08/2026`, com os números soltos no meio sem
-      // dizer a qual mês pertenciam.
-      expect(_inSheet(find.text('06/2026')), findsOneWidget);
-      expect(_inSheet(find.text('48')), findsOneWidget);
-      expect(_inSheet(find.text('08/2026')), findsOneWidget);
-      expect(_inSheet(find.text('62')), findsOneWidget);
-      // Os meses do meio não viram rótulo: a linha já os desenha.
-      expect(find.text('07/2026'), findsNothing);
-    });
-
-    testWidgets('com seis meses, a sparkline usa todos os pontos', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        _app(
-          _compassOverrides(
-            FakeJourneyRepository(
-              health: _health,
-              // Como o repositório entrega: do mês mais recente para o mais
-              // antigo.
-              history: const [
-                FinancialHealthPoint(monthKey: '2026-08', score: 62),
-                FinancialHealthPoint(monthKey: '2026-07', score: 55),
-                FinancialHealthPoint(monthKey: '2026-06', score: 48),
-                FinancialHealthPoint(monthKey: '2026-05', score: 51),
-                FinancialHealthPoint(monthKey: '2026-04', score: 44),
-                FinancialHealthPoint(monthKey: '2026-03', score: 30),
-              ],
-            ),
-          ),
-          const FreedomCompassCard(),
-        ),
-      );
-      await tester.pump();
-
-      await tester.tap(find.byType(InkWell).first);
-      await tester.pumpAndSettle();
-
-      // Extremos: março (o mais antigo) à esquerda, agosto à direita.
-      expect(_inSheet(find.text('03/2026')), findsOneWidget);
-      expect(_inSheet(find.text('30')), findsOneWidget);
-      expect(_inSheet(find.text('08/2026')), findsOneWidget);
-      expect(_inSheet(find.text('62')), findsOneWidget);
-      // Só os extremos ganham rótulo; os quatro meses do meio ficam na linha.
-      expect(find.text('05/2026'), findsNothing);
-
-      // A sparkline recebe os seis scores, do mais antigo para o mais novo.
-      final painter =
-          tester
-                  .widget<CustomPaint>(
-                    find.byKey(const ValueKey('compass-sparkline')),
-                  )
-                  .painter
-              as dynamic;
-
-      expect(painter.scores, [30.0, 44.0, 51.0, 48.0, 55.0, 62.0]);
     });
 
     testWidgets('com menos de dois meses, o histórico explica a ausência', (
@@ -587,21 +489,11 @@ void main() {
     ) async {
       await tester.pumpWidget(
         _app(
-          _compassOverrides(
-            FakeJourneyRepository(
-              health: _health,
-              history: const [
-                FinancialHealthPoint(monthKey: '2026-08', score: 62),
-              ],
-            ),
-          ),
-          const FreedomCompassCard(),
+          _compassOverrides(FakeJourneyRepository(health: _health)),
+          const FreedomCompassSheet(health: _health),
         ),
       );
       await tester.pump();
-
-      await tester.tap(find.byType(InkWell).first);
-      await tester.pumpAndSettle();
 
       final l10n = await AppLocalizations.delegate.load(_locale);
 

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/icons_extension.dart';
@@ -68,6 +70,9 @@ class CategoryFormField extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final palette = context.palette;
+
     return FormField<CategoryModel?>(
       initialValue: initialValue,
       validator: validator,
@@ -118,20 +123,20 @@ class CategoryFormField extends ConsumerWidget {
                     children: [
                       const CircleAvatar(
                         radius: 12,
-                        backgroundColor: AppColors.error,
+                        backgroundColor: AppColors.danger,
                         child: Icon(
                           Icons.credit_card,
                           size: 16,
-                          color: Colors.white,
+                          color: AppColors.inkInverse,
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: AppSpacing.xs),
                       Text(
                         context.l10n.transactionTypeInvoice,
                         style:
                             style ??
-                            Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Colors.black38,
+                            theme.textTheme.bodyMedium?.copyWith(
+                              color: palette.ink3,
                             ),
                       ),
                     ],
@@ -141,20 +146,20 @@ class CategoryFormField extends ConsumerWidget {
                     children: [
                       const CircleAvatar(
                         radius: 12,
-                        backgroundColor: AppColors.brightCyan,
+                        backgroundColor: AppColors.teal,
                         child: Icon(
                           Icons.swap_horiz,
                           size: 16,
-                          color: Colors.white,
+                          color: AppColors.inkInverse,
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: AppSpacing.xs),
                       Text(
                         context.l10n.transactionTypeTransfer,
                         style:
                             style ??
-                            Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Colors.black38,
+                            theme.textTheme.bodyMedium?.copyWith(
+                              color: palette.ink3,
                             ),
                       ),
                     ],
@@ -164,6 +169,8 @@ class CategoryFormField extends ConsumerWidget {
                     children: [
                       CircleAvatar(
                         radius: 12,
+                        // A cor da categoria é DADO: é a que o usuário
+                        // escolheu na paleta de seleção.
                         backgroundColor: category.color.asColor().withValues(
                           alpha: 0.2,
                         ),
@@ -173,13 +180,13 @@ class CategoryFormField extends ConsumerWidget {
                           color: category.color.asColor(),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: AppSpacing.xs),
                       Text(
                         category.name,
                         style:
                             style ??
-                            Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: enabled ? null : Colors.black38,
+                            theme.textTheme.bodyMedium?.copyWith(
+                              color: enabled ? null : palette.ink3,
                             ),
                       ),
                     ],
@@ -189,20 +196,20 @@ class CategoryFormField extends ConsumerWidget {
                     children: [
                       CircleAvatar(
                         radius: 12,
-                        backgroundColor: Colors.grey.withValues(alpha: 0.2),
-                        child: const Icon(
+                        backgroundColor: palette.line,
+                        child: Icon(
                           Icons.category,
                           size: 16,
-                          color: Colors.grey,
+                          color: palette.ink3,
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: AppSpacing.xs),
                       Text(
                         context.l10n.all,
                         style:
                             style ??
-                            Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: enabled ? null : Colors.black38,
+                            theme.textTheme.bodyMedium?.copyWith(
+                              color: enabled ? null : palette.ink3,
                             ),
                       ),
                     ],

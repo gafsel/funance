@@ -1,7 +1,23 @@
 import 'package:flutter/material.dart';
 
 extension IconsExtension on String {
-
+  /// O ícone com este nome, ou um substituto.
+  ///
+  /// O nome vem do Firestore — de uma categoria, de uma conta, de um emblema
+  /// do catálogo — e por isso NUNCA é garantido: um catálogo mais novo que o
+  /// app instalado nomeia ícones que esta build não conhece, e o leitor de
+  /// notificação grava categoria sem `icon` nenhum (que chega aqui como
+  /// string vazia, desde que o parse passou a tolerar). Nos dois casos a
+  /// resposta é um substituto, nunca uma exceção: uma tela inteira não pode
+  /// cair porque um pictograma não existe.
+  ///
+  /// A ordem é deliberada: o ícone pedido, depois o [orElse] de quem chama —
+  /// que conhece o assunto e escolhe melhor, `Icons.category` numa lista de
+  /// categorias — e só então o círculo, que é o "algo existe aqui" genérico.
+  ///
+  /// Não é um mapa de TODOS os ícones do Material: é a lista que a interface
+  /// oferece na escolha de ícone. Um nome fora dela não é um erro de
+  /// digitação a corrigir aqui — é um nome que o app não oferece.
   IconData asIcon({IconData? orElse}) {
     return availableIcons[this] ?? orElse ?? Icons.circle;
   }
@@ -52,5 +68,4 @@ extension IconsExtension on String {
     'fastfood': Icons.fastfood,
     'celebration': Icons.celebration,
   };
-
 }

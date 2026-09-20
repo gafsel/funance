@@ -4,6 +4,10 @@ import 'package:funances/features/workspace/presentation/controller/invite_provi
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_gradients.dart';
+import '../../../../core/theme/app_palette.dart';
+import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/app_card.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/models/invite_model.dart';
 
@@ -12,47 +16,56 @@ class InviteListScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    return Scaffold(
+      body: DecoratedBox(
+        decoration: const BoxDecoration(gradient: AppGradients.background),
+        // O herói é escuro nos dois temas: em vez de pintar cada texto de
+        // branco, o bloco inteiro passa a ler o tema de jogo.
+        child: Theme(
+          data: AppTheme.onGame(context),
+          child: const SafeArea(child: _InviteListBody()),
+        ),
+      ),
+    );
+  }
+}
+
+class _InviteListBody extends ConsumerWidget {
+  const _InviteListBody();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final palette = context.palette;
     final inviteState = ref.watch(inviteNotifierProvider);
 
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(gradient: AppGradients.backgroundGradient),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  l10n.invitesTitle,
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: AppColors.pureWhite,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  l10n.invitesSubtitle,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.pureWhite.withValues(alpha: 0.8),
-                  ),
-                ),
-                const SizedBox(height: 32),
-                Expanded(
-                  child: ListView.separated(
-                    itemCount: inviteState.pendingInvites.length,
-                    separatorBuilder: (context, index) => const SizedBox(height: 16),
-                    itemBuilder: (context, index) {
-                      final invite = inviteState.pendingInvites[index];
-                      return _InviteCard(invite: invite);
-                    },
-                  ),
-                ),
-              ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.xl,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(l10n.invitesTitle, style: theme.textTheme.headlineMedium),
+          AppSpacing.gapXs,
+          Text(
+            l10n.invitesSubtitle,
+            style: theme.textTheme.bodyMedium?.copyWith(color: palette.ink2),
+          ),
+          AppSpacing.gapXl,
+          Expanded(
+            child: ListView.separated(
+              itemCount: inviteState.pendingInvites.length,
+              separatorBuilder: (context, index) => AppSpacing.gapMd,
+              itemBuilder: (context, index) {
+                final invite = inviteState.pendingInvites[index];
+                return _InviteCard(invite: invite);
+              },
             ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -65,72 +78,68 @@ class _InviteCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                const CircleAvatar(
-                  backgroundColor: AppColors.vibrantTeal,
-                  child: Icon(Icons.business, color: AppColors.pureWhite),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        invite.workspace.name,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.paleGold,
-                        ),
+    final theme = Theme.of(context);
+    final palette = context.palette;
+
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const CircleAvatar(
+                backgroundColor: AppColors.tealInk,
+                child: Icon(Icons.business, color: AppColors.inkInverse),
+              ),
+              AppSpacing.gapMd,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      invite.workspace.name,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        color: AppColors.gold,
                       ),
-                      Text(
-                        l10n.inviteFrom(invite.senderName),
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: AppColors.pureWhite.withValues(alpha: 0.7),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => ref
-                        .read(inviteNotifierProvider.notifier)
-                        .respond(invite.id, InviteStatus.declined),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.coralOrange,
-                      side: const BorderSide(color: AppColors.coralOrange),
                     ),
-                    child: Text(l10n.declineButton.toUpperCase()),
-                  ),
+                    Text(
+                      l10n.inviteFrom(invite.senderName),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: palette.ink2,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () => ref
-                        .read(inviteNotifierProvider.notifier)
-                        .respond(invite.id, InviteStatus.accepted),
-                    child: Text(l10n.acceptButton.toUpperCase()),
+              ),
+            ],
+          ),
+          AppSpacing.gapLg,
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => ref
+                      .read(inviteNotifierProvider.notifier)
+                      .respond(invite.id, InviteStatus.declined),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.warning,
+                    side: const BorderSide(color: AppColors.warning),
                   ),
+                  child: Text(l10n.declineButton.toUpperCase()),
                 ),
-              ],
-            ),
-          ],
-        ),
+              ),
+              AppSpacing.gapSm,
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () => ref
+                      .read(inviteNotifierProvider.notifier)
+                      .respond(invite.id, InviteStatus.accepted),
+                  child: Text(l10n.acceptButton.toUpperCase()),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

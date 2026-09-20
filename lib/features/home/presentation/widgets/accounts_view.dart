@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/core/utils/enum_messages.dart';
-import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/core/utils/string_util.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/finance/presentation/widgets/account_logo.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:funances/core/widgets/app_progress_bar.dart';
 import 'package:funances/core/widgets/error_view.dart';
+import 'package:funances/core/widgets/money_text.dart';
 import 'package:funances/core/money/money.dart';
 import 'package:funances/core/presentation/retry.dart';
 import 'package:funances/core/presentation/display_names.dart';
@@ -45,7 +49,7 @@ class AccountsView extends ConsumerWidget {
       },
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Padding(
-        padding: const EdgeInsets.all(16),
+        padding: AppSpacing.allMd,
         child: ErrorView.forError(
           context,
           e,
@@ -118,7 +122,7 @@ class AccountsView extends ConsumerWidget {
         type == AccountType.creditCard && totalsByMonth.length > 1;
 
     return Theme(
-      data: theme.copyWith(dividerColor: Colors.transparent),
+      data: theme.copyWith(dividerColor: AppColors.transparent),
       child: ExpansionTile(
         tilePadding: EdgeInsets.zero,
         title: Text(
@@ -155,9 +159,7 @@ class AccountsView extends ConsumerWidget {
                           '${month.capitalize()}: ${totalsByMonth[month]!.format(locale: locale)}',
                     )
                     .join(" | "),
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: theme.textTheme.titleSmall,
               )
             : isTotalLoading
             ? const SizedBox(
@@ -167,9 +169,7 @@ class AccountsView extends ConsumerWidget {
               )
             : Text(
                 total.format(locale: locale),
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: theme.textTheme.titleSmall,
               ),
         children: accounts
             .map((account) => _buildAccountItem(context, ref, account))
@@ -183,9 +183,9 @@ class AccountsView extends ConsumerWidget {
     WidgetRef ref,
     AccountModel account,
   ) {
-    final locale = context.locale;
     final l10n = context.l10n;
     final theme = Theme.of(context);
+    final palette = context.palette;
     final balanceAsync = ref.watch(
       AccountViewProviders.latestBalanceById(account.id),
     );
@@ -222,7 +222,7 @@ class AccountsView extends ConsumerWidget {
                 context.push('/workspace/accounts?type=${account.type.name}');
               }
             },
-            contentPadding: const EdgeInsets.only(left: 16, right: 16),
+            contentPadding: AppSpacing.hMd,
             leading: AccountLogo(
               account: account,
               size: 32,
@@ -235,28 +235,26 @@ class AccountsView extends ConsumerWidget {
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 4),
-                LinearProgressIndicator(
+                AppSpacing.gapXxs,
+                AppProgressBar(
                   value: progress,
-                  backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                  size: AppProgressSize.thin,
                   color: color,
-                  minHeight: 4,
-                  borderRadius: BorderRadius.circular(2),
                 ),
-                const SizedBox(height: 4),
+                AppSpacing.gapXxs,
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      usedLimit.asCurrency(locale: locale),
+                    MoneyText(
+                      usedLimit,
                       style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.hintColor,
+                        color: palette.ink3,
                       ),
                     ),
-                    Text(
-                      availableLimit.asCurrency(locale: locale),
+                    MoneyText(
+                      availableLimit,
                       style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.hintColor,
+                        color: palette.ink3,
                       ),
                     ),
                   ],
@@ -271,24 +269,20 @@ class AccountsView extends ConsumerWidget {
                   ? Text(
                       l10n.invoiceCalculating,
                       style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.hintColor,
+                        color: palette.ink3,
                       ),
                     )
                   : Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text(
-                          nextInvoice.amount.asCurrency(locale: locale),
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                        MoneyText(
+                          nextInvoice.amount,
+                          style: theme.textTheme.labelMedium,
                         ),
                         Text(
                           nextInvoice.dueDate.formated(l10n.formatSimpleDate),
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            fontSize: 10,
-                          ),
+                          style: theme.textTheme.labelSmall,
                         ),
                       ],
                     ),
@@ -310,7 +304,7 @@ class AccountsView extends ConsumerWidget {
               context.push('/accounts/${account.id}/statement');
             }
           },
-          contentPadding: const EdgeInsets.only(left: 16, right: 16),
+          contentPadding: AppSpacing.hMd,
           leading: AccountLogo(
             account: account,
             size: 32,
@@ -320,8 +314,8 @@ class AccountsView extends ConsumerWidget {
             account.displayName(context.l10n),
             style: theme.textTheme.bodySmall,
           ),
-          trailing: Text(
-            balance.balance.asCurrency(locale: locale),
+          trailing: MoneyText(
+            balance.balance,
             style: theme.textTheme.bodySmall,
           ),
         );

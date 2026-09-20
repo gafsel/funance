@@ -3,11 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/list/infinite_list_view.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/theme/app_gradients.dart';
+import 'package:funances/core/theme/app_radius.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/core/utils/icons_extension.dart';
-import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
@@ -16,7 +17,9 @@ import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
 import 'package:funances/core/presentation/display_names.dart';
+import 'package:funances/core/widgets/app_chip.dart';
 import 'package:funances/core/widgets/empty_state.dart';
+import 'package:funances/core/widgets/money_text.dart';
 
 class ReconciliationHistoryPicker extends ConsumerWidget {
   final TransactionQuery initialQuery;
@@ -38,31 +41,30 @@ class ReconciliationHistoryPicker extends ConsumerWidget {
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
       decoration: const BoxDecoration(
-        gradient: AppGradients.backgroundGradient,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        gradient: AppGradients.background,
+        borderRadius: AppRadius.brSheet,
       ),
       child: Column(
         children: [
-          const SizedBox(height: 12),
+          AppSpacing.gapSm,
           Container(
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: AppColors.pureWhite.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(2),
+              color: AppColors.inkInverse.withValues(alpha: 0.3),
+              borderRadius: AppRadius.brXs,
             ),
           ),
-          const SizedBox(height: 16),
+          AppSpacing.gapMd,
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
+            padding: AppSpacing.hLg,
             child: Row(
               children: [
                 Expanded(
                   child: Text(
                     context.l10n.reconciliationPickTransaction,
                     style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.pureWhite,
+                      color: AppColors.inkInverse,
                     ),
                   ),
                 ),
@@ -71,7 +73,7 @@ class ReconciliationHistoryPicker extends ConsumerWidget {
                     showModalBottomSheet(
                       context: context,
                       isScrollControlled: true,
-                      backgroundColor: Colors.transparent,
+                      backgroundColor: AppColors.transparent,
                       builder: (context) => TransactionFilterBottomSheet(
                         initialQuery: state.query,
                         onApply: (query) {
@@ -80,22 +82,31 @@ class ReconciliationHistoryPicker extends ConsumerWidget {
                       ),
                     );
                   },
-                  icon: const Icon(Icons.filter_list, color: AppColors.pureWhite),
+                  icon: const Icon(
+                    Icons.filter_list,
+                    color: AppColors.inkInverse,
+                  ),
                 ),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close, color: AppColors.pureWhite),
+                  icon: const Icon(Icons.close, color: AppColors.inkInverse),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          AppSpacing.gapMd,
           Expanded(
             child: InfiniteListView.separator(
               provider,
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                0,
+                AppSpacing.md,
+                AppSpacing.md,
+              ),
               separatorBuilder: (context, before, after) {
-                final bool isSameGroup = before != null &&
+                final bool isSameGroup =
+                    before != null &&
                     after != null &&
                     _isSameDay(before.referenceDate, after.referenceDate);
 
@@ -110,7 +121,9 @@ class ReconciliationHistoryPicker extends ConsumerWidget {
               },
               emptyStateBuilder: (context) => EmptyState.message(
                 l10n.noTransactionsInPeriod,
-                style: const TextStyle(color: AppColors.pureWhite),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: AppColors.inkInverse,
+                ),
               ),
             ),
           ),
@@ -144,30 +157,31 @@ class ReconciliationHistoryPicker extends ConsumerWidget {
       ).format(date);
     }
 
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16.0),
+    return Padding(
+      padding: AppSpacing.vMd,
       child: Text(
         dateText,
-        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: AppColors.pureWhite.withValues(alpha: 0.7),
-            ),
+        style: Theme.of(
+          context,
+        ).textTheme.titleSmall?.copyWith(color: AppColors.inkInverse2),
       ),
     );
   }
 
   Widget _buildTransactionItem(BuildContext context, InstallmentModel item) {
-    final color = item.category?.color.asColor() ?? AppColors.deepTurquoise;
-    final locale = context.locale;
+    final theme = Theme.of(context);
+    // A cor da categoria é DADO. Quando não há categoria, o teal é o acento
+    // legível sobre esta folha escura — o turquesa profundo sumiria nela.
+    final color = item.category?.color.asColor() ?? AppColors.teal;
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      color: AppColors.pureWhite.withValues(alpha: 0.05),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      margin: const EdgeInsets.only(bottom: AppSpacing.xs),
+      color: AppColors.inkInverse.withValues(alpha: 0.05),
+      shape: const RoundedRectangleBorder(borderRadius: AppRadius.brLg),
       child: ListTile(
         onTap: () => onSelected(item),
         leading: Container(
-          padding: const EdgeInsets.all(8),
+          padding: AppSpacing.allXs,
           decoration: BoxDecoration(
             color: color.withValues(alpha: 0.2),
             shape: BoxShape.circle,
@@ -180,46 +194,41 @@ class ReconciliationHistoryPicker extends ConsumerWidget {
         ),
         title: Text(
           displayOr(item.description, context.l10n.noDescription),
-          style: const TextStyle(
-            color: AppColors.pureWhite,
-            fontWeight: FontWeight.w500,
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: AppColors.inkInverse,
           ),
         ),
         subtitle: Text(
           item.category?.displayName(context.l10n) ?? context.l10n.noCategory,
-          style: TextStyle(
-            color: AppColors.pureWhite.withValues(alpha: 0.5),
-            fontSize: 12,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: AppColors.inkInverse2,
           ),
         ),
         trailing: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Text(
-              item.referenceAmount.asCurrency(locale: locale),
-              style: TextStyle(
+            MoneyText(
+              item.referenceAmount,
+              style: theme.textTheme.titleSmall?.copyWith(
                 color: item.type == OrderType.income
                     ? AppColors.success
-                    : AppColors.error,
-                fontWeight: FontWeight.bold,
+                    : AppColors.danger,
               ),
             ),
             if (item.status == InstallmentStatus.settled)
-              Container(
-                margin: const EdgeInsets.only(top: 4),
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppColors.deepTurquoise.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: const Text(
-                  'CONCILIADO',
-                  style: TextStyle(
-                    color: AppColors.deepTurquoise,
-                    fontSize: 8,
-                    fontWeight: FontWeight.bold,
-                  ),
+              const Padding(
+                padding: EdgeInsets.only(top: AppSpacing.xxs),
+                // A folha é escura pelo GRADIENTE, não pelo tema: aqui
+                // `context.palette` é a do papel claro e `tealText` resolve
+                // para um teal escuro, invisível sobre o fundo escuro. Por isso
+                // a cor vai explícita (fundo/borda) e `onGame` cuida do texto.
+                child: StatusPill(
+                  label: 'CONCILIADO',
+                  dense: true,
+                  color: AppColors.teal,
+                  onGame: true,
+                  tone: StatusTone.info,
                 ),
               ),
           ],

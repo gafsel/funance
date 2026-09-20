@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
+import 'package:funances/core/widgets/app_card.dart';
+import 'package:funances/core/widgets/app_chip.dart';
 import 'package:funances/features/finance/domain/models/planning_503020_analysis.dart';
 
 /// Cartão de uma categoria na análise 50-30-20: valor ideal e dica de economia.
@@ -25,75 +29,59 @@ class CategoryTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
+    final palette = context.palette;
     final locale = context.locale;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        border: Border.all(color: theme.dividerColor),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  category.categoryName,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  statusLabel,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: statusColor,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            l10n.planningAnalysisIdealValue(
-              category.idealMonthlyAmount.asCurrency(locale: locale),
-              (category.idealPctOfIncome / 100).asPercent(locale: locale),
-            ),
-            style: theme.textTheme.bodySmall,
-          ),
-          if (category.savingTip != null) ...[
-            const SizedBox(height: 6),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+      child: AppCard(
+        padding: AppSpacing.allSm,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(
-                  Icons.savings_outlined,
-                  size: 14,
-                  color: AppColors.antiqueGold,
-                ),
-                const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    category.savingTip!,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
+                    category.categoryName,
+                    style: theme.textTheme.titleSmall,
                   ),
                 ),
+                StatusPill(label: statusLabel, color: statusColor, dense: true),
               ],
             ),
+            AppSpacing.gapXxs,
+            Text(
+              l10n.planningAnalysisIdealValue(
+                category.idealMonthlyAmount.asCurrency(locale: locale),
+                (category.idealPctOfIncome / 100).asPercent(locale: locale),
+              ),
+              style: theme.textTheme.bodySmall,
+            ),
+            if (category.savingTip != null) ...[
+              AppSpacing.gapXxs,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.savings_outlined,
+                    size: 14,
+                    color: AppColors.goldDeep,
+                  ),
+                  const SizedBox(width: AppSpacing.xxs),
+                  Expanded(
+                    child: Text(
+                      category.savingTip!,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: palette.ink2,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

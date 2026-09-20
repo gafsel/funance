@@ -12,6 +12,9 @@ import 'package:funances/features/onboarding/presentation/provider.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
+import '../../../../core/theme/app_spacing.dart';
+import 'package:funances/core/widgets/app_card.dart';
 import 'package:funances/core/widgets/error_view.dart';
 import 'package:funances/core/presentation/retry.dart';
 import 'package:funances/core/widgets/empty_state.dart';
@@ -26,31 +29,30 @@ class AccountsStep extends ConsumerWidget {
     final notifier = ref.read(OnboardingViewProviders.onboarding.notifier);
 
     return Padding(
-      padding: const EdgeInsets.all(32.0),
+      padding: AppSpacing.allXl,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           IconButton(
             alignment: Alignment.centerLeft,
-            icon: const Icon(Icons.arrow_back, color: AppColors.pureWhite),
+            icon: Icon(Icons.arrow_back, color: context.palette.ink),
             onPressed: () {
               notifier.previousStep();
             },
           ),
-          const SizedBox(height: 24),
+          AppSpacing.gapLg,
           Text(
             l10n.onboardingAccountsTitle,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: AppColors.paleGold,
-              fontWeight: FontWeight.bold,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(color: AppColors.gold),
           ),
-          const SizedBox(height: 8),
+          AppSpacing.gapXs,
           Text(
             l10n.onboardingAccountsDesc,
-            style: const TextStyle(color: AppColors.pureWhite),
+            style: Theme.of(context).textTheme.bodyMedium,
           ),
-          const SizedBox(height: 32),
+          AppSpacing.gapXl,
           Expanded(
             child: accountsAsync.when(
               data: (accounts) => accounts.isEmpty
@@ -66,7 +68,7 @@ class AccountsStep extends ConsumerWidget {
               ),
             ),
           ),
-          const SizedBox(height: 24),
+          AppSpacing.gapLg,
           LoadingButton.elevated(
             onPressed: (loading) async {
               await showLoadingModal(
@@ -80,10 +82,6 @@ class AccountsStep extends ConsumerWidget {
                 ),
               );
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.paleGold,
-              foregroundColor: AppColors.deepTurquoise,
-            ),
             child: Text(l10n.continueButton.toUpperCase()),
           ),
         ],
@@ -96,17 +94,15 @@ class AccountsStep extends ConsumerWidget {
 
     return EmptyState.centered(
       icon: Icons.account_balance_outlined,
-      iconColor: AppColors.pureWhite.withValues(alpha: 0.3),
       title: l10n.onboardingAccountsEmpty,
-      titleStyle: const TextStyle(color: AppColors.pureWhite),
-      mainAxisSize: MainAxisSize.min,
+      compact: true,
       action: OutlinedButton.icon(
         onPressed: () => _showAddAccount(context, notifier),
         icon: const Icon(Icons.add),
         label: Text(l10n.onboardingAccountsAdd),
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.paleGold,
-          side: const BorderSide(color: AppColors.paleGold),
+          foregroundColor: AppColors.gold,
+          side: const BorderSide(color: AppColors.gold),
         ),
       ),
     );
@@ -120,7 +116,7 @@ class AccountsStep extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     return ListView.separated(
       itemCount: accounts.length + 1,
-      separatorBuilder: (_, _) => const SizedBox(height: 12),
+      separatorBuilder: (_, _) => AppSpacing.gapSm,
       itemBuilder: (context, index) {
         if (index == accounts.length) {
           return OutlinedButton.icon(
@@ -128,43 +124,31 @@ class AccountsStep extends ConsumerWidget {
             icon: const Icon(Icons.add),
             label: Text(l10n.onboardingAccountsAddAnother),
             style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.paleGold,
-              side: const BorderSide(color: AppColors.paleGold),
+              foregroundColor: AppColors.gold,
+              side: const BorderSide(color: AppColors.gold),
             ),
           );
         }
 
         final account = accounts[index];
-        return Container(
-          decoration: BoxDecoration(
-            color: AppColors.deepTurquoise.withValues(alpha: 0.3),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppColors.paleGold.withValues(alpha: 0.2),
-            ),
-          ),
+        return AppCard(
+          padding: EdgeInsets.zero,
+          borderColor: AppColors.gold.withValues(alpha: 0.2),
           child: ListTile(
             leading: CircleAvatar(
+              // A cor da conta é DADO: vem do que o usuário escolheu.
               backgroundColor: Color(
                 int.parse(account.color.replaceAll('#', '0xFF')),
               ),
-              child: const Icon(Icons.account_balance, color: Colors.white),
-            ),
-            title: Text(
-              account.name,
-              style: const TextStyle(color: AppColors.pureWhite),
-            ),
-            subtitle: Text(
-              l10n.fromAccountType(account.type),
-              style: TextStyle(
-                color: AppColors.pureWhite.withValues(alpha: 0.7),
+              child: const Icon(
+                Icons.account_balance,
+                color: AppColors.inkInverse,
               ),
             ),
+            title: Text(account.name),
+            subtitle: Text(l10n.fromAccountType(account.type)),
             trailing: IconButton(
-              icon: const Icon(
-                Icons.delete_outline,
-                color: AppColors.coralOrange,
-              ),
+              icon: const Icon(Icons.delete_outline, color: AppColors.warning),
               onPressed: () => notifier.removeOnboardingAccount(account.id),
             ),
           ),

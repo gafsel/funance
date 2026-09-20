@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/form/responsive_form.dart';
 import 'package:funances/core/time/clock.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
@@ -128,6 +129,8 @@ class TransactionFormScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final palette = context.palette;
     final l10n = context.l10n;
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
@@ -203,13 +206,17 @@ class TransactionFormScreen extends ConsumerWidget {
             ),
           if (updateOrder || updateInstallment)
             IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.red),
+              icon: Icon(Icons.delete_outline, color: palette.dangerText),
               onPressed: () => TransactionDeleteDialog.show(context, provider),
             ),
         ],
       ),
       body:
-          ResponsiveForm<TransactionFormState, dynamic, TransactionFormNotifier>(
+          ResponsiveForm<
+            TransactionFormState,
+            dynamic,
+            TransactionFormNotifier
+          >(
             provider,
             submitLabel: l10n.saveButton,
             onCancel: () => Navigator.pop(context),
@@ -225,9 +232,15 @@ class TransactionFormScreen extends ConsumerWidget {
               final state = snapshot.model;
               final notifier = snapshot.notifier;
 
-              if (!state.creation && state.status == InstallmentStatus.settled) {
+              if (!state.creation &&
+                  state.status == InstallmentStatus.settled) {
                 return MaterialBanner(
-                  backgroundColor: AppColors.successGold,
+                  backgroundColor: AppColors.gold,
+                  // O ouro é constante nos dois temas, então a tinta do aviso
+                  // também precisa ser — a do tema escuro sumiria nele.
+                  contentTextStyle: theme.textTheme.bodyMedium?.copyWith(
+                    color: AppColors.goldInk,
+                  ),
                   content: Text(l10n.transactionSettledAlert),
                   actions: [
                     TextButton(
@@ -297,10 +310,7 @@ class TransactionFormScreen extends ConsumerWidget {
                     transactionDueDateInput(context, state, notifier)
                   else
                     FullWidthItem(
-                      TransactionDueDateField(
-                        state: state,
-                        notifier: notifier,
-                      ),
+                      TransactionDueDateField(state: state, notifier: notifier),
                     ),
 
                 // 6. Configurações Avançadas ("Mais Opções")

@@ -5,7 +5,10 @@ import 'package:funances/core/form/form_notifier.dart';
 typedef Resetter<I> = Future<void> Function(I input);
 typedef SetModelCallback = Function(VoidCallback);
 typedef FormBuilder<I, O, N extends FormNotifier<I, O>> =
-    Widget Function(BuildContext context, FormBuilderSnapshot<I, O, N> snapshot);
+    Widget Function(
+      BuildContext context,
+      FormBuilderSnapshot<I, O, N> snapshot,
+    );
 
 class FormBuilderSnapshot<I, O, N extends FormNotifier<I, O>> {
   final bool Function() validate;

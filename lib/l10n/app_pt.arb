@@ -1,7 +1,7 @@
 {
   "@@locale": "pt",
   "appTitle": "Funances",
-  "loginTitle": "FUNANCE",
+  "loginTitle": "Funances",
   "loginSubtitle": "Sua jornada para a liberdade financeira começa aqui.",
   "emailLabel": "E-mail",
   "passwordLabel": "Senha",
@@ -15,15 +15,12 @@
   "googleLoginButton": "Entrar com Google",
   "orDivider": "OU",
   "fieldRequired": "Este campo é obrigatório",
-  "invalidEmail": "E-mail inválido",
   "appErrorWidgetTitle": "Algo deu errado",
   "appErrorWidgetMessage": "Já fomos avisados e estamos trabalhando nisso. Tente voltar e abrir a tela de novo.",
   "errorUnknown": "Ocorreu um erro inesperado.",
   "routeNotFound": "Página não encontrada.",
   "routeNotFoundGoHome": "Voltar para o início",
   "closeButton": "Fechar",
-  "badgeUnlockedToast": "Nova conquista desbloqueada!",
-  "badgeUnlockedView": "Ver",
   "workspacePickerTitle": "Workspaces",
   "transactionMoreOptions": "Mais Opções",
   "transactionMatchTitle": "Existe um agendamento nesta categoria. Quitar este?",
@@ -84,7 +81,6 @@
   "onboardingWorkspaceNamePersonalHint": "Ex: Minhas Finanças, Família Silva...",
   "onboardingWorkspaceNameBusinessHint": "Ex: Minha Empresa, Freelance...",
   "onboardingWorkspaceNameLabel": "Nome do Workspace",
-  "onboardingGoalsTitle": "Trace suas primeiras metas",
   "onboardingGoalsButton": "ENTENDI, PRÓXIMO PASSO",
   "onboardingMembersTitle": "Convide membros",
   "onboardingMembersDesc": "Você pode compartilhar seu workspace com sócios ou familiares para gerirem as finanças juntos.",
@@ -302,7 +298,6 @@
   "homeOverviewTab": "Visão Geral",
   "homeHistoryTab": "Extrato",
   "homeAccountsAndCards": "Saldos e Faturas",
-  "weeklyMissions": "Missões da Semana",
   "weeklyMissionsNone": "Nenhuma missão para esta semana",
   "weeklyMissionsNoneDesc": "Configure planejamentos ou adicione transações para começar.",
   "pendingMissions": "Pendentes",
@@ -323,14 +318,6 @@
   "@xpValue": {
     "placeholders": {
       "xp": {
-        "type": "String"
-      }
-    }
-  },
-  "percentage": "{value}%",
-  "@percentage": {
-    "placeholders": {
-      "value": {
         "type": "String"
       }
     }
@@ -551,7 +538,6 @@
   "initialBalanceDateLabel": "Data do Saldo Inicial",
   "initialBalanceInvestmentDateLabel": "Data do Investimento Inicial",
   "initialBalanceDebtDateLabel": "Data do Valor Atual",
-  "none": "Nenhum",
   "accountMethodDocument": "Por Documento",
   "accountMethodManual": "Manual",
   "accountDocumentDescription": "Anexe seu extrato bancário (PDF) ou arquivo de transações (OFX). Nossa IA analisará os dados para configurar sua conta, saldo e transações automaticamente.",
@@ -590,8 +576,8 @@
   "transactionOrderTypeLabel": "Tipo do Lançamento",
   "clear": "Limpar",
   "validationEmailMessage": "E-mail inválido",
-  "validationLengthMaxMessage": "Deve possuir no mínimo {min} caracteres.",
-  "validationLenghtMinMessage": "Deve possuir no máximo {max} caracteres.",
+  "validationLengthMaxMessage": "Deve possuir no máximo {max} caracteres.",
+  "validationLengthMinMessage": "Deve possuir no mínimo {min} caracteres.",
   "validationNotEmptyMessage": "Campo obrigatório.",
   "validationNotNullMessage": "Campo obrigatório.",
   "noRecordsFound": "Nenhum registro encontrado.",
@@ -660,6 +646,9 @@
   "coachingViewHistory": "Ver histórico",
   "coachingHistoryTitle": "Histórico de Insights",
   "coachingReviewTips": "Rever Dicas",
+  "coachingTypeWarning": "Alerta",
+  "coachingTypeTip": "Dica",
+  "coachingTypeInsight": "Insight",
   "weeklyMissionsTitle": "Missões Semanais",
   "weeklyMissionsSuccessTitle": "Missões Concluídas!",
   "weeklyMissionsSuccessMessage": "Parabéns! Você completou todas as atividades desta semana. Continue assim para manter sua saúde financeira em dia!",
@@ -728,29 +717,6 @@
   "badgeLockedLabel": "Bloqueado",
   "badgeRewardLabel": "Recompensa",
   "badgeUnlockedAtLabel": "Conquistado em",
-  "viewAchievementsButton": "Ver Conquistas",
-  "levelIndicatorSemantics": "Nível do Workspace: {level}, Badges desbloqueados: {count}",
-  "@levelIndicatorSemantics": {
-    "placeholders": {
-      "level": {
-        "type": "int"
-      },
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "levelUpTitle": "LEVEL UP!",
-  "levelUpSubtitle": "Parabéns para a equipe!",
-  "levelUpContent": "Seu workspace subiu para o Nível {level}!",
-  "@levelUpContent": {
-    "placeholders": {
-      "level": {
-        "type": "int"
-      }
-    }
-  },
-  "levelUpMessage": "Continuem cooperando e planejando juntos para desbloquear novas conquistas e níveis!",
   "statementDragOverTitle": "Solte o arquivo do extrato aqui",
   "reconciliationBulkConfirmSuggestions": "Confirmar todos os matches sugeridos ({amount})",
   "@reconciliationBulkConfirmSuggestions": {
@@ -989,8 +955,6 @@
   "journeyAvailableNoIncomeAction": "Defina sua expectativa de receita",
   "journeyAvailableError": "Não consegui calcular o disponível agora.",
   "compassTitle": "Bússola da Liberdade",
-  "compassCalibratingTitle": "Sua bússola está sendo calibrada",
-  "compassCalibratingMessage": "Assim que houver um mês fechado, seu índice aparece aqui.",
   "compassScoreOf": "{score} de 100 • {tier}",
   "@compassScoreOf": {
     "placeholders": {
@@ -1128,5 +1092,260 @@
         "type": "String"
       }
     }
-  }
+  },
+  "celebrationXpTitle": "XP ganho",
+  "celebrationMissionTitle": "Missão concluída",
+  "celebrationBadgeTitle": "Conquista desbloqueada",
+  "celebrationBadgeFallback": "Veja na vitrine",
+  "celebrationLevelTitle": "Nível {level}",
+  "@celebrationLevelTitle": {
+    "placeholders": {
+      "level": {
+        "type": "int"
+      }
+    }
+  },
+  "celebrationLevelSubtitle": "O cofre subiu de nível",
+  "celebrationTierTitle": "Nova patente",
+  "settingsAppearanceSection": "Aparência",
+  "settingsThemeMode": "Tema",
+  "settingsThemeModeDesc": "Claro, escuro ou como o sistema estiver.",
+  "themeModeSystem": "Sistema",
+  "themeModeLight": "Claro",
+  "themeModeDark": "Escuro",
+  "settingsCelebrationSound": "Som nas conquistas",
+  "settingsCelebrationSoundDesc": "Desligado por padrão. A vibração continua.",
+  "missionPersonalConsistencyPlanLimits": "Planejar limites para pelo menos {target} categorias e organizar a semana.",
+  "@missionPersonalConsistencyPlanLimits": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "missionPersonalDisciplineTopCategory": "Manter a categoria {category} dentro do orçamento planejado por {target} dias.",
+  "@missionPersonalDisciplineTopCategory": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "missionPersonalOrganizationReconcileItems": "Fazer a conciliação completa de um extrato com pelo menos {target} itens.",
+  "@missionPersonalOrganizationReconcileItems": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "missionBusinessConsistencyCostCenters": "Planejar o limite de {target} centros de custo para o mês.",
+  "@missionBusinessConsistencyCostCenters": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "missionBusinessConsistencyIncomeForecast": "Confirmar o recebimento de {target}% da receita prevista para a semana.",
+  "@missionBusinessConsistencyIncomeForecast": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "missionBusinessDisciplineTopCostCenter": "Manter o centro de custo {category} dentro do plano por {target} dias.",
+  "@missionBusinessDisciplineTopCostCenter": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "missionBusinessDisciplineMargin": "Fechar a semana com a margem (receita − despesa) acima da planejada.",
+  "missionBusinessOrganizationReconcileStatements": "Conciliar {target} extrato das contas da empresa nesta semana.",
+  "@missionBusinessOrganizationReconcileStatements": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "missionBusinessOrganizationCategorizeAuto": "Categorizar ou descartar {target} lançamentos automáticos antes do fechamento.",
+  "@missionBusinessOrganizationCategorizeAuto": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "missionBusinessOrganizationInvoiceOnTime": "Fechar {target} fatura do cartão corporativo pagando até o vencimento.",
+  "@missionBusinessOrganizationInvoiceOnTime": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "missionFallbackCategoryPersonal": "de maior gasto",
+  "missionFallbackCategoryBusiness": "de maior peso",
+  "missionCtaPlanning": "Planejar agora",
+  "missionCtaPlanning503020": "Abrir o 50-30-20",
+  "missionCtaCategories": "Ver a Party",
+  "missionCtaAccounts": "Ver contas",
+  "missionCtaCategoryDetails": "Ver categoria",
+  "missionCtaTransactionForm": "Lançar agora",
+  "workspaceTypePersonalBadge": "Pessoal",
+  "workspaceTypeBusinessBadge": "Empresa",
+  "levelBadgeShort": "Nv {level}",
+  "@levelBadgeShort": {
+    "placeholders": {
+      "level": {
+        "type": "int"
+      }
+    }
+  },
+  "levelBadgeSemantics": "Nível {level} do cofre, {percent}% para o próximo",
+  "@levelBadgeSemantics": {
+    "placeholders": {
+      "level": {
+        "type": "int"
+      },
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "compassStripTitle": "Bússola",
+  "compassStripOpen": "Ver a Bússola completa",
+  "compassStripDelta": "{points} desde o mês passado",
+  "@compassStripDelta": {
+    "placeholders": {
+      "points": {
+        "type": "String"
+      }
+    }
+  },
+  "dueSoonTitle": "Vence hoje e amanhã",
+  "dueSoonToday": "Hoje",
+  "dueSoonTomorrow": "Amanhã",
+  "dueSoonInvoiceClosing": "Fatura de {card} fecha",
+  "dueSoonSemantics": "{count, plural, =1{1 compromisso vencendo hoje ou amanhã} other{{count} compromissos vencendo hoje ou amanhã}}",
+  "@dueSoonInvoiceClosing": {
+    "placeholders": {
+      "card": {
+        "type": "String"
+      }
+    }
+  },
+  "@dueSoonSemantics": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "journeySeeAllGoals": "Ver as {count} metas",
+  "@journeySeeAllGoals": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "journeyNoRunningGoals": "Nenhuma meta em andamento",
+  "journeySeeClosedGoals": "Ver {count} encerradas",
+  "@journeySeeClosedGoals": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "planning503020PlannedPercent": "Planejado: {percent}",
+  "@planning503020PlannedPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "planning503020ActualPercent": "Real: {percent}",
+  "@planning503020ActualPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "automaticTransactionSeeAll": "Ver as {count} pendências",
+  "@automaticTransactionSeeAll": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "goalsTitle": "Metas",
+  "missionProgressShort": "{progress}/{target}",
+  "@missionProgressShort": {
+    "description": "Contador compacto de progresso de missão, para uma linha.",
+    "placeholders": {
+      "progress": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "@accountDetectedTransactions": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@validationLengthMaxMessage": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "@validationLengthMinMessage": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      }
+    }
+  },
+  "@installmentCountDescription": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@completedMissionsSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "xp": {
+        "type": "String"
+      }
+    }
+  },
+  "automaticTransactionSeeAllShort": "Ver todas"
 }

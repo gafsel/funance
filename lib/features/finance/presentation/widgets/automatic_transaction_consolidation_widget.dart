@@ -3,31 +3,57 @@ import 'package:funances/core/platform/app_platform.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_radius.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
-import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/core/utils/date_extension.dart';
+import 'package:funances/core/widgets/app_chip.dart';
+import 'package:funances/core/widgets/money_text.dart';
 import 'package:funances/features/finance/domain/models/automatic_transaction_model.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
+import 'package:funances/core/presentation/display_names.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 
+/// As notificações de banco esperando virar lançamento.
+///
+/// [maxItems] existe porque este bloco NÃO tem tamanho: o leitor grava uma
+/// pendência por notificação e ninguém consolida todo dia, então a lista
+/// cresce sozinha. Medido no aparelho do dono, 35 pendências davam 3.050px —
+/// a Home inteira ia a 7,1 rolagens. O defeito estava lá desde sempre e ficou
+/// invisível por um tempo porque o parse derrubava a lista antes de ela
+/// desenhar; o parse tolerante da rodada anterior a ressuscitou inteira.
+///
+/// Na Home o bloco mostra três e oferece a tela cheia. `null` mostra tudo, e
+/// é o que a tela `/automatic-transactions` usa.
 class AutomaticTransactionConsolidationWidget extends ConsumerWidget {
-  const AutomaticTransactionConsolidationWidget({super.key});
+  const AutomaticTransactionConsolidationWidget({super.key, this.maxItems});
+
+  /// Teto de pendências mostradas. `null` = todas.
+  final int? maxItems;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(AutomaticTransactionViewProviders.automaticTransactions);
-    final notifier = ref.read(AutomaticTransactionViewProviders.automaticTransactions.notifier);
-    final notificationService = ref.watch(AutomaticTransactionDomainProviders.notificationService);
+    final state = ref.watch(
+      AutomaticTransactionViewProviders.automaticTransactions,
+    );
+    final notifier = ref.read(
+      AutomaticTransactionViewProviders.automaticTransactions.notifier,
+    );
+    final notificationService = ref.watch(
+      AutomaticTransactionDomainProviders.notificationService,
+    );
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final palette = context.palette;
 
     if (state.pendingTransactions.isEmpty) {
       if (!AppPlatform.isAndroid) return const SizedBox.shrink();
-      
+
       return FutureBuilder<bool>(
         future: notificationService.isPermissionGranted(),
         builder: (context, snapshot) {
@@ -41,64 +67,113 @@ class AutomaticTransactionConsolidationWidget extends ConsumerWidget {
       );
     }
 
+    final all = state.pendingTransactions;
+    final shown = maxItems == null || all.length <= maxItems!
+        ? all
+        : all.take(maxItems!).toList(growable: false);
+    final hidden = all.length - shown.length;
+
+    final dense = maxItems != null;
+
+    // A porta para a tela cheia existe sempre que houver pendência, e não só
+    // quando alguma ficou escondida. Com três ou menos não havia botão
+    // NENHUM — e como a linha compacta da Home só oferece "consolidar",
+    // ignorar e mover para outro cofre sumiam do app inteiro justamente no
+    // estado normal, que é ter poucas pendências.
+    final abreTelaCheia = dense && all.isNotEmpty;
+
+    void abrir() => context.push('/automatic-transactions');
+
     return Card(
-      margin: const EdgeInsets.all(16),
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      // Na Home a margem do cartão soma com o respiro que a coluna já dá, e
+      // 32px de espaço duplicado num bloco com teto de altura é caro.
+      margin: dense ? EdgeInsets.zero : AppSpacing.allMd,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                const Icon(Icons.auto_awesome, color: AppColors.deepTurquoise),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.automaticTransactionTitle,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
+          _MaybeDoor(
+            onTap: abreTelaCheia ? abrir : null,
+            label: l10n.automaticTransactionTitle,
+            child: Padding(
+              padding: dense ? AppSpacing.allSm : AppSpacing.allMd,
+              child: Row(
+                children: [
+                  Icon(Icons.auto_awesome, color: palette.tealText),
+                  const SizedBox(width: AppSpacing.xs),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.automaticTransactionTitle,
+                          style: theme.textTheme.titleMedium,
                         ),
-                      ),
-                      Text(
-                        l10n.automaticTransactionSubtitle,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ],
+                        // O subtítulo explica o que o bloco É. Na Home, onde
+                        // ele reaparece todo dia, isso é uma linha gasta com
+                        // algo que já se sabe.
+                        if (!dense)
+                          Text(
+                            l10n.automaticTransactionSubtitle,
+                            style: theme.textTheme.bodySmall,
+                          ),
+                      ],
+                    ),
                   ),
-                ),
-                // Botão de desenvolvimento: simular uma notificação de banco
-                // não é coisa que um usuário faça, e num card de dinheiro ele
-                // era um convite a criar lançamento falso. Fica só em debug.
-                if (kDebugMode)
-                  IconButton(
-                    icon: const Icon(Icons.bug_report, size: 16),
-                    onPressed: () => notifier.simulateNotification(),
-                    tooltip: l10n.automaticTransactionSimulate,
-                  ),
-              ],
+                  // Botão de desenvolvimento: simular uma notificação de banco
+                  // não é coisa que um usuário faça, e num card de dinheiro ele
+                  // era um convite a criar lançamento falso. Fica só em debug.
+                  if (kDebugMode)
+                    IconButton(
+                      icon: const Icon(Icons.bug_report, size: 16),
+                      onPressed: () => notifier.simulateNotification(),
+                      tooltip: l10n.automaticTransactionSimulate,
+                    ),
+                  if (abreTelaCheia)
+                    Icon(Icons.chevron_right, size: 20, color: palette.ink2),
+                ],
+              ),
             ),
           ),
           const Divider(height: 1),
           ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: state.pendingTransactions.length,
+            itemCount: shown.length,
             separatorBuilder: (context, index) => const Divider(height: 1),
             itemBuilder: (context, index) {
-              final transaction = state.pendingTransactions[index];
+              final transaction = shown[index];
               return _TransactionItem(
+                dense: maxItems != null,
                 transaction: transaction,
-                onConsolidate: () => _handleConsolidate(context, ref, transaction),
+                onConsolidate: () =>
+                    _handleConsolidate(context, ref, transaction),
                 onIgnore: () => notifier.ignore(transaction),
-                onMove: (workspaceId) => notifier.moveToWorkspace(transaction, workspaceId),
+                onMove: (workspaceId) =>
+                    notifier.moveToWorkspace(transaction, workspaceId),
               );
             },
           ),
+          if (abreTelaCheia) ...[
+            const Divider(height: 1),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+                child: TextButton.icon(
+                  onPressed: abrir,
+                  icon: const Icon(Icons.inbox_outlined, size: 18),
+                  // Com tudo à mostra o botão não promete um número que a
+                  // pessoa já está vendo; ele promete o que a Home não tem,
+                  // que são as outras ações.
+                  label: Text(
+                    hidden > 0
+                        ? l10n.automaticTransactionSeeAll(all.length)
+                        : l10n.automaticTransactionSeeAllShort,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -124,7 +199,7 @@ class AutomaticTransactionConsolidationWidget extends ConsumerWidget {
     if (transaction.suggestedCategory != null) {
       queryParams['categoryId'] = transaction.suggestedCategory!.id;
     }
-    
+
     final accountId = transaction.accountId ?? transaction.suggestedAccount?.id;
     if (accountId != null) {
       queryParams['accountIdSource'] = accountId;
@@ -138,11 +213,16 @@ class AutomaticTransactionConsolidationWidget extends ConsumerWidget {
           ).toString(),
         )
         .then((result) {
-      if (result == true) {
-        ref.read(AutomaticTransactionViewProviders.automaticTransactions.notifier)
-            .loadTransactions();
-      }
-    });
+          if (result == true) {
+            ref
+                .read(
+                  AutomaticTransactionViewProviders
+                      .automaticTransactions
+                      .notifier,
+                )
+                .loadTransactions();
+          }
+        });
   }
 }
 
@@ -154,50 +234,44 @@ class _PermissionRequestCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final palette = context.palette;
 
     return Card(
-      margin: const EdgeInsets.all(16),
-      color: AppColors.deepTurquoise.withValues(alpha: 0.1),
+      margin: AppSpacing.allMd,
+      color: palette.tealText.withValues(alpha: 0.1),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: AppColors.deepTurquoise, width: 1),
+        borderRadius: AppRadius.brLg,
+        side: BorderSide(color: palette.tealText),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: AppSpacing.allMd,
         child: Column(
           children: [
             Row(
               children: [
-                const Icon(Icons.notifications_active, color: AppColors.deepTurquoise),
-                const SizedBox(width: 8),
+                Icon(Icons.notifications_active, color: palette.tealText),
+                const SizedBox(width: AppSpacing.xs),
                 Expanded(
                   child: Text(
                     l10n.automaticTransactionRequestPermission,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.deepTurquoise,
-                        ),
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      color: palette.tealText,
+                    ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            AppSpacing.gapXs,
             Text(
               l10n.automaticTransactionPermissionRequired,
-              style: Theme.of(context).textTheme.bodySmall,
+              style: theme.textTheme.bodySmall,
             ),
-            const SizedBox(height: 12),
+            AppSpacing.gapSm,
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: onGrant,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.deepTurquoise,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
                 child: Text(l10n.automaticTransactionGrantPermission),
               ),
             ),
@@ -214,25 +288,46 @@ class _TransactionItem extends ConsumerWidget {
   final VoidCallback onIgnore;
   final Function(String) onMove;
 
+  /// Uma LINHA em vez do item inteiro, para a Home.
+  ///
+  /// O item completo tem descrição, data, valor, pílulas de sugestão e três
+  /// ações — 200px cada. Três deles enchiam 600px de uma Home cujo teto é
+  /// 1088. Aqui ele é o que a Home precisa dizer: o que chegou, quanto foi, e
+  /// um toque para aceitar a sugestão. Ignorar e mover para outro cofre são
+  /// decisões com consequência e ficam na tela cheia, onde há espaço para
+  /// conferir antes.
+  final bool dense;
+
   const _TransactionItem({
     required this.transaction,
     required this.onConsolidate,
     required this.onIgnore,
     required this.onMove,
+    this.dense = false,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final locale = context.locale;
+    final theme = Theme.of(context);
+    final palette = context.palette;
+
+    if (dense) return _dense(context, l10n, theme, palette);
+
     final workspaceState = ref.watch(WorkspaceViewProviders.workspace);
     final currentWorkspace = workspaceState.currentWorkspace;
     final otherWorkspaces = workspaceState.availableWorkspaces
         .where((w) => w.id != currentWorkspace?.id)
         .toList();
 
+    // A cor vem do TIPO do lançamento, não do sinal do valor: o modelo
+    // guarda o montante sempre positivo.
+    final accent = transaction.type == OrderType.expense
+        ? palette.dangerText
+        : palette.successText;
+
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: AppSpacing.allMd,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -250,67 +345,64 @@ class _TransactionItem extends ConsumerWidget {
                               ? Icons.arrow_circle_down
                               : Icons.arrow_circle_up,
                           size: 16,
-                          color: transaction.type == OrderType.expense
-                              ? Colors.redAccent
-                              : Colors.green,
+                          color: accent,
                         ),
-                        const SizedBox(width: 4),
+                        const SizedBox(width: AppSpacing.xxs),
                         Expanded(
                           child: Text(
                             transaction.description,
-                            style: const TextStyle(fontWeight: FontWeight.w500),
+                            style: theme.textTheme.titleSmall,
                           ),
                         ),
                       ],
                     ),
                     Text(
-                      transaction.date.formated("dd/MM/yyyy HH:mm", locale),
-                      style: Theme.of(context).textTheme.bodySmall,
+                      transaction.date.formated(
+                        "dd/MM/yyyy HH:mm",
+                        context.locale,
+                      ),
+                      style: theme.textTheme.bodySmall,
                     ),
                   ],
                 ),
               ),
-              Text(
-                transaction.amount.asCurrency(locale: locale),
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: transaction.type == OrderType.expense
-                      ? Colors.redAccent
-                      : Colors.green,
-                ),
+              MoneyText(
+                transaction.amount,
+                style: theme.textTheme.titleSmall?.copyWith(color: accent),
               ),
             ],
           ),
-          if (transaction.suggestedCategory != null || transaction.suggestedAccount != null)
+          if (transaction.suggestedCategory != null ||
+              transaction.suggestedAccount != null)
             Padding(
-              padding: const EdgeInsets.only(top: 8.0),
+              padding: const EdgeInsets.only(top: AppSpacing.xs),
               child: Wrap(
-                spacing: 8,
+                spacing: AppSpacing.xs,
                 children: [
+                  // `displayName`, e não `.name` cru. A categoria vem
+                  // EMBUTIDA no documento do leitor de notificação e chega
+                  // sem nome quando ele não classificou — desde que o parse
+                  // passou a tolerar isso, `.name` é string vazia e a pílula
+                  // aparecia com um ícone e nenhuma palavra. `displayName`
+                  // troca vazio por "Sem categoria" no idioma de quem lê, que
+                  // é exatamente o caso que ele existe para cobrir.
                   if (transaction.suggestedCategory != null)
-                    Chip(
-                      avatar: Icon(Icons.category, size: 12),
-                      label: Text(
-                        transaction.suggestedCategory!.name,
-                        style: const TextStyle(fontSize: 10),
-                      ),
-                      visualDensity: VisualDensity.compact,
+                    StatusPill(
+                      label: transaction.suggestedCategory!.displayName(l10n),
+                      icon: Icons.category,
+                      dense: true,
                     ),
                   if (transaction.suggestedAccount != null)
-                    Chip(
-                      avatar: Icon(Icons.account_balance_wallet, size: 12),
-                      label: Text(
-                        transaction.suggestedAccount!.name,
-                        style: const TextStyle(fontSize: 10),
-                      ),
-                      visualDensity: VisualDensity.compact,
+                    StatusPill(
+                      label: transaction.suggestedAccount!.displayName(l10n),
+                      icon: Icons.account_balance_wallet,
+                      dense: true,
                     ),
                 ],
               ),
             ),
-          const SizedBox(height: 12),
+          AppSpacing.gapSm,
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               if (otherWorkspaces.isNotEmpty)
                 PopupMenuButton<String>(
@@ -318,34 +410,132 @@ class _TransactionItem extends ConsumerWidget {
                   tooltip: l10n.automaticTransactionMoveWorkspace,
                   onSelected: onMove,
                   itemBuilder: (context) => otherWorkspaces
-                      .map((w) => PopupMenuItem(
-                            value: w.id,
-                            child: Text(w.name),
-                          ))
+                      .map(
+                        (w) => PopupMenuItem(value: w.id, child: Text(w.name)),
+                      )
                       .toList(),
-                )
-              else
-                const SizedBox.shrink(),
-              Row(
-                children: [
-                  TextButton(
-                    onPressed: onIgnore,
-                    child: Text(l10n.automaticTransactionIgnore),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: onConsolidate,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.deepTurquoise,
-                      foregroundColor: Colors.white,
+                ),
+              // `Wrap` dentro de um `Expanded`, e não um `Row` solto: as três
+              // ações somam mais que a largura de um celular estreito — com o
+              // botão de mover à esquerda e dois botões à direita, a linha
+              // estourava em 30px a 420px de tela. `spaceBetween` num `Row`
+              // não resolve isso: ele distribui o que sobra, e aqui não
+              // sobrava nada.
+              Expanded(
+                child: Wrap(
+                  alignment: WrapAlignment.end,
+                  spacing: AppSpacing.xs,
+                  runSpacing: AppSpacing.xxs,
+                  children: [
+                    TextButton(
+                      onPressed: onIgnore,
+                      child: Text(l10n.automaticTransactionIgnore),
                     ),
-                    child: Text(l10n.automaticTransactionConsolidate),
-                  ),
-                ],
+                    ElevatedButton(
+                      onPressed: onConsolidate,
+                      child: Text(l10n.automaticTransactionConsolidate),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  /// A linha da Home.
+  Widget _dense(
+    BuildContext context,
+    AppLocalizations l10n,
+    ThemeData theme,
+    AppPalette palette,
+  ) {
+    final accent = transaction.type == OrderType.expense
+        ? palette.dangerText
+        : palette.successText;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.xs,
+      ),
+      child: Row(
+        children: [
+          Icon(
+            transaction.type == OrderType.expense
+                ? Icons.arrow_circle_down
+                : Icons.arrow_circle_up,
+            size: 16,
+            color: accent,
+          ),
+          const SizedBox(width: AppSpacing.xs),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  transaction.description,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: palette.ink,
+                  ),
+                ),
+                Text(
+                  transaction.date.formated('dd/MM HH:mm', context.locale),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: palette.ink2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.xs),
+          MoneyText(
+            transaction.amount,
+            style: theme.textTheme.bodySmall?.copyWith(color: accent),
+          ),
+          IconButton(
+            onPressed: onConsolidate,
+            icon: const Icon(Icons.check_circle_outline, size: 20),
+            tooltip: l10n.automaticTransactionConsolidate,
+            visualDensity: VisualDensity.compact,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Envolve o cabeçalho num toque, quando há para onde ir.
+///
+/// O mesmo padrão do `MissionSummary`: o cabeçalho de um bloco resumido é a
+/// porta da tela completa. Sem [onTap] ele é só o cabeçalho, que é o caso da
+/// própria tela cheia.
+class _MaybeDoor extends StatelessWidget {
+  const _MaybeDoor({
+    required this.child,
+    required this.label,
+    required this.onTap,
+  });
+
+  final Widget child;
+  final String label;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    if (onTap == null) return child;
+
+    return Semantics(
+      button: true,
+      label: label,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(onTap: onTap, child: child),
       ),
     );
   }

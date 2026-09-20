@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/core/widgets/animated_double.dart';
 import 'package:funances/core/widgets/animated_switching_icon.dart';
+import 'package:funances/core/widgets/money_text.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/finance/presentation/widgets/planning/allocation_progress_bar.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
@@ -17,6 +20,8 @@ class PoolHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final theme = Theme.of(context);
+    final palette = context.palette;
 
     final title = switch (allocation) {
       CategoryAllocation.essential => l10n.planning503020Essential,
@@ -36,24 +41,18 @@ class PoolHeader extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Expanded(
-              child: Text(title, style: Theme.of(context).textTheme.titleMedium),
-            ),
+            Expanded(child: Text(title, style: theme.textTheme.titleMedium)),
             _PoolStatusIcon(allocation: allocation),
           ],
         ),
-        const SizedBox(height: 4),
+        AppSpacing.gapXxs,
         Text(
           description,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Theme.of(
-              context,
-            ).textTheme.bodySmall?.color?.withValues(alpha: 0.7),
-          ),
+          style: theme.textTheme.bodySmall?.copyWith(color: palette.ink2),
         ),
-        const SizedBox(height: 12),
+        AppSpacing.gapSm,
         AllocationProgressBar(allocation: allocation),
-        const SizedBox(height: 12),
+        AppSpacing.gapSm,
         _PoolTotals(allocation: allocation),
       ],
     );
@@ -67,13 +66,14 @@ class _PoolStatusIcon extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final palette = context.palette;
     final isOver = ref.watch(
       FinanceViewProviders.planning503020AllocationProgress(
         allocation,
       ).select((state) => state.isOver),
     );
 
-    final statusColor = isOver ? Colors.red : Colors.green;
+    final statusColor = isOver ? palette.dangerText : palette.successText;
 
     return AnimatedSwitchingIcon(
       isOver ? Icons.warning : Icons.check_circle,
@@ -92,6 +92,8 @@ class _PoolTotals extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
+    final theme = Theme.of(context);
+    final palette = context.palette;
     final progressOf = FinanceViewProviders.planning503020AllocationProgress(
       allocation,
     );
@@ -106,7 +108,7 @@ class _PoolTotals extends ConsumerWidget {
       progressOf.select((state) => state.currentTotal),
     );
 
-    final statusColor = isOver ? Colors.red : Colors.green;
+    final statusColor = isOver ? palette.dangerText : palette.successText;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -120,11 +122,7 @@ class _PoolTotals extends ConsumerWidget {
               formatter: (context, value) => l10n.planning503020ActualAmount(
                 value.asCurrency(locale: context.locale),
               ),
-              style: TextStyle(
-                color: statusColor,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-              ),
+              style: theme.textTheme.labelMedium?.copyWith(color: statusColor),
             ),
             AnimatedDouble(
               value: currentTotal,
@@ -132,19 +130,13 @@ class _PoolTotals extends ConsumerWidget {
               formatter: (context, value) => l10n.planning503020Total(
                 value.asCurrency(locale: context.locale),
               ),
-              style: TextStyle(
+              style: theme.textTheme.labelSmall?.copyWith(
                 color: statusColor.withValues(alpha: 0.7),
-                fontSize: 11,
               ),
             ),
           ],
         ),
-        Text(
-          idealValue.asCurrency(locale: context.locale),
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
-        ),
+        MoneyText(idealValue, style: theme.textTheme.labelMedium),
       ],
     );
   }

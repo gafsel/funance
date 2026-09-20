@@ -9,6 +9,8 @@ import 'package:funances/features/home/presentation/provider.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/core/widgets/error_view.dart';
 import 'package:funances/core/presentation/retry.dart';
+import 'package:funances/core/theme/app_breakpoints.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 
 class CategoryReportDetailScreen extends ConsumerWidget {
   final CategoryType type;
@@ -23,7 +25,7 @@ class CategoryReportDetailScreen extends ConsumerWidget {
     final provider = type == CategoryType.expense
         ? HomeViewProviders.summaryExpensesFull
         : HomeViewProviders.summaryIncomesFull;
-    
+
     final asyncState = ref.watch(provider);
     final period = ref.watch(HomeViewProviders.period);
     final locale = context.locale;
@@ -58,8 +60,12 @@ class CategoryReportDetailScreen extends ConsumerWidget {
         if (isAOthers && !isBOthers) return 1;
         if (!isAOthers && isBOthers) return -1;
 
-        final valA = a.plannedAmount > a.actualAmount ? a.plannedAmount : a.actualAmount;
-        final valB = b.plannedAmount > b.actualAmount ? b.plannedAmount : b.actualAmount;
+        final valA = a.plannedAmount > a.actualAmount
+            ? a.plannedAmount
+            : a.actualAmount;
+        final valB = b.plannedAmount > b.actualAmount
+            ? b.plannedAmount
+            : b.actualAmount;
 
         return valB.compareTo(valA);
       });
@@ -78,11 +84,14 @@ class CategoryReportDetailScreen extends ConsumerWidget {
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final isLargeScreen = constraints.maxWidth > 800;
+          // A tabela é o layout de desktop. O corte de 800 caía na faixa
+          // 801-900, que o design system dissolveu: agora é um corte só.
+          final isLargeScreen = constraints.layout.isWide;
 
           if (isLargeScreen) {
             return SingleChildScrollView(
-              padding: const EdgeInsets.all(16) + EdgeInsets.only(bottom: mq.padding.bottom),
+              padding:
+                  AppSpacing.allMd + EdgeInsets.only(bottom: mq.padding.bottom),
               child: CategoryDetailTable(
                 summaries: sortedSummaries,
                 type: type,
@@ -92,7 +101,8 @@ class CategoryReportDetailScreen extends ConsumerWidget {
           }
 
           return ListView.builder(
-            padding: const EdgeInsets.all(16) + EdgeInsets.only(bottom: mq.padding.bottom),
+            padding:
+                AppSpacing.allMd + EdgeInsets.only(bottom: mq.padding.bottom),
             itemCount: sortedSummaries.length,
             itemBuilder: (context, index) {
               return CategoryDetailItem(

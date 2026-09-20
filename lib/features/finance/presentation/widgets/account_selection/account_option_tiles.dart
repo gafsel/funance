@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_radius.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/icons_extension.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
@@ -27,19 +31,14 @@ class StandaloneAccountCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final paddingVal = isSmall ? 10.0 : 16.0;
+    final palette = context.palette;
+    final paddingVal = isSmall ? 10.0 : AppSpacing.md;
     final logoSize = isSmall ? 32.0 : 40.0;
 
     return Card(
-      elevation: 0,
-      margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: theme.colorScheme.outlineVariant),
-      ),
       child: InkWell(
         onTap: () => onAccountSelected(account),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: AppRadius.brLg,
         child: Padding(
           padding: EdgeInsets.all(paddingVal),
           child: Row(
@@ -48,8 +47,9 @@ class StandaloneAccountCard extends StatelessWidget {
                 width: logoSize,
                 height: logoSize,
                 decoration: BoxDecoration(
+                  // A cor é da CONTA: dado do usuário, não token.
                   color: account.color.asColor().withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(isSmall ? 8 : 10),
+                  borderRadius: AppRadius.brSm,
                 ),
                 child: Icon(
                   account.icon.asIcon(),
@@ -57,30 +57,17 @@ class StandaloneAccountCard extends StatelessWidget {
                   size: isSmall ? 18 : 24,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      account.name,
-                      style:
-                          (isSmall
-                                  ? theme.textTheme.bodyMedium?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                    )
-                                  : theme.textTheme.titleSmall?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                    ))
-                              ?.copyWith(color: theme.colorScheme.onSurface),
-                    ),
+                    Text(account.name, style: theme.textTheme.titleSmall),
                     const SizedBox(height: 2),
                     Text(
                       accountTypeName(account.type, l10n),
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant.withValues(
-                          alpha: 0.7,
-                        ),
+                        color: palette.ink2,
                       ),
                     ),
                   ],
@@ -88,9 +75,7 @@ class StandaloneAccountCard extends StatelessWidget {
               ),
               Icon(
                 Icons.chevron_right,
-                color: theme.colorScheme.onSurfaceVariant.withValues(
-                  alpha: 0.5,
-                ),
+                color: palette.ink3,
                 size: isSmall ? 16 : 20,
               ),
             ],
@@ -115,23 +100,18 @@ class ClearAccountOption extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final paddingVal = isSmall ? 10.0 : 16.0;
+    final palette = context.palette;
+    final paddingVal = isSmall ? 10.0 : AppSpacing.md;
 
     return Card(
-      elevation: 0,
-      margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: theme.colorScheme.outlineVariant),
-      ),
       child: ListTile(
         contentPadding: EdgeInsets.symmetric(horizontal: paddingVal),
         leading: CircleAvatar(
-          backgroundColor: Colors.transparent,
+          backgroundColor: AppColors.transparent,
           radius: isSmall ? 16 : 20,
           child: Icon(
             Icons.clear_all,
-            color: Colors.grey,
+            color: palette.ink3,
             size: isSmall ? 20 : 24,
           ),
         ),
@@ -156,21 +136,16 @@ class AddAccountOption extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final paddingVal = isSmall ? 10.0 : 16.0;
+    final palette = context.palette;
+    final paddingVal = isSmall ? 10.0 : AppSpacing.md;
 
     return Card(
-      elevation: 0,
-      margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: theme.colorScheme.outlineVariant),
-      ),
       child: ListTile(
         contentPadding: EdgeInsets.symmetric(horizontal: paddingVal),
         leading: CircleAvatar(
-          backgroundColor: Colors.transparent,
+          backgroundColor: AppColors.transparent,
           radius: isSmall ? 16 : 20,
-          child: Icon(Icons.add, color: Colors.grey, size: isSmall ? 20 : 24),
+          child: Icon(Icons.add, color: palette.ink3, size: isSmall ? 20 : 24),
         ),
         title: Text(
           l10n.accountCreateTitle,

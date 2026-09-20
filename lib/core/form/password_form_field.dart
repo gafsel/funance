@@ -30,9 +30,7 @@ class _PasswordFormFieldState extends State<PasswordFormField> {
       decoration: (widget.decoration ?? const InputDecoration()).copyWith(
         suffixIcon: InkWell(
           onTap: _toggleObscure,
-          child: Icon(
-            _obscure ? Icons.visibility : Icons.visibility_off,
-          ),
+          child: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
         ),
       ),
       validator: widget.validator,

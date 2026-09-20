@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:funances/features/workspace/domain/models/workspace_model.dart';
 
 part 'badge_catalog_model.freezed.dart';
 
@@ -25,6 +26,22 @@ enum BadgeCategory {
   unknown,
 }
 
+/// Público de uma conquista. Espelha `BadgeAudience` do backend.
+enum BadgeAudience {
+  @JsonValue('personal')
+  personal,
+  @JsonValue('business')
+  business,
+  @JsonValue('both')
+  both;
+
+  /// `true` quando a conquista faz sentido num cofre de [type].
+  bool appliesTo(WorkspaceType type) =>
+      this == both ||
+      (this == personal && type == WorkspaceType.personal) ||
+      (this == business && type == WorkspaceType.business);
+}
+
 @freezed
 sealed class BadgeCatalogItem with _$BadgeCatalogItem {
   const BadgeCatalogItem._();
@@ -48,6 +65,14 @@ sealed class BadgeCatalogItem with _$BadgeCatalogItem {
     @JsonKey(fromJson: localizedText)
     @Default(<String, String>{})
     Map<String, String> description,
+
+    /// Para qual tipo de cofre a conquista existe: `personal`, `business` ou
+    /// `both`. O servidor materializa o campo em toda badge publicada, mas um
+    /// catálogo mais antigo pode não trazê-lo — e aí a badge vale para os
+    /// dois, que é o padrão do servidor.
+    @JsonKey(unknownEnumValue: BadgeAudience.both)
+    @Default(BadgeAudience.both)
+    BadgeAudience audience,
   }) = _BadgeCatalogItem;
 
   factory BadgeCatalogItem.fromJson(Map<String, dynamic> json) =>
@@ -150,6 +175,26 @@ sealed class BadgeCatalog with _$BadgeCatalog {
   List<BadgeCategory> get categories => BadgeCategory.values
       .where((category) => badges.any((badge) => badge.category == category))
       .toList();
+
+  /// O catálogo como ele deve aparecer num cofre de [type].
+  ///
+  /// A regra é assimétrica de propósito: a vitrine esconde o que **não foi
+  /// conquistado** e não pertence ao tipo — não faz sentido uma empresa ver
+  /// "Regra de Ouro" como meta a perseguir. Mas uma conquista já obtida
+  /// nunca some, mesmo que o cofre tenha mudado de tipo depois: ela foi
+  /// ganha, e apagá-la da estante seria negar o que aconteceu.
+  BadgeCatalog forWorkspace(
+    WorkspaceType type,
+    Map<String, String> unlockedBadges,
+  ) => copyWith(
+    badges: badges
+        .where(
+          (badge) =>
+              badge.audience.appliesTo(type) ||
+              unlockedBadges.containsKey(badge.id),
+        )
+        .toList(),
+  );
 
   /// XP acumulado que abre o nível informado (1 = 0 XP).
   int xpForLevel(int level) {

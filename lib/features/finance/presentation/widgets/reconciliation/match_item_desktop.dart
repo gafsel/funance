@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:funances/core/presentation/display_names.dart';
+import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_radius.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/date_extension.dart';
-import 'package:funances/core/utils/num_extensions.dart';
+import 'package:funances/core/widgets/money_text.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
@@ -34,8 +38,9 @@ class MatchItemDesktopRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = context.palette;
     final l10n = context.l10n;
-    final locale = context.locale;
     final sysInst = match.systemInstallment;
     final createdOrder = match.createdOrder;
     final category =
@@ -55,9 +60,12 @@ class MatchItemDesktopRow extends StatelessWidget {
         match.customDescription != null;
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.xs,
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: AppSpacing.allMd,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -67,20 +75,18 @@ class MatchItemDesktopRow extends StatelessWidget {
               child: Column(
                 children: [
                   Icon(visual.icon, color: visual.color, size: 32),
-                  const SizedBox(height: 4),
+                  AppSpacing.gapXxs,
                   Text(
                     visual.text,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: theme.textTheme.labelSmall?.copyWith(
                       color: visual.color,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 10,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 24),
+            const SizedBox(width: AppSpacing.lg),
             // Pool 1 — o que o extrato diz
             Expanded(
               child: MatchPoolColumn(
@@ -91,27 +97,23 @@ class MatchItemDesktopRow extends StatelessWidget {
                     : [
                         Text(
                           displayOr(dTx.description, l10n.noDescription),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
+                          style: theme.textTheme.titleMedium,
                         ),
                         Text(dTx.date.formated(l10n.formatSimpleDate)),
-                        Text(
-                          dTx.amount.asCurrency(locale: locale),
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
+                        MoneyText(
+                          dTx.amount,
+                          style: theme.textTheme.titleSmall?.copyWith(
                             color: dTx.type == OrderType.income
-                                ? Colors.green
-                                : Colors.red,
+                                ? palette.successText
+                                : palette.dangerText,
                           ),
                         ),
                       ],
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: AppSpacing.md),
             MatchConnectorWidget(status: match.status, isLinked: isLinked),
-            const SizedBox(width: 16),
+            const SizedBox(width: AppSpacing.md),
             // Pool 2 — o que o sistema tem
             Expanded(
               child: MatchPoolColumn(
@@ -119,7 +121,7 @@ class MatchItemDesktopRow extends StatelessWidget {
                 emptyMessage: l10n.reconciliationNoMatchFound,
                 decoration: BoxDecoration(
                   color: visual.color.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: AppRadius.brMd,
                   border: Border.all(
                     color: visual.color.withValues(alpha: 0.2),
                   ),
@@ -129,7 +131,7 @@ class MatchItemDesktopRow extends StatelessWidget {
                     : [
                         Text(
                           description ?? "",
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          style: theme.textTheme.titleSmall,
                         ),
                         Text(
                           (sInst?.referenceDate ??
@@ -141,18 +143,16 @@ class MatchItemDesktopRow extends StatelessWidget {
                         if (category != null)
                           Text(
                             category.displayName(l10n),
-                            style: const TextStyle(
-                              fontSize: 10,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: palette.ink2,
                               fontStyle: FontStyle.italic,
                             ),
                           ),
-                        Text(
-                          (sInst?.referenceAmount ??
-                                  createdOrder?.amount ??
-                                  (dTx?.amount ?? 0).abs())
-                              .asCurrency(locale: locale),
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
+                        MoneyText(
+                          sInst?.referenceAmount ??
+                              createdOrder?.amount ??
+                              (dTx?.amount ?? 0).abs(),
+                          style: theme.textTheme.titleSmall?.copyWith(
                             color:
                                 (match.customType ??
                                         sInst?.type ??
@@ -160,14 +160,14 @@ class MatchItemDesktopRow extends StatelessWidget {
                                         dTx?.type ??
                                         OrderType.expense) ==
                                     OrderType.income
-                                ? Colors.green
-                                : Colors.red,
+                                ? palette.successText
+                                : palette.dangerText,
                           ),
                         ),
                       ],
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: AppSpacing.md),
             // Actions
             Column(
               children: [
@@ -185,7 +185,7 @@ class MatchItemDesktopRow extends StatelessWidget {
                           await showModalBottomSheet<ReconciliationMatch?>(
                             context: context,
                             isScrollControlled: true,
-                            backgroundColor: Colors.transparent,
+                            backgroundColor: AppColors.transparent,
                             builder: (context) => ReconciliationTransactionForm(
                               match: match,
                               account: account,
@@ -199,10 +199,10 @@ class MatchItemDesktopRow extends StatelessWidget {
                     icon: const Icon(Icons.edit, size: 16),
                     label: Text(
                       l10n.reconciliationActionModify,
-                      style: const TextStyle(fontSize: 12),
+                      style: theme.textTheme.labelMedium,
                     ),
                   ),
-                const SizedBox(height: 8),
+                AppSpacing.gapXs,
                 MatchActions(
                   match: match,
                   account: account,
@@ -244,10 +244,10 @@ class MatchPoolColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const labelStyle = TextStyle(
-      fontSize: 10,
-      fontWeight: FontWeight.bold,
-      color: Colors.grey,
+    final theme = Theme.of(context);
+    final palette = context.palette;
+    final labelStyle = theme.textTheme.labelSmall?.copyWith(
+      color: palette.ink3,
     );
 
     final children = this.children;
@@ -257,11 +257,11 @@ class MatchPoolColumn extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label, style: labelStyle),
-          const SizedBox(height: 8),
+          AppSpacing.gapXs,
           Text(
             emptyMessage,
-            style: const TextStyle(
-              color: Colors.grey,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: palette.ink3,
               fontStyle: FontStyle.italic,
             ),
           ),
@@ -273,7 +273,7 @@ class MatchPoolColumn extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: labelStyle),
-        const SizedBox(height: 4),
+        AppSpacing.gapXxs,
         ...children,
       ],
     );
@@ -281,7 +281,7 @@ class MatchPoolColumn extends StatelessWidget {
     if (decoration == null) return column;
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: AppSpacing.allSm,
       decoration: decoration,
       child: column,
     );

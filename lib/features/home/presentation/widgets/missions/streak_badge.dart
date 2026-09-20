@@ -23,16 +23,15 @@ class StreakBadge extends ConsumerWidget {
         children: [
           const Icon(
             Icons.local_fire_department,
-            color: AppColors.coralOrange,
+            color: AppColors.warning,
             size: 18,
           ),
           const SizedBox(width: 2),
           Text(
             '$streak',
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: AppColors.coralOrange,
-              fontWeight: FontWeight.bold,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.labelMedium?.copyWith(color: AppColors.warning),
           ),
         ],
       ),

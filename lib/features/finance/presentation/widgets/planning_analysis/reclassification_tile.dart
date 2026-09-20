@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
+import 'package:funances/core/widgets/app_card.dart';
 import 'package:funances/features/finance/domain/models/planning_503020_analysis.dart';
 
 /// Sugestão de mudar a alocação de uma categoria, com o botão que aplica.
@@ -26,62 +29,57 @@ class ReclassificationTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
+    final palette = context.palette;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.successGold.withValues(alpha: 0.08),
-        border: Border.all(color: AppColors.antiqueGold.withValues(alpha: 0.4)),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            item.categoryName,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.bold,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+      child: AppCard(
+        padding: AppSpacing.allSm,
+        // O aro dourado marca a sugestão sem usar `rewarded`, que é reservado
+        // a conquista.
+        borderColor: AppColors.goldDeep.withValues(alpha: 0.4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(item.categoryName, style: theme.textTheme.titleSmall),
+            AppSpacing.gapXxs,
+            Row(
+              children: [
+                Text(currentLabel, style: theme.textTheme.labelSmall),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: AppSpacing.xxs),
+                  child: Icon(Icons.arrow_forward, size: 14),
+                ),
+                Text(
+                  suggestedLabel,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: palette.ink,
+                  ),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              Text(currentLabel, style: theme.textTheme.labelSmall),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 6),
-                child: Icon(Icons.arrow_forward, size: 14),
-              ),
+            if (item.reason.isNotEmpty) ...[
+              AppSpacing.gapXxs,
               Text(
-                suggestedLabel,
+                item.reason,
                 style: theme.textTheme.labelSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.deepTurquoise,
+                  color: palette.ink2,
                 ),
               ),
             ],
-          ),
-          if (item.reason.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Text(
-              item.reason,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+            AppSpacing.gapXs,
+            Align(
+              alignment: Alignment.centerRight,
+              child: FilledButton.tonal(
+                onPressed: onApply,
+                style: FilledButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                ),
+                child: Text(l10n.planningAnalysisApply),
               ),
             ),
           ],
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerRight,
-            child: FilledButton.tonal(
-              onPressed: onApply,
-              style: FilledButton.styleFrom(
-                visualDensity: VisualDensity.compact,
-              ),
-              child: Text(l10n.planningAnalysisApply),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

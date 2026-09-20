@@ -5,7 +5,9 @@ import 'package:funances/core/form/chip_form_field.dart';
 import 'package:funances/core/form/date_form_field.dart';
 import 'package:funances/core/form/responsive_form.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
+import 'package:funances/core/widgets/app_chip.dart';
 import 'package:funances/core/widgets/loading_modal.dart';
 import 'package:funances/core/widgets/money_form_field.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
@@ -141,9 +143,7 @@ class GoalFormScreen extends ConsumerWidget {
                       AccountType.debt,
                       AccountType.creditCard,
                     },
-                    GoalType.reduceCreditCard => const {
-                      AccountType.creditCard,
-                    },
+                    GoalType.reduceCreditCard => const {AccountType.creditCard},
                     _ => null,
                   },
                 ),
@@ -183,12 +183,6 @@ class _GoalAiAnalyzeButton extends ConsumerWidget {
     return OutlinedButton.icon(
       icon: const Icon(Icons.auto_awesome, size: 18),
       label: Text(l10n.goalAnalyzeWithAi),
-      style: OutlinedButton.styleFrom(
-        foregroundColor: AppColors.deepTurquoise,
-        side: const BorderSide(color: AppColors.deepTurquoise),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
       onPressed: isReady
           ? () async {
               final messenger = ScaffoldMessenger.of(context);
@@ -240,17 +234,17 @@ class _GoalAiAnalyzeButton extends ConsumerWidget {
       String statusLabel,
     ) = switch (result.status) {
       GoalFeasibilityStatus.feasible => (
-        AppColors.limeGreen,
+        AppColors.success,
         Icons.check_circle_outline,
         l10n.goalAiFeasible,
       ),
       GoalFeasibilityStatus.challenging => (
-        AppColors.coralOrange,
+        AppColors.warning,
         Icons.warning_amber_outlined,
         l10n.goalAiChallenging,
       ),
       GoalFeasibilityStatus.unrealistic => (
-        AppColors.error,
+        AppColors.danger,
         Icons.cancel_outlined,
         l10n.goalAiUnrealistic,
       ),
@@ -264,105 +258,68 @@ class _GoalAiAnalyzeButton extends ConsumerWidget {
         final mq = MediaQuery.of(ctx);
 
         return Padding(
-          padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + mq.padding.bottom),
+          // A alça da folha vem do `bottomSheetTheme` (`showDragHandle`); a
+          // que era desenhada aqui à mão virava uma segunda alça.
+          padding: EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.md,
+            AppSpacing.md,
+            AppSpacing.md + mq.padding.bottom,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.onSurfaceVariant.withValues(
-                      alpha: 0.4,
-                    ),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(10),
+                    padding: AppSpacing.allXs,
                     decoration: BoxDecoration(
                       color: statusColor.withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(statusIcon, color: statusColor, size: 32),
                   ),
-                  const SizedBox(width: 16),
+                  AppSpacing.gapMd,
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           l10n.goalAiResultTitle,
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: theme.textTheme.titleLarge,
                         ),
-                        const SizedBox(height: 4),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: statusColor.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            statusLabel,
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: statusColor,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                        AppSpacing.gapXxs,
+                        StatusPill(
+                          label: statusLabel,
+                          color: statusColor,
+                          dense: true,
                         ),
                       ],
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
-              Text(
-                l10n.goalAiReason,
-                style: theme.textTheme.labelMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                result.reason,
-                style: theme.textTheme.bodyMedium?.copyWith(height: 1.4),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                l10n.goalAiSuggestion,
-                style: theme.textTheme.labelMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 4),
+              AppSpacing.gapLg,
+              Text(l10n.goalAiReason, style: theme.textTheme.labelMedium),
+              AppSpacing.gapXxs,
+              Text(result.reason, style: theme.textTheme.bodyMedium),
+              AppSpacing.gapMd,
+              Text(l10n.goalAiSuggestion, style: theme.textTheme.labelMedium),
+              AppSpacing.gapXxs,
               Text(
                 result.suggestion,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
-                  height: 1.4,
                 ),
               ),
-              const SizedBox(height: 24),
+              AppSpacing.gapLg,
               FilledButton(
                 onPressed: () => Navigator.pop(ctx),
                 style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(56),
                   backgroundColor: statusColor,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
+                  foregroundColor: AppColors.inkInverse,
                 ),
                 child: Text(l10n.goalAiClose),
               ),

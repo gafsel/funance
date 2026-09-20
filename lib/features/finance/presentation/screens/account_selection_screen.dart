@@ -12,6 +12,8 @@ import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:funances/core/widgets/error_view.dart';
 import 'package:funances/core/presentation/retry.dart';
+import 'package:funances/core/theme/app_breakpoints.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 
 class AccountSelectionScreen extends ConsumerWidget {
   final String title;
@@ -74,7 +76,7 @@ class AccountSelectionScreen extends ConsumerWidget {
                   if (filteredAccounts.isEmpty &&
                       (!showClearOption || allowedTypes != null))
                     Padding(
-                      padding: const EdgeInsets.all(32.0),
+                      padding: AppSpacing.allXl,
                       child: Center(child: Text(l10n.noAccountsFound)),
                     )
                   else
@@ -82,9 +84,11 @@ class AccountSelectionScreen extends ConsumerWidget {
                       child: LayoutBuilder(
                         builder: (context, constraints) {
                           final List<Widget> slivers = [];
-                          final isSmall = constraints.maxWidth < 600;
-                          final gridPadding = isSmall ? 12.0 : 16.0;
-                          final gridSpacing = isSmall ? 12.0 : 16.0;
+                          final isSmall = constraints.layout.isCompact;
+                          final gridPadding = isSmall
+                              ? AppSpacing.sm
+                              : AppSpacing.md;
+                          final gridSpacing = gridPadding;
                           // O `/2` era fixo: num painel de 1400px a grade
                           // virava DOIS cartões de ~680px. O número de colunas
                           // agora sai da largura disponível, com a mesma régua
@@ -359,11 +363,11 @@ class AccountSelectionScreen extends ConsumerWidget {
             );
           },
           loading: () => const Padding(
-            padding: EdgeInsets.all(32.0),
+            padding: AppSpacing.allXl,
             child: Center(child: CircularProgressIndicator()),
           ),
           error: (err, _) => Padding(
-            padding: const EdgeInsets.all(32.0),
+            padding: AppSpacing.allXl,
             child: ErrorView.forError(
               context,
               err,
@@ -373,11 +377,11 @@ class AccountSelectionScreen extends ConsumerWidget {
         );
       },
       loading: () => const Padding(
-        padding: EdgeInsets.all(32.0),
+        padding: AppSpacing.allXl,
         child: Center(child: CircularProgressIndicator()),
       ),
       error: (err, _) => Padding(
-        padding: const EdgeInsets.all(32.0),
+        padding: AppSpacing.allXl,
         child: ErrorView.forError(
           context,
           err,

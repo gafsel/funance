@@ -63,15 +63,34 @@ class CrashReporter {
     );
   }
 
+  /// Observador do que foi registrado, para teste.
+  ///
+  /// Em produção é `null` e não custa nada. Existe porque o caminho real
+  /// termina no Crashlytics, que não sobe num teste — e sem um jeito de olhar
+  /// o que sai daqui, "a mensagem chegou ao relatório" é uma afirmação que
+  /// ninguém pode conferir. Foi exatamente assim que a mensagem passou a ser
+  /// descartada sem nada acusar.
+  @visibleForTesting
+  static void Function(Object error, StackTrace? stack, String? reason)?
+  onRecord;
+
   /// Registra um erro assíncrono não capturado
   /// (PlatformDispatcher.onError / runZonedGuarded).
+  ///
+  /// [reason] é o que o app sabia quando pegou a falha — "documento ilegível
+  /// ignorado (auto-8f2c)". Sem ela o relatório recebe só a exceção, que
+  /// costuma ser genérica (`TypeError`), e some justamente a parte que
+  /// permite ACHAR o caso: qual documento, qual tela, qual operação.
   static void recordError(
     Object error,
     StackTrace? stack, {
     bool fatal = false,
+    String? reason,
   }) {
+    onRecord?.call(error, stack, reason);
+
     if (kDebugMode) {
-      _logLocally(error, stack, 'UncaughtError');
+      _logLocally(error, stack, 'UncaughtError', reason);
     }
 
     if (isSupported) {
@@ -79,13 +98,19 @@ class CrashReporter {
         () => FirebaseCrashlytics.instance.recordError(
           error,
           stack,
+          reason: reason,
           fatal: fatal,
         ),
       );
       return;
     }
 
-    _recordOnWeb(error, stack, kind: fatal ? 'fatal' : 'uncaught');
+    _recordOnWeb(
+      error,
+      stack,
+      kind: fatal ? 'fatal' : 'uncaught',
+      context: reason,
+    );
   }
 
   /// Relatar erro não pode ser mais uma fonte de erro.
@@ -110,7 +135,7 @@ class CrashReporter {
   }) {
     final String label = context == null ? kind : '$kind: $context';
 
-    if (!kDebugMode) _logLocally(error, stack, 'UncaughtError');
+    if (!kDebugMode) _logLocally(error, stack, 'UncaughtError', context);
 
     reportToBrowserConsole(label, error, stack);
     unawaited(_logWebErrorEvent(error, kind));
@@ -183,12 +208,27 @@ class CrashReporter {
     return type.length <= 100 ? type : type.substring(0, 100);
   }
 
-  static void _logLocally(Object? error, StackTrace? stack, String name) {
+  static void _logLocally(
+    Object? error,
+    StackTrace? stack,
+    String name, [
+    String? reason,
+  ]) {
     developer.log(
-      error?.toString() ?? 'Erro desconhecido',
+      localMessage(error, reason),
       name: 'funances.$name',
       error: error,
       stackTrace: stack,
     );
+  }
+
+  /// A linha que vai para o log local: o motivo na frente, a exceção atrás.
+  ///
+  /// Pública para teste porque é a única parte disto que dá para afirmar sem
+  /// um Firebase de pé.
+  @visibleForTesting
+  static String localMessage(Object? error, String? reason) {
+    final texto = error?.toString() ?? 'Erro desconhecido';
+    return reason == null || reason.isEmpty ? texto : '$reason — $texto';
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/features/finance/domain/models/reconciliation_model.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
@@ -9,6 +10,10 @@ import 'package:funances/l10n/app_localizations.dart';
 /// (`context, locale, statusColor, statusText, statusIcon`) — ou seja, o
 /// desktop dependia de o mobile ter sido calculado primeiro. Agora os dois
 /// perguntam ao mesmo lugar.
+///
+/// As cores vêm de [AppColors] e não de `context.palette` porque a assinatura
+/// não recebe `BuildContext` — e os papéis usados aqui (semânticas, violeta e
+/// a tinta terciária) têm o mesmo valor nos dois temas.
 typedef MatchStatusVisual = ({Color color, String text, IconData icon});
 
 extension ReconciliationMatchVisual on ReconciliationMatch {
@@ -21,17 +26,17 @@ extension ReconciliationMatchVisual on ReconciliationMatch {
     if (isSystemOnly) {
       return switch (status) {
         ReconciliationMatchStatus.ignored => (
-          color: Colors.red,
+          color: AppColors.danger,
           text: l10n.reconciliationStatusRemove,
           icon: Icons.delete_sweep,
         ),
         ReconciliationMatchStatus.matched => (
-          color: Colors.green,
+          color: AppColors.success,
           text: l10n.reconciliationStatusKeep,
           icon: Icons.check_circle,
         ),
         _ => (
-          color: Colors.purple,
+          color: AppColors.violet,
           text: l10n.reconciliationStatusSystemOnly,
           icon: Icons.info_outline,
         ),
@@ -40,22 +45,23 @@ extension ReconciliationMatchVisual on ReconciliationMatch {
 
     return switch (status) {
       ReconciliationMatchStatus.matched => (
-        color: Colors.green,
+        color: AppColors.success,
         text: l10n.reconciliationStatusMatched,
         icon: Icons.check_circle,
       ),
       ReconciliationMatchStatus.suggested => (
-        color: Colors.orange,
+        color: AppColors.warning,
         text: l10n.reconciliationStatusSuggested,
         icon: Icons.help,
       ),
       ReconciliationMatchStatus.unmatched => (
-        color: Colors.blue,
+        color: AppColors.tealInk,
         text: l10n.reconciliationStatusUnmatched,
         icon: Icons.add_circle,
       ),
       ReconciliationMatchStatus.ignored => (
-        color: Colors.grey,
+        // Tinta terciária: o mesmo valor nos dois temas.
+        color: AppColors.ink3Light,
         text: l10n.reconciliationStatusIgnored,
         icon: Icons.block,
       ),

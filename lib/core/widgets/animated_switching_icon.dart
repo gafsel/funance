@@ -1,9 +1,15 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:funances/core/theme/app_colors.dart';
 
 class AnimatedSwitchingIcon extends ImplicitlyAnimatedWidget {
   final IconData icon;
   final double size;
+
+  /// Cor do ícone. O padrão é a tinta principal do tema claro — o widget é
+  /// `ImplicitlyAnimatedWidget` e interpola a cor num `forEachTween`, que roda
+  /// fora do `build` e portanto sem `BuildContext`; quem precisa da cor do
+  /// tema corrente passa explicitamente.
   final Color color;
   final String? semanticLabel;
   final TextDirection? textDirection;
@@ -13,7 +19,7 @@ class AnimatedSwitchingIcon extends ImplicitlyAnimatedWidget {
     this.icon, {
     super.key,
     this.size = 24.0,
-    this.color = Colors.black,
+    this.color = AppColors.inkLight,
     this.semanticLabel,
     this.textDirection,
     this.shadows,

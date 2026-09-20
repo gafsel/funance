@@ -58,7 +58,10 @@ class _DateFormFieldState extends State<DateFormField> {
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    final newDateFormat = DateFormat(context.l10n.dateInputPattern, context.locale);
+    final newDateFormat = DateFormat(
+      context.l10n.dateInputPattern,
+      context.locale,
+    );
     if (_dateFormat != newDateFormat) {
       _dateFormat = newDateFormat;
       if (widget.initialValue != null) {
@@ -84,7 +87,8 @@ class _DateFormFieldState extends State<DateFormField> {
                 onTap: !widget.enabled
                     ? null
                     : () {
-                        final DateTime initialDate = field.value ?? DateTime.now();
+                        final DateTime initialDate =
+                            field.value ?? DateTime.now();
 
                         showDatePicker(
                           context: field.context,

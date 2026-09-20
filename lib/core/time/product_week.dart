@@ -48,9 +48,11 @@ abstract final class ProductWeek {
     // A diferença é medida em UTC de propósito: `difference().inDays` em
     // horário local perde (ou ganha) uma hora na semana da virada do horário
     // de verão e pode mudar o número da semana.
-    final dayOfYear = DateTime.utc(start.year, start.month, start.day)
-        .difference(DateTime.utc(start.year, 1, 1))
-        .inDays;
+    final dayOfYear = DateTime.utc(
+      start.year,
+      start.month,
+      start.day,
+    ).difference(DateTime.utc(start.year, 1, 1)).inDays;
 
     return (dayOfYear / 7).floor() + 1;
   }

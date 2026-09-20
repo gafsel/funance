@@ -3,8 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/form/loading_button.dart';
 import 'package:funances/core/form/manual_form.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/icons_extension.dart';
+import 'package:funances/core/widgets/app_card.dart';
 import 'package:funances/core/widgets/money_form_field.dart';
 import 'package:funances/features/finance/presentation/controllers/category_planning_notifier.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
@@ -41,7 +44,9 @@ class CategoryPlanningScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          type == CategoryType.income ? l10n.planningIncomeLimits : l10n.planningExpenseLimits,
+          type == CategoryType.income
+              ? l10n.planningIncomeLimits
+              : l10n.planningExpenseLimits,
         ),
       ),
       body: ManualForm<CategoryPlanningState, void, CategoryPlanningNotifier>(
@@ -56,11 +61,9 @@ class CategoryPlanningScreen extends ConsumerWidget {
 
           return Column(
             children: [
-              Expanded(
-                child: _buildCategoryList(context, state, notifier),
-              ),
+              Expanded(child: _buildCategoryList(context, state, notifier)),
               Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: AppSpacing.allMd,
                 child: LoadingButton.elevated(
                   onPressed: (loading) async {
                     await loading(snapshot.notifier.submit());
@@ -76,9 +79,13 @@ class CategoryPlanningScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildCategoryList(BuildContext context, CategoryPlanningState state, CategoryPlanningNotifier notifier) {
+  Widget _buildCategoryList(
+    BuildContext context,
+    CategoryPlanningState state,
+    CategoryPlanningNotifier notifier,
+  ) {
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: AppSpacing.hMd,
       itemCount: state.items.length,
       itemBuilder: (context, index) {
         final item = state.items[index];
@@ -98,86 +105,80 @@ class CategoryPlanningScreen extends ConsumerWidget {
     CategoryPlanningNotifier notifier, {
     bool isHighlighted = false,
   }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.pureWhite,
-        borderRadius: BorderRadius.circular(16),
+    final theme = Theme.of(context);
+    final palette = context.palette;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: AppCard(
+        variant: AppCardVariant.raised,
         // A categoria que trouxe o usuário até aqui (pelo nudge de gasto não
         // planejado) fica visivelmente marcada: ele veio decidir UMA coisa.
-        border: isHighlighted
-            ? Border.all(color: AppColors.successGold, width: 2)
-            : null,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: item.category.color.asColor().withValues(alpha: 0.2),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              item.category.icon.asIcon(),
-              color: item.category.color.asColor(),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.category.name,
-                  style: const TextStyle(
-                    color: AppColors.darkNavy,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                if (item.planningId != null)
-                  Text(
-                    // Despesa tem limite; receita tem expectativa.
-                    type == CategoryType.income
-                        ? AppLocalizations.of(context)!.planningExpectationDefined
-                        : AppLocalizations.of(context)!.planningLimitDefined,
-                    style: const TextStyle(color: AppColors.limeGreen, fontSize: 12),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 16),
-          ConstrainedBox(
-            constraints: BoxConstraints(minWidth: 80, maxWidth: 200),
-            child: MoneyFormField(
-              initialValue: item.amount > 0 ? item.amount : null,
-              decoration: const InputDecoration(
-                hintText: '0.00',
-                border: InputBorder.none,
+        borderColor: isHighlighted ? AppColors.gold : null,
+        child: Row(
+          children: [
+            Container(
+              padding: AppSpacing.allXs,
+              decoration: BoxDecoration(
+                // A cor é DADO: é a que o usuário escolheu para a categoria.
+                color: item.category.color.asColor().withValues(alpha: 0.2),
+                shape: BoxShape.circle,
               ),
-              onChanged: (value) {
-                notifier.updateAmount(item.category.id, value ?? 0.0);
-              },
+              child: Icon(
+                item.category.icon.asIcon(),
+                color: item.category.color.asColor(),
+              ),
             ),
-          ),
-          if (item.amount > 0)
-            IconButton(
-              icon: const Icon(Icons.remove_circle_outline, color: AppColors.error),
-              onPressed: () {
-                notifier.updateAmount(item.category.id, 0);
-              },
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(item.category.name, style: theme.textTheme.titleMedium),
+                  if (item.planningId != null)
+                    Text(
+                      // Despesa tem limite; receita tem expectativa.
+                      type == CategoryType.income
+                          ? AppLocalizations.of(
+                              context,
+                            )!.planningExpectationDefined
+                          : AppLocalizations.of(context)!.planningLimitDefined,
+                      // O verde de progresso não é legível como texto sobre
+                      // papel claro; aqui o papel é "está definido" = sucesso.
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: palette.successText,
+                      ),
+                    ),
+                ],
+              ),
             ),
-        ],
+            const SizedBox(width: AppSpacing.md),
+            ConstrainedBox(
+              constraints: BoxConstraints(minWidth: 80, maxWidth: 200),
+              child: MoneyFormField(
+                initialValue: item.amount > 0 ? item.amount : null,
+                decoration: const InputDecoration(
+                  hintText: '0.00',
+                  border: InputBorder.none,
+                ),
+                onChanged: (value) {
+                  notifier.updateAmount(item.category.id, value ?? 0.0);
+                },
+              ),
+            ),
+            if (item.amount > 0)
+              IconButton(
+                icon: Icon(
+                  Icons.remove_circle_outline,
+                  color: palette.dangerText,
+                ),
+                onPressed: () {
+                  notifier.updateAmount(item.category.id, 0);
+                },
+              ),
+          ],
+        ),
       ),
     );
   }
-
 }

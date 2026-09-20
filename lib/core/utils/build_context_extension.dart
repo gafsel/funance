@@ -11,8 +11,11 @@ extension BuildContextExtension on BuildContext {
     final l10n = AppLocalizations.of(this)!;
     return Validations(
       emailMessage: l10n.validationEmailMessage,
+      // As duas estavam TROCADAS: `lengthMaxMessage` é chamada com o `max`
+      // estourado e lia a frase "deve possuir no mínimo {min}". Quem passava
+      // do limite de caracteres recebia um pedido para escrever mais.
       lengthMaxMessage: l10n.validationLengthMaxMessage,
-      lengthMinMessage: l10n.validationLenghtMinMessage,
+      lengthMinMessage: l10n.validationLengthMinMessage,
       notEmptyMessage: l10n.validationNotEmptyMessage,
       notNullMessage: l10n.validationNotNullMessage,
       securePasswordAtLeast1Lowercase: l10n.securePasswordAtLeast1Lowercase,

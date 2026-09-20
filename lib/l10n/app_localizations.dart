@@ -107,7 +107,7 @@ abstract class AppLocalizations {
   /// No description provided for @loginTitle.
   ///
   /// In pt, this message translates to:
-  /// **'FUNANCE'**
+  /// **'Funances'**
   String get loginTitle;
 
   /// No description provided for @loginSubtitle.
@@ -188,12 +188,6 @@ abstract class AppLocalizations {
   /// **'Este campo é obrigatório'**
   String get fieldRequired;
 
-  /// No description provided for @invalidEmail.
-  ///
-  /// In pt, this message translates to:
-  /// **'E-mail inválido'**
-  String get invalidEmail;
-
   /// No description provided for @appErrorWidgetTitle.
   ///
   /// In pt, this message translates to:
@@ -229,18 +223,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Fechar'**
   String get closeButton;
-
-  /// No description provided for @badgeUnlockedToast.
-  ///
-  /// In pt, this message translates to:
-  /// **'Nova conquista desbloqueada!'**
-  String get badgeUnlockedToast;
-
-  /// No description provided for @badgeUnlockedView.
-  ///
-  /// In pt, this message translates to:
-  /// **'Ver'**
-  String get badgeUnlockedView;
 
   /// No description provided for @workspacePickerTitle.
   ///
@@ -559,12 +541,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Nome do Workspace'**
   String get onboardingWorkspaceNameLabel;
-
-  /// No description provided for @onboardingGoalsTitle.
-  ///
-  /// In pt, this message translates to:
-  /// **'Trace suas primeiras metas'**
-  String get onboardingGoalsTitle;
 
   /// No description provided for @onboardingGoalsButton.
   ///
@@ -1388,12 +1364,6 @@ abstract class AppLocalizations {
   /// **'Saldos e Faturas'**
   String get homeAccountsAndCards;
 
-  /// No description provided for @weeklyMissions.
-  ///
-  /// In pt, this message translates to:
-  /// **'Missões da Semana'**
-  String get weeklyMissions;
-
   /// No description provided for @weeklyMissionsNone.
   ///
   /// In pt, this message translates to:
@@ -1435,12 +1405,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'{xp} XP'**
   String xpValue(String xp);
-
-  /// No description provided for @percentage.
-  ///
-  /// In pt, this message translates to:
-  /// **'{value}%'**
-  String percentage(String value);
 
   /// No description provided for @dateRange.
   ///
@@ -2468,12 +2432,6 @@ abstract class AppLocalizations {
   /// **'Data do Valor Atual'**
   String get initialBalanceDebtDateLabel;
 
-  /// No description provided for @none.
-  ///
-  /// In pt, this message translates to:
-  /// **'Nenhum'**
-  String get none;
-
   /// No description provided for @accountMethodDocument.
   ///
   /// In pt, this message translates to:
@@ -2514,7 +2472,7 @@ abstract class AppLocalizations {
   ///
   /// In pt, this message translates to:
   /// **'{count, plural, =1{1 transação encontrada} other{{count} transações encontradas}}'**
-  String accountDetectedTransactions(num count);
+  String accountDetectedTransactions(int count);
 
   /// No description provided for @accountDetectedConfirmation.
   ///
@@ -2705,14 +2663,14 @@ abstract class AppLocalizations {
   /// No description provided for @validationLengthMaxMessage.
   ///
   /// In pt, this message translates to:
-  /// **'Deve possuir no mínimo {min} caracteres.'**
-  String validationLengthMaxMessage(Object min);
+  /// **'Deve possuir no máximo {max} caracteres.'**
+  String validationLengthMaxMessage(int max);
 
-  /// No description provided for @validationLenghtMinMessage.
+  /// No description provided for @validationLengthMinMessage.
   ///
   /// In pt, this message translates to:
-  /// **'Deve possuir no máximo {max} caracteres.'**
-  String validationLenghtMinMessage(Object max);
+  /// **'Deve possuir no mínimo {min} caracteres.'**
+  String validationLengthMinMessage(int min);
 
   /// No description provided for @validationNotEmptyMessage.
   ///
@@ -2856,7 +2814,7 @@ abstract class AppLocalizations {
   ///
   /// In pt, this message translates to:
   /// **'{number} de {count}'**
-  String installmentCountDescription(Object count, Object number);
+  String installmentCountDescription(int number, int count);
 
   /// No description provided for @statusPending.
   ///
@@ -2976,7 +2934,7 @@ abstract class AppLocalizations {
   ///
   /// In pt, this message translates to:
   /// **'{count} {count, plural, =1{item} other{itens}} • {xp} XP'**
-  String completedMissionsSummary(num count, Object xp);
+  String completedMissionsSummary(int count, String xp);
 
   /// No description provided for @returnToPending.
   ///
@@ -3121,6 +3079,24 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Rever Dicas'**
   String get coachingReviewTips;
+
+  /// No description provided for @coachingTypeWarning.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alerta'**
+  String get coachingTypeWarning;
+
+  /// No description provided for @coachingTypeTip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Dica'**
+  String get coachingTypeTip;
+
+  /// No description provided for @coachingTypeInsight.
+  ///
+  /// In pt, this message translates to:
+  /// **'Insight'**
+  String get coachingTypeInsight;
 
   /// No description provided for @weeklyMissionsTitle.
   ///
@@ -3277,42 +3253,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Conquistado em'**
   String get badgeUnlockedAtLabel;
-
-  /// No description provided for @viewAchievementsButton.
-  ///
-  /// In pt, this message translates to:
-  /// **'Ver Conquistas'**
-  String get viewAchievementsButton;
-
-  /// No description provided for @levelIndicatorSemantics.
-  ///
-  /// In pt, this message translates to:
-  /// **'Nível do Workspace: {level}, Badges desbloqueados: {count}'**
-  String levelIndicatorSemantics(int level, int count);
-
-  /// No description provided for @levelUpTitle.
-  ///
-  /// In pt, this message translates to:
-  /// **'LEVEL UP!'**
-  String get levelUpTitle;
-
-  /// No description provided for @levelUpSubtitle.
-  ///
-  /// In pt, this message translates to:
-  /// **'Parabéns para a equipe!'**
-  String get levelUpSubtitle;
-
-  /// No description provided for @levelUpContent.
-  ///
-  /// In pt, this message translates to:
-  /// **'Seu workspace subiu para o Nível {level}!'**
-  String levelUpContent(int level);
-
-  /// No description provided for @levelUpMessage.
-  ///
-  /// In pt, this message translates to:
-  /// **'Continuem cooperando e planejando juntos para desbloquear novas conquistas e níveis!'**
-  String get levelUpMessage;
 
   /// No description provided for @statementDragOverTitle.
   ///
@@ -3818,18 +3758,6 @@ abstract class AppLocalizations {
   /// **'Bússola da Liberdade'**
   String get compassTitle;
 
-  /// No description provided for @compassCalibratingTitle.
-  ///
-  /// In pt, this message translates to:
-  /// **'Sua bússola está sendo calibrada'**
-  String get compassCalibratingTitle;
-
-  /// No description provided for @compassCalibratingMessage.
-  ///
-  /// In pt, this message translates to:
-  /// **'Assim que houver um mês fechado, seu índice aparece aqui.'**
-  String get compassCalibratingMessage;
-
   /// No description provided for @compassScoreOf.
   ///
   /// In pt, this message translates to:
@@ -4141,6 +4069,330 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Salva neste dispositivo. Saldo inicial e fatura aparecem quando a conexão voltar.'**
   String get accountSavePendingSync;
+
+  /// No description provided for @celebrationXpTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'XP ganho'**
+  String get celebrationXpTitle;
+
+  /// No description provided for @celebrationMissionTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Missão concluída'**
+  String get celebrationMissionTitle;
+
+  /// No description provided for @celebrationBadgeTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conquista desbloqueada'**
+  String get celebrationBadgeTitle;
+
+  /// No description provided for @celebrationBadgeFallback.
+  ///
+  /// In pt, this message translates to:
+  /// **'Veja na vitrine'**
+  String get celebrationBadgeFallback;
+
+  /// No description provided for @celebrationLevelTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nível {level}'**
+  String celebrationLevelTitle(int level);
+
+  /// No description provided for @celebrationLevelSubtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'O cofre subiu de nível'**
+  String get celebrationLevelSubtitle;
+
+  /// No description provided for @celebrationTierTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nova patente'**
+  String get celebrationTierTitle;
+
+  /// No description provided for @settingsAppearanceSection.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aparência'**
+  String get settingsAppearanceSection;
+
+  /// No description provided for @settingsThemeMode.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tema'**
+  String get settingsThemeMode;
+
+  /// No description provided for @settingsThemeModeDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Claro, escuro ou como o sistema estiver.'**
+  String get settingsThemeModeDesc;
+
+  /// No description provided for @themeModeSystem.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sistema'**
+  String get themeModeSystem;
+
+  /// No description provided for @themeModeLight.
+  ///
+  /// In pt, this message translates to:
+  /// **'Claro'**
+  String get themeModeLight;
+
+  /// No description provided for @themeModeDark.
+  ///
+  /// In pt, this message translates to:
+  /// **'Escuro'**
+  String get themeModeDark;
+
+  /// No description provided for @settingsCelebrationSound.
+  ///
+  /// In pt, this message translates to:
+  /// **'Som nas conquistas'**
+  String get settingsCelebrationSound;
+
+  /// No description provided for @settingsCelebrationSoundDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Desligado por padrão. A vibração continua.'**
+  String get settingsCelebrationSoundDesc;
+
+  /// No description provided for @missionPersonalConsistencyPlanLimits.
+  ///
+  /// In pt, this message translates to:
+  /// **'Planejar limites para pelo menos {target} categorias e organizar a semana.'**
+  String missionPersonalConsistencyPlanLimits(String target);
+
+  /// No description provided for @missionPersonalDisciplineTopCategory.
+  ///
+  /// In pt, this message translates to:
+  /// **'Manter a categoria {category} dentro do orçamento planejado por {target} dias.'**
+  String missionPersonalDisciplineTopCategory(String category, String target);
+
+  /// No description provided for @missionPersonalOrganizationReconcileItems.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fazer a conciliação completa de um extrato com pelo menos {target} itens.'**
+  String missionPersonalOrganizationReconcileItems(String target);
+
+  /// No description provided for @missionBusinessConsistencyCostCenters.
+  ///
+  /// In pt, this message translates to:
+  /// **'Planejar o limite de {target} centros de custo para o mês.'**
+  String missionBusinessConsistencyCostCenters(String target);
+
+  /// No description provided for @missionBusinessConsistencyIncomeForecast.
+  ///
+  /// In pt, this message translates to:
+  /// **'Confirmar o recebimento de {target}% da receita prevista para a semana.'**
+  String missionBusinessConsistencyIncomeForecast(String target);
+
+  /// No description provided for @missionBusinessDisciplineTopCostCenter.
+  ///
+  /// In pt, this message translates to:
+  /// **'Manter o centro de custo {category} dentro do plano por {target} dias.'**
+  String missionBusinessDisciplineTopCostCenter(String category, String target);
+
+  /// No description provided for @missionBusinessDisciplineMargin.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fechar a semana com a margem (receita − despesa) acima da planejada.'**
+  String get missionBusinessDisciplineMargin;
+
+  /// No description provided for @missionBusinessOrganizationReconcileStatements.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conciliar {target} extrato das contas da empresa nesta semana.'**
+  String missionBusinessOrganizationReconcileStatements(String target);
+
+  /// No description provided for @missionBusinessOrganizationCategorizeAuto.
+  ///
+  /// In pt, this message translates to:
+  /// **'Categorizar ou descartar {target} lançamentos automáticos antes do fechamento.'**
+  String missionBusinessOrganizationCategorizeAuto(String target);
+
+  /// No description provided for @missionBusinessOrganizationInvoiceOnTime.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fechar {target} fatura do cartão corporativo pagando até o vencimento.'**
+  String missionBusinessOrganizationInvoiceOnTime(String target);
+
+  /// No description provided for @missionFallbackCategoryPersonal.
+  ///
+  /// In pt, this message translates to:
+  /// **'de maior gasto'**
+  String get missionFallbackCategoryPersonal;
+
+  /// No description provided for @missionFallbackCategoryBusiness.
+  ///
+  /// In pt, this message translates to:
+  /// **'de maior peso'**
+  String get missionFallbackCategoryBusiness;
+
+  /// No description provided for @missionCtaPlanning.
+  ///
+  /// In pt, this message translates to:
+  /// **'Planejar agora'**
+  String get missionCtaPlanning;
+
+  /// No description provided for @missionCtaPlanning503020.
+  ///
+  /// In pt, this message translates to:
+  /// **'Abrir o 50-30-20'**
+  String get missionCtaPlanning503020;
+
+  /// No description provided for @missionCtaCategories.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver a Party'**
+  String get missionCtaCategories;
+
+  /// No description provided for @missionCtaAccounts.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver contas'**
+  String get missionCtaAccounts;
+
+  /// No description provided for @missionCtaCategoryDetails.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver categoria'**
+  String get missionCtaCategoryDetails;
+
+  /// No description provided for @missionCtaTransactionForm.
+  ///
+  /// In pt, this message translates to:
+  /// **'Lançar agora'**
+  String get missionCtaTransactionForm;
+
+  /// No description provided for @workspaceTypePersonalBadge.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pessoal'**
+  String get workspaceTypePersonalBadge;
+
+  /// No description provided for @workspaceTypeBusinessBadge.
+  ///
+  /// In pt, this message translates to:
+  /// **'Empresa'**
+  String get workspaceTypeBusinessBadge;
+
+  /// No description provided for @levelBadgeShort.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nv {level}'**
+  String levelBadgeShort(int level);
+
+  /// No description provided for @levelBadgeSemantics.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nível {level} do cofre, {percent}% para o próximo'**
+  String levelBadgeSemantics(int level, int percent);
+
+  /// No description provided for @compassStripTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Bússola'**
+  String get compassStripTitle;
+
+  /// No description provided for @compassStripOpen.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver a Bússola completa'**
+  String get compassStripOpen;
+
+  /// No description provided for @compassStripDelta.
+  ///
+  /// In pt, this message translates to:
+  /// **'{points} desde o mês passado'**
+  String compassStripDelta(String points);
+
+  /// No description provided for @dueSoonTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vence hoje e amanhã'**
+  String get dueSoonTitle;
+
+  /// No description provided for @dueSoonToday.
+  ///
+  /// In pt, this message translates to:
+  /// **'Hoje'**
+  String get dueSoonToday;
+
+  /// No description provided for @dueSoonTomorrow.
+  ///
+  /// In pt, this message translates to:
+  /// **'Amanhã'**
+  String get dueSoonTomorrow;
+
+  /// No description provided for @dueSoonInvoiceClosing.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fatura de {card} fecha'**
+  String dueSoonInvoiceClosing(String card);
+
+  /// No description provided for @dueSoonSemantics.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count, plural, =1{1 compromisso vencendo hoje ou amanhã} other{{count} compromissos vencendo hoje ou amanhã}}'**
+  String dueSoonSemantics(int count);
+
+  /// No description provided for @journeySeeAllGoals.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver as {count} metas'**
+  String journeySeeAllGoals(int count);
+
+  /// No description provided for @journeyNoRunningGoals.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhuma meta em andamento'**
+  String get journeyNoRunningGoals;
+
+  /// No description provided for @journeySeeClosedGoals.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver {count} encerradas'**
+  String journeySeeClosedGoals(int count);
+
+  /// No description provided for @planning503020PlannedPercent.
+  ///
+  /// In pt, this message translates to:
+  /// **'Planejado: {percent}'**
+  String planning503020PlannedPercent(String percent);
+
+  /// No description provided for @planning503020ActualPercent.
+  ///
+  /// In pt, this message translates to:
+  /// **'Real: {percent}'**
+  String planning503020ActualPercent(String percent);
+
+  /// No description provided for @automaticTransactionSeeAll.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver as {count} pendências'**
+  String automaticTransactionSeeAll(int count);
+
+  /// No description provided for @goalsTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Metas'**
+  String get goalsTitle;
+
+  /// Contador compacto de progresso de missão, para uma linha.
+  ///
+  /// In pt, this message translates to:
+  /// **'{progress}/{target}'**
+  String missionProgressShort(String progress, String target);
+
+  /// No description provided for @automaticTransactionSeeAllShort.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver todas'**
+  String get automaticTransactionSeeAllShort;
 }
 
 class _AppLocalizationsDelegate

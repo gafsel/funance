@@ -5,7 +5,7 @@ extension ColorExtension on String {
   /// Converte "#RRGGBB", "#AARRGGBB" ou "0xAARRGGBB" em [Color].
   /// Valores inválidos (ex.: cor alucinada pela IA como "blue" ou "#FFF")
   /// retornam [orElse] em vez de lançar durante o build.
-  Color asColor({Color orElse = AppColors.deepTurquoise}) {
+  Color asColor({Color orElse = AppColors.surfaceDeep}) {
     final raw = trim().replaceAll('#', '').replaceAll('0x', '');
     final hex = raw.length == 6 ? 'FF$raw' : raw;
     if (hex.length != 8) return orElse;

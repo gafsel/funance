@@ -1,7 +1,10 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/theme/app_breakpoints.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/date_extension.dart';
@@ -37,7 +40,8 @@ class InvoiceDetailScreen extends ConsumerWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isSmallWidth = constraints.maxWidth < 600;
+        // O painel se mede pelas próprias constraints, não pela janela.
+        final isSmallWidth = constraints.layout.isCompact;
 
         return Scaffold(
           body: NestedScrollView(
@@ -46,12 +50,12 @@ class InvoiceDetailScreen extends ConsumerWidget {
                 SliverDetailHeader(
                   title: invoice.description,
                   subtitle: invoice.amount.asCurrency(locale: locale),
-                  subtitleColor: Colors.white,
+                  subtitleColor: AppColors.inkInverse,
                   backgroundColor: accountAsync.when(
                     data: (account) =>
-                        account?.color.asColor() ?? AppColors.deepTurquoise,
-                    loading: () => AppColors.deepTurquoise,
-                    error: (_, _) => AppColors.deepTurquoise,
+                        account?.color.asColor() ?? AppColors.surfaceDeep,
+                    loading: () => AppColors.surfaceDeep,
+                    error: (_, _) => AppColors.surfaceDeep,
                   ),
                   logo: accountAsync.when(
                     data: (account) => account != null
@@ -79,10 +83,10 @@ class InvoiceDetailScreen extends ConsumerWidget {
                           : l10n.statusPending,
                       backgroundColor:
                           invoice.status == InstallmentStatus.settled
-                          ? AppColors.deepPurple
+                          ? AppColors.violet
                           : invoice.status == InstallmentStatus.paid
-                          ? AppColors.limeGreen
-                          : AppColors.antiqueGold,
+                          ? AppColors.success
+                          : AppColors.goldDeep,
                     ),
                     DetailHeaderChip(
                       icon: Icons.calendar_today,
@@ -115,7 +119,9 @@ class InvoiceDetailScreen extends ConsumerWidget {
                       onPressed: () {
                         final account = accountAsync.valueOrNull;
                         if (account != null) {
-                          context.push('/reconciliation?accountId=${account.id}');
+                          context.push(
+                            '/reconciliation?accountId=${account.id}',
+                          );
                         }
                       },
                       tooltip: l10n.reconciliationTitle,
@@ -131,12 +137,13 @@ class InvoiceDetailScreen extends ConsumerWidget {
                       tooltip: l10n.editButton,
                     ),
                   ],
+                  // A cor do conteúdo da legenda: o cabeçalho é sempre
+                  // escuro, então a tinta é a inversa nos dois temas.
                   sideContent: _buildPieChart(
                     100,
                     30,
                     20,
-                    AppColors
-                        .pureWhite, // Passando a cor do conteúdo para a legenda
+                    AppColors.inkInverse,
                   ),
                 ),
               ];
@@ -164,15 +171,15 @@ class InvoiceDetailScreen extends ConsumerWidget {
                   )
                 : _buildCycleUnavailable(context),
           ),
+          // Cor, forma e tinta do ícone vêm do
+          // `floatingActionButtonTheme`.
           floatingActionButton: FloatingActionButton(
             onPressed: () {
               context.push(
                 '/transactions/form?type=expense&accountIdSource=$accountId',
               );
             },
-            backgroundColor: AppColors.successGold,
-            shape: const CircleBorder(),
-            child: const Icon(Icons.add, color: AppColors.darkNavy),
+            child: const Icon(Icons.add),
           ),
         );
       },
@@ -181,21 +188,20 @@ class InvoiceDetailScreen extends ConsumerWidget {
 
   Widget _buildCycleUnavailable(BuildContext context) {
     final theme = Theme.of(context);
+    final palette = context.palette;
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.hourglass_empty, color: theme.hintColor),
-            const SizedBox(height: 12),
+            Icon(Icons.hourglass_empty, color: palette.ink3),
+            AppSpacing.gapSm,
             Text(
               context.l10n.invoiceCycleUnavailable,
               textAlign: TextAlign.center,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.hintColor,
-              ),
+              style: theme.textTheme.bodySmall?.copyWith(color: palette.ink2),
             ),
           ],
         ),
@@ -221,15 +227,16 @@ class InvoiceDetailScreen extends ConsumerWidget {
         state.query.status != null;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.xs,
+      ),
       child: Row(
         children: [
           Expanded(
             child: Text(
               context.l10n.transactions,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.titleMedium,
             ),
           ),
           IconButton(
@@ -237,7 +244,7 @@ class InvoiceDetailScreen extends ConsumerWidget {
               showModalBottomSheet(
                 context: context,
                 isScrollControlled: true,
-                backgroundColor: Colors.transparent,
+                backgroundColor: AppColors.transparent,
                 builder: (context) => TransactionFilterBottomSheet(
                   initialQuery: state.query,
                   hiddenFields: const {
@@ -252,7 +259,7 @@ class InvoiceDetailScreen extends ConsumerWidget {
             },
             icon: Icon(
               hasFilter ? Icons.filter_alt : Icons.filter_alt_outlined,
-              color: hasFilter ? AppColors.antiqueGold : null,
+              color: hasFilter ? AppColors.goldDeep : null,
             ),
           ),
         ],
@@ -269,7 +276,7 @@ class InvoiceDetailScreen extends ConsumerWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final theme = Theme.of(context);
-        final isSmallWidth = constraints.maxWidth < 600;
+        final isSmallWidth = constraints.layout.isCompact;
 
         return Consumer(
           builder: (context, ref, _) {
@@ -283,10 +290,12 @@ class InvoiceDetailScreen extends ConsumerWidget {
                   : CrossAxisAlignment.center,
               children: [
                 Container(
-                  padding: EdgeInsets.all(2),
-                  decoration: ShapeDecoration(
+                  // O disco fica sobre o cabeçalho, que é escuro nos dois
+                  // temas: o papel aqui é constante, não o do tema.
+                  padding: const EdgeInsets.all(2),
+                  decoration: const ShapeDecoration(
                     shape: CircleBorder(),
-                    color: Colors.white,
+                    color: AppColors.paperLight,
                   ),
                   height: size + 2,
                   width: size + 2,
@@ -321,17 +330,18 @@ class InvoiceDetailScreen extends ConsumerWidget {
                     error: (err, _) => ErrorView.forError(
                       context,
                       err,
-                      onRetry: () => Retry.invoiceChart(ref, invoice.invoiceKey),
+                      onRetry: () =>
+                          Retry.invoiceChart(ref, invoice.invoiceKey),
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                AppSpacing.gapSm,
                 pieChartAsync.when(
                   data: (categoryTotals) {
                     if (categoryTotals.isEmpty) return const SizedBox.shrink();
                     return Wrap(
-                      spacing: 8,
-                      runSpacing: 4,
+                      spacing: AppSpacing.xs,
+                      runSpacing: AppSpacing.xxs,
                       alignment: isSmallWidth
                           ? WrapAlignment.center
                           : WrapAlignment.start,
@@ -347,11 +357,10 @@ class InvoiceDetailScreen extends ConsumerWidget {
                                 shape: BoxShape.circle,
                               ),
                             ),
-                            const SizedBox(width: 4),
+                            const SizedBox(width: AppSpacing.xxs),
                             Text(
                               cat.category.displayName(context.l10n),
                               style: theme.textTheme.labelSmall?.copyWith(
-                                fontSize: 10,
                                 color: contentColor.withValues(alpha: 0.8),
                               ),
                             ),

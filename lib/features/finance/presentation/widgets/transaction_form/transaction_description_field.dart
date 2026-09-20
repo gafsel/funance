@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
+import 'package:funances/core/widgets/app_chip.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/presentation/controllers/transaction_form_notifier.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
@@ -32,7 +34,6 @@ class TransactionDescriptionField extends StatelessWidget {
         initialValue: state.description,
         decoration: InputDecoration(
           labelText: l10n.transactionDescriptionLabel,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         ),
         onChanged: notifier.updateDescription,
         validator: v.all([v.notEmpty(), v.length(max: 150, min: 3)]),
@@ -42,12 +43,10 @@ class TransactionDescriptionField extends StatelessWidget {
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
         child: Text(
           state.description,
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+          style: theme.textTheme.titleLarge,
           textAlign: TextAlign.center,
         ),
       ),
@@ -70,20 +69,15 @@ class TransactionTypeChip extends StatelessWidget {
 
     return Align(
       alignment: Alignment.centerLeft,
-      child: Chip(
-        label: Text(
-          switch (state.type) {
-            OrderType.expense => l10n.transactionTypeExpense,
-            OrderType.income => l10n.transactionTypeIncome,
-            OrderType.transfer => l10n.transactionTypeTransfer,
-          },
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: TransactionAmountField.colorFor(context, state.type),
-        visualDensity: VisualDensity.compact,
+      child: StatusPill(
+        label: switch (state.type) {
+          OrderType.expense => l10n.transactionTypeExpense,
+          OrderType.income => l10n.transactionTypeIncome,
+          OrderType.transfer => l10n.transactionTypeTransfer,
+        },
+        // A cor do tipo é a mesma do valor: um só lugar decide o que é
+        // saída, entrada e transferência.
+        color: TransactionAmountField.colorFor(context, state.type),
       ),
     );
   }

@@ -9,8 +9,7 @@ import 'package:json_annotation/json_annotation.dart';
 ///
 /// Esta função existe para que a regra não seja reescrita em nenhum outro
 /// lugar: os converters abaixo e o `referenceDate` do lançamento chamam ela.
-DateTime atNoon(DateTime date) =>
-    DateTime(date.year, date.month, date.day, 12);
+DateTime atNoon(DateTime date) => DateTime(date.year, date.month, date.day, 12);
 
 class DateTimeTwelvePmConverter implements JsonConverter<DateTime, String> {
   const DateTimeTwelvePmConverter();
@@ -40,7 +39,8 @@ class DateTimeIsoConverter implements JsonConverter<DateTime, String> {
   String toJson(DateTime date) => date.toIso8601String();
 }
 
-class DateTimeIsoNullableConverter implements JsonConverter<DateTime?, String?> {
+class DateTimeIsoNullableConverter
+    implements JsonConverter<DateTime?, String?> {
   const DateTimeIsoNullableConverter();
 
   @override
@@ -51,7 +51,8 @@ class DateTimeIsoNullableConverter implements JsonConverter<DateTime?, String?> 
   String? toJson(DateTime? date) => date?.toIso8601String();
 }
 
-class DateTimeTwelvePmNullableConverter implements JsonConverter<DateTime?, String?> {
+class DateTimeTwelvePmNullableConverter
+    implements JsonConverter<DateTime?, String?> {
   const DateTimeTwelvePmNullableConverter();
 
   @override

@@ -26,5 +26,4 @@ sealed class InfiniteListState<Q, E> with _$InfiniteListState<Q, E> {
   }) = _InfiniteListState;
 
   bool get hasNextChunk => nextChunkRef != null;
-
 }

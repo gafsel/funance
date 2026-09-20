@@ -1,13 +1,42 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/theme/app_breakpoints.dart';
+import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_durations.dart';
+import 'package:funances/core/theme/app_radius.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/color_extension.dart';
-import 'package:funances/core/widgets/simple_markdown.dart';
 import 'package:funances/core/utils/icons_extension.dart';
+import 'package:funances/core/widgets/simple_markdown.dart';
 import 'package:funances/features/coaching/domain/models/coaching_model.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+/// Rotas internas que um slide de coaching pode acionar.
+///
+/// A IA pode alucinar um `actionPath` fora deste conjunto; nesse caso o botão
+/// não é exibido. Precisa ser a MESMA lista de `coaching_action_path.model.ts`
+/// no backend (ver functions/README.md, "Rotas do coaching") — e é diferente
+/// da allowlist das MISSÕES, que tem `/reconciliation` e não tem cinco destas.
+///
+/// Pública para que um teste possa conferi-la contra o router: um caminho com
+/// erro de digitação não quebra nada, só faz o slide perder o botão em
+/// silêncio.
+const Set<String> coachingActionPaths = {
+  '/',
+  '/planning',
+  '/planning-50-30-20',
+  '/goals/form',
+  '/accounts/form',
+  '/transactions/form',
+  '/category-details',
+  '/workspace/categories',
+  '/workspace/accounts',
+  '/workspace/badges',
+  '/coaching/history',
+};
 
 class CoachingSlidesScreen extends ConsumerStatefulWidget {
   const CoachingSlidesScreen({super.key, required this.coaching});
@@ -25,13 +54,33 @@ class _CoachingSlidesScreenState extends ConsumerState<CoachingSlidesScreen>
   int _currentPage = 0;
   late AnimationController _iconAnimationController;
 
+  /// Largura máxima da coluna do slide.
+  ///
+  /// Era `800` repetido em três `ConstrainedBox` — o único 800 solto que
+  /// sobrou no app depois que os breakpoints viraram um corte só. É a largura
+  /// de conteúdo do layout médio, e não um breakpoint: o slide é sangria
+  /// total em qualquer largura, o que ele limita é a linha de texto.
+  static const double _columnMaxWidth = 720;
+
   @override
   void initState() {
     super.initState();
     _iconAnimationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
-    )..repeat(reverse: true);
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // O ícone do slide pulsa para sempre. Quem pediu menos movimento não
+    // recebe um laço infinito rodando atrás do texto que veio ler.
+    if (AppDurations.reduceMotion(context)) {
+      _iconAnimationController.stop();
+    } else if (!_iconAnimationController.isAnimating) {
+      _iconAnimationController.repeat(reverse: true);
+    }
   }
 
   @override
@@ -43,37 +92,25 @@ class _CoachingSlidesScreenState extends ConsumerState<CoachingSlidesScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: _buildSlides(context)
-    );
+    return Scaffold(body: _buildSlides(context));
   }
-
-  /// Rotas internas que um slide pode acionar. A IA pode alucinar um
-  /// `actionPath` fora deste conjunto; nesse caso o botão não é exibido.
-  /// Precisa ser a MESMA lista de `coaching_action_path.model.ts` no backend
-  /// (ver functions/README.md, "Rotas do coaching").
-  static const _allowedActionPaths = {
-    '/',
-    '/planning',
-    '/planning-50-30-20',
-    '/goals/form',
-    '/accounts/form',
-    '/transactions/form',
-    '/category-details',
-    '/workspace/categories',
-    '/workspace/accounts',
-    '/workspace/badges',
-    '/coaching/history',
-  };
 
   static bool _isAllowedActionPath(String? path) {
     if (path == null) return false;
     final normalized = Uri.tryParse(path)?.path ?? path;
-    return _allowedActionPaths.contains(normalized);
+    return coachingActionPaths.contains(normalized);
   }
+
+  /// A tinta de tudo que pousa sobre a cor do slide.
+  ///
+  /// A cor do slide vem da IA e é sempre saturada e escura; o papel desta
+  /// tinta é o mesmo de [AppColors.inkInverse] em qualquer bloco de jogo —
+  /// por isso é ela, e não um `Colors.white` solto.
+  static const Color _onSlide = AppColors.inkInverse;
 
   Widget _buildSlides(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
 
     final slides = widget.coaching.slides;
 
@@ -84,9 +121,9 @@ class _CoachingSlidesScreenState extends ConsumerState<CoachingSlidesScreen>
             mainAxisSize: MainAxisSize.min,
             children: [
               const Icon(Icons.psychology_outlined, size: 48),
-              const SizedBox(height: 16),
+              AppSpacing.gapMd,
               Text(l10n.coachingNoSlides),
-              const SizedBox(height: 16),
+              AppSpacing.gapMd,
               FilledButton(
                 onPressed: () => context.pop(),
                 child: Text(l10n.coachingSlideFinish),
@@ -126,24 +163,26 @@ class _CoachingSlidesScreenState extends ConsumerState<CoachingSlidesScreen>
 
                   Center(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 32),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.xl,
+                      ),
                       child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 800),
+                        constraints: const BoxConstraints(
+                          maxWidth: _columnMaxWidth,
+                        ),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             _buildAnimatedIcon(slide),
-                            const SizedBox(height: 48),
+                            const SizedBox(height: AppSpacing.xxxl),
                             Text(
                               slide.title,
                               textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
+                              style: theme.textTheme.headlineMedium?.copyWith(
+                                color: _onSlide,
                               ),
                             ),
-                            const SizedBox(height: 24),
+                            AppSpacing.gapLg,
                             SimpleMarkdown(
                               data: slide.message,
                               textAlign: TextAlign.center,
@@ -157,50 +196,30 @@ class _CoachingSlidesScreenState extends ConsumerState<CoachingSlidesScreen>
                                   launchUrl(uri);
                                 }
                               },
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
+                              style: theme.textTheme.bodyLarge?.copyWith(
+                                color: _onSlide,
                               ),
-                              linkStyle: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
+                              linkStyle: theme.textTheme.bodyLarge?.copyWith(
+                                color: _onSlide,
                                 fontWeight: FontWeight.bold,
                                 decoration: TextDecoration.underline,
-                                decorationColor: Colors.white,
+                                decorationColor: _onSlide,
                               ),
                             ),
                             if (slide.actionLabel != null &&
                                 _isAllowedActionPath(slide.actionPath)) ...[
-                              const SizedBox(height: 32),
+                              AppSpacing.gapXl,
                               ElevatedButton(
                                 onPressed: () {
                                   final router = GoRouter.of(context);
                                   router.pop();
                                   router.push(slide.actionPath!);
                                 },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white,
-                                  foregroundColor: slideColor,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 32,
-                                    vertical: 16,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(30),
-                                  ),
-                                  elevation: 6,
-                                  shadowColor: Colors.black.withValues(
-                                    alpha: 0.3,
-                                  ),
+                                style: _onSlideButtonStyle(
+                                  slideColor,
+                                  vertical: AppSpacing.md,
                                 ),
-                                child: Text(
-                                  slide.actionLabel!,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
+                                child: Text(slide.actionLabel!),
                               ),
                             ],
                           ],
@@ -216,26 +235,26 @@ class _CoachingSlidesScreenState extends ConsumerState<CoachingSlidesScreen>
 
         // Indicadores de progresso
         Positioned(
-          top: 60,
+          top: AppSpacing.xxl + AppSpacing.lg,
           left: 0,
           right: 0,
           child: Center(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: AppSpacing.hMd,
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 800),
+                constraints: const BoxConstraints(maxWidth: _columnMaxWidth),
                 child: Row(
                   children: List.generate(
                     slides.length,
                     (index) => Expanded(
                       child: Container(
-                        height: 4,
+                        height: AppSpacing.xxs,
                         margin: const EdgeInsets.symmetric(horizontal: 2),
                         decoration: BoxDecoration(
                           color: index <= _currentPage
-                              ? Colors.white
-                              : Colors.white38,
-                          borderRadius: BorderRadius.circular(2),
+                              ? _onSlide
+                              : _onSlide.withValues(alpha: 0.38),
+                          borderRadius: AppRadius.brXs,
                         ),
                       ),
                     ),
@@ -248,37 +267,39 @@ class _CoachingSlidesScreenState extends ConsumerState<CoachingSlidesScreen>
 
         // Botão Fechar
         Positioned(
-          top: 70,
-          right: 16,
+          top: AppSpacing.xxl + AppSpacing.xl,
+          right: AppSpacing.md,
           child: IconButton(
-            icon: const Icon(Icons.close, color: Colors.white, size: 30),
+            tooltip: l10n.closeButton,
+            icon: const Icon(Icons.close, color: _onSlide, size: 30),
             onPressed: () => context.pop(),
           ),
         ),
 
         // Navegação
         Positioned(
-          bottom: 50,
+          bottom: AppSpacing.xxl + AppSpacing.xxs,
           left: 0,
           right: 0,
           child: Center(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 800),
+                constraints: const BoxConstraints(maxWidth: _columnMaxWidth),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     if (_currentPage > 0)
                       TextButton(
                         onPressed: () => _pageController.previousPage(
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeInOut,
+                          duration: AppDurations.respectingMotion(
+                            context,
+                            AppDurations.celebrate,
+                          ),
+                          curve: AppDurations.curve,
                         ),
-                        child: Text(
-                          l10n.coachingSlideBack,
-                          style: const TextStyle(color: Colors.white),
-                        ),
+                        style: TextButton.styleFrom(foregroundColor: _onSlide),
+                        child: Text(l10n.coachingSlideBack),
                       )
                     else
                       const SizedBox.shrink(),
@@ -286,23 +307,19 @@ class _CoachingSlidesScreenState extends ConsumerState<CoachingSlidesScreen>
                       onPressed: () {
                         if (_currentPage < slides.length - 1) {
                           _pageController.nextPage(
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeInOut,
+                            duration: AppDurations.respectingMotion(
+                              context,
+                              AppDurations.celebrate,
+                            ),
+                            curve: AppDurations.curve,
                           );
                         } else {
                           context.pop();
                         }
                       },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: slides[_currentPage].color.asColor(),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 32,
-                          vertical: 12,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(25),
-                        ),
+                      style: _onSlideButtonStyle(
+                        slides[_currentPage].color.asColor(),
+                        vertical: AppSpacing.sm,
                       ),
                       child: Text(
                         _currentPage < slides.length - 1
@@ -320,6 +337,19 @@ class _CoachingSlidesScreenState extends ConsumerState<CoachingSlidesScreen>
     );
   }
 
+  /// O botão claro que pousa sobre a cor do slide: a inversão é o destaque.
+  ButtonStyle _onSlideButtonStyle(Color slideColor, {required double vertical}) {
+    return ElevatedButton.styleFrom(
+      backgroundColor: _onSlide,
+      foregroundColor: slideColor,
+      padding: EdgeInsets.symmetric(
+        horizontal: AppSpacing.xl,
+        vertical: vertical,
+      ),
+      shape: const RoundedRectangleBorder(borderRadius: AppRadius.brPill),
+    );
+  }
+
   List<Widget> _buildBackgroundIcons(SlideModel slide) {
     final Set<String> uniqueIcons = {slide.icon, ...slide.icons};
     final iconsList = uniqueIcons.toList();
@@ -331,14 +361,20 @@ class _CoachingSlidesScreenState extends ConsumerState<CoachingSlidesScreen>
           final width = constraints.maxWidth;
           final height = constraints.maxHeight;
 
+          // Numa janela estreita a grade de 3 colunas empilha ícones de 200px
+          // uns sobre os outros; numa larga, 3 colunas deixam o meio vazio.
+          final gridCols = switch (constraints.layout) {
+            AppLayout.compact => 2,
+            AppLayout.medium => 3,
+            AppLayout.wide => 4,
+          };
+          final gridRows = (12 / gridCols).ceil();
+
           return Stack(
             children: List.generate(12, (index) {
               final iconName = iconsList[index % iconsList.length];
               final size = 80 + random.nextDouble() * 120;
 
-              // Divide a tela em uma grade imaginária para melhor distribuição
-              final gridCols = 3;
-              final gridRows = 4;
               final col = index % gridCols;
               final row = index ~/ gridCols;
 
@@ -363,7 +399,7 @@ class _CoachingSlidesScreenState extends ConsumerState<CoachingSlidesScreen>
                     child: Icon(
                       iconName.asIcon(orElse: Icons.tips_and_updates),
                       size: size,
-                      color: Colors.white,
+                      color: _onSlide,
                     ),
                   ),
                 ),
@@ -377,6 +413,11 @@ class _CoachingSlidesScreenState extends ConsumerState<CoachingSlidesScreen>
 
   Widget _buildAnimatedIcon(SlideModel slide) {
     final iconData = slide.icon.asIcon(orElse: Icons.tips_and_updates);
+    final icon = Icon(iconData, size: 110, color: _onSlide);
+
+    // Com "reduzir movimento" o ícone é só um ícone: sem laço, sem halo
+    // pulsante e sem `AnimatedBuilder` reconstruindo o slide a 60fps.
+    if (AppDurations.reduceMotion(context)) return icon;
 
     // Usar uma curva para tornar a animação mais dinâmica
     final CurvedAnimation curvedAnimation = CurvedAnimation(
@@ -431,12 +472,12 @@ class _CoachingSlidesScreenState extends ConsumerState<CoachingSlidesScreen>
               scale: scale,
               child: Opacity(
                 opacity: opacity,
-                child: Container(
+                child: DecoratedBox(
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.white.withValues(
+                        color: _onSlide.withValues(
                           alpha: 0.2 * curvedAnimation.value,
                         ),
                         blurRadius: 20 * curvedAnimation.value,
@@ -444,13 +485,14 @@ class _CoachingSlidesScreenState extends ConsumerState<CoachingSlidesScreen>
                       ),
                     ],
                   ),
-                  child: Icon(iconData, size: 110, color: Colors.white),
+                  child: child,
                 ),
               ),
             ),
           ),
         );
       },
+      child: icon,
     );
   }
 }

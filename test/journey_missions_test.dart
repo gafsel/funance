@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:funances/core/widgets/app_progress_bar.dart';
 import 'package:funances/core/time/clock.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
@@ -106,9 +107,7 @@ Widget _app(List<Override> overrides) {
       ],
       supportedLocales: [Locale('pt', 'BR')],
       locale: Locale('pt', 'BR'),
-      home: Scaffold(
-        body: SingleChildScrollView(child: WeeklyMissionsView()),
-      ),
+      home: Scaffold(body: SingleChildScrollView(child: WeeklyMissionsView())),
     ),
   );
 }
@@ -168,24 +167,21 @@ void main() {
       expect(repository.missionCalls, [('w1', '2026-W37')]);
     });
 
-    test(
-      'sem currentWeekId no workspace, cai no cálculo local em vez de ficar '
-      'sem missões',
-      () async {
-        final repository = FakeJourneyRepository();
-        final container = ProviderContainer(
-          overrides: [
-            ..._overrides(repository: repository, currentWeekId: null),
-            clockProvider.overrideWithValue(() => DateTime(2026, 9, 16, 10)),
-          ],
-        );
-        addTearDown(container.dispose);
+    test('sem currentWeekId no workspace, cai no cálculo local em vez de ficar '
+        'sem missões', () async {
+      final repository = FakeJourneyRepository();
+      final container = ProviderContainer(
+        overrides: [
+          ..._overrides(repository: repository, currentWeekId: null),
+          clockProvider.overrideWithValue(() => DateTime(2026, 9, 16, 10)),
+        ],
+      );
+      addTearDown(container.dispose);
 
-        await container.read(JourneyViewProviders.weeklyMissions.future);
+      await container.read(JourneyViewProviders.weeklyMissions.future);
 
-        expect(repository.missionCalls, [('w1', '2026-W37')]);
-      },
-    );
+      expect(repository.missionCalls, [('w1', '2026-W37')]);
+    });
 
     test('o XP da semana vem do servidor, não de uma soma local', () async {
       final repository = FakeJourneyRepository(xp: 320);
@@ -261,9 +257,7 @@ void main() {
         // As únicas barras da tela são as das missões, cada uma com o próprio
         // alvo — uma por missão com `target > 0`.
         final bars = tester
-            .widgetList<LinearProgressIndicator>(
-              find.byType(LinearProgressIndicator),
-            )
+            .widgetList<AppProgressBar>(find.byType(AppProgressBar))
             .toList();
         expect(bars, hasLength(2));
         expect(bars.first.value, closeTo(1 / 3, 0.0001));
@@ -319,6 +313,11 @@ void main() {
     /// F3.6 — a conciliação morava dentro da tela de UMA conta. A missão de
     /// organização é onde o usuário está quando quer pôr a casa em ordem, e é
     /// dali que o caminho precisa sair.
+    ///
+    /// O que mudou no pacote de design: o caminho vem do `actionPath` do
+    /// DOCUMENTO e não de um `if` sobre o tipo da missão. O servidor já
+    /// mandava o destino de cada uma; o app é que decidia sozinho e sempre
+    /// pela conciliação.
     testWidgets('missão de organização aberta oferece conciliar o extrato', (
       tester,
     ) async {
@@ -331,12 +330,11 @@ void main() {
         target: 5,
         progress: 1,
         xp: 200,
+        actionPath: '/reconciliation',
       );
 
       await tester.pumpWidget(
-        _app(
-          _overrides(repository: FakeJourneyRepository(missions: [aberta])),
-        ),
+        _app(_overrides(repository: FakeJourneyRepository(missions: [aberta]))),
       );
       await tester.pump();
 
@@ -366,6 +364,29 @@ void main() {
       );
 
       expect(find.text(l10n.reconciliationMissionCta), findsNothing);
+    });
+
+    testWidgets('sem actionPath no documento não há caminho a oferecer', (
+      tester,
+    ) async {
+      const semCaminho = WeeklyMissionModel(
+        id: 'organization',
+        name: 'Conciliar um extrato com 5 itens',
+        type: WeeklyMissionType.organization,
+        status: WeeklyMissionStatus.pending,
+        weekId: '2026-W37',
+        target: 5,
+        xp: 200,
+      );
+
+      await tester.pumpWidget(
+        _app(
+          _overrides(repository: FakeJourneyRepository(missions: [semCaminho])),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byType(TextButton), findsNothing);
     });
   });
 }

@@ -2,6 +2,9 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_radius.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 
 /// A celebração de semana zerada: ícones subindo atrás do recado.
@@ -45,11 +48,11 @@ class _SuccessEmptyStateState extends State<SuccessEmptyState>
         _FloatingIcon(
           icon: iconOptions[_random.nextInt(iconOptions.length)],
           color: [
-            AppColors.deepTurquoise,
-            AppColors.vibrantTeal,
-            AppColors.successGold,
-            AppColors.antiqueGold,
-            Colors.pinkAccent,
+            AppColors.surfaceDeep,
+            AppColors.tealInk,
+            AppColors.gold,
+            AppColors.goldDeep,
+            AppColors.violet,
           ][_random.nextInt(5)],
           size: 12.0 + _random.nextDouble() * 20.0,
           speed: 0.3 + _random.nextDouble() * 0.7,
@@ -70,19 +73,21 @@ class _SuccessEmptyStateState extends State<SuccessEmptyState>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final palette = context.palette;
     final l10n = context.l10n;
 
     return LayoutBuilder(
       builder: (context, constraints) {
         return Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
+          padding: const EdgeInsets.symmetric(
+            vertical: AppSpacing.xl,
+            horizontal: AppSpacing.md,
+          ),
           decoration: BoxDecoration(
-            color: AppColors.deepTurquoise.withValues(alpha: 0.05),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: AppColors.deepTurquoise.withValues(alpha: 0.1),
-            ),
+            color: palette.paper2,
+            borderRadius: AppRadius.brLg,
+            border: Border.all(color: palette.line),
           ),
           child: Stack(
             alignment: Alignment.center,
@@ -133,23 +138,18 @@ class _SuccessEmptyStateState extends State<SuccessEmptyState>
               Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
-                    Icons.task_alt_rounded,
-                    size: 64,
-                    color: AppColors.deepTurquoise,
-                  ),
-                  const SizedBox(height: 16),
+                  Icon(Icons.task_alt_rounded, size: 64, color: palette.ink),
+                  AppSpacing.gapMd,
                   Text(
                     l10n.weeklyMissionsSuccessTitle,
                     textAlign: TextAlign.center,
                     style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.deepTurquoise,
+                      color: palette.ink,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  AppSpacing.gapXs,
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    padding: AppSpacing.hLg,
                     child: Text(
                       l10n.weeklyMissionsSuccessMessage,
                       textAlign: TextAlign.center,

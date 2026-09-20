@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_spacing.dart';
+import 'package:funances/core/theme/app_theme.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
+import 'package:funances/core/widgets/app_progress_bar.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 
@@ -11,17 +15,38 @@ import 'package:funances/features/workspace/domain/models/category_model.dart';
 /// vez mesmo só podendo ler uma: sem ela, trocar de aba é a única forma de
 /// saber se a outra estourou.
 class AllocationTabLabel extends ConsumerWidget {
-  const AllocationTabLabel({super.key, required this.allocation});
+  const AllocationTabLabel({
+    super.key,
+    required this.allocation,
+    this.onGame = false,
+  });
 
   final CategoryAllocation allocation;
 
+  /// A aba está aberta e, portanto, pintada com a superfície de jogo.
+  ///
+  /// Quem desenha o rótulo não tem como descobrir isso sozinho — o `Tab` não
+  /// recebe o estado de seleção —, e sem saber ele lia a paleta clara sobre
+  /// um fundo escuro. Ver `_AllocationTabBar`.
+  final bool onGame;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (onGame) {
+      return Theme(
+        data: AppTheme.onGame(context),
+        child: AllocationTabLabel(allocation: allocation),
+      );
+    }
+
     final l10n = context.l10n;
+    final palette = context.palette;
     final progress = ref.watch(
       FinanceViewProviders.planning503020AllocationProgress(allocation),
     );
-    final statusColor = progress.isOver ? Colors.red : Colors.green;
+    final statusColor = progress.isOver
+        ? palette.dangerText
+        : palette.successText;
     final label = switch (allocation) {
       CategoryAllocation.essential => l10n.planning503020Essential,
       CategoryAllocation.comfort => l10n.planning503020Comfort,
@@ -34,7 +59,7 @@ class AllocationTabLabel extends ConsumerWidget {
       children: [
         Row(
           mainAxisSize: MainAxisSize.min,
-          spacing: 4,
+          spacing: AppSpacing.xxs,
           children: [
             Expanded(
               child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
@@ -46,25 +71,25 @@ class AllocationTabLabel extends ConsumerWidget {
             ),
           ],
         ),
-        const SizedBox(height: 4),
+        AppSpacing.gapXxs,
         Stack(
           alignment: Alignment.center,
           children: [
             SizedBox(
               width: 80,
-              child: LinearProgressIndicator(
-                value: progress.currentPercentage.clamp(0.0, 1.0),
-                backgroundColor: statusColor.withValues(alpha: 0.3),
-                valueColor: AlwaysStoppedAnimation<Color>(statusColor),
-                minHeight: 15,
-                borderRadius: BorderRadius.circular(4),
+              child: AppProgressBar(
+                value: progress.currentPercentage,
+                size: AppProgressSize.thick,
+                color: statusColor,
+                trackColor: statusColor.withValues(alpha: 0.3),
+                semanticLabel: label,
               ),
             ),
             Positioned(
               left: 80 * allocation.idealPercentage,
               top: 0,
               bottom: 0,
-              child: Container(width: 2, color: Colors.black54),
+              child: Container(width: 2, color: palette.ink2),
             ),
           ],
         ),

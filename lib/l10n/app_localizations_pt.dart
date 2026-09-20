@@ -12,7 +12,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get appTitle => 'Funances';
 
   @override
-  String get loginTitle => 'FUNANCE';
+  String get loginTitle => 'Funances';
 
   @override
   String get loginSubtitle =>
@@ -55,9 +55,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get fieldRequired => 'Este campo é obrigatório';
 
   @override
-  String get invalidEmail => 'E-mail inválido';
-
-  @override
   String get appErrorWidgetTitle => 'Algo deu errado';
 
   @override
@@ -75,12 +72,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get closeButton => 'Fechar';
-
-  @override
-  String get badgeUnlockedToast => 'Nova conquista desbloqueada!';
-
-  @override
-  String get badgeUnlockedView => 'Ver';
 
   @override
   String get workspacePickerTitle => 'Workspaces';
@@ -267,9 +258,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get onboardingWorkspaceNameLabel => 'Nome do Workspace';
-
-  @override
-  String get onboardingGoalsTitle => 'Trace suas primeiras metas';
 
   @override
   String get onboardingGoalsButton => 'ENTENDI, PRÓXIMO PASSO';
@@ -731,9 +719,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get homeAccountsAndCards => 'Saldos e Faturas';
 
   @override
-  String get weeklyMissions => 'Missões da Semana';
-
-  @override
   String get weeklyMissionsNone => 'Nenhuma missão para esta semana';
 
   @override
@@ -757,11 +742,6 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String xpValue(String xp) {
     return '$xp XP';
-  }
-
-  @override
-  String percentage(String value) {
-    return '$value%';
   }
 
   @override
@@ -1317,9 +1297,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get initialBalanceDebtDateLabel => 'Data do Valor Atual';
 
   @override
-  String get none => 'Nenhum';
-
-  @override
   String get accountMethodDocument => 'Por Documento';
 
   @override
@@ -1340,7 +1317,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get accountDetectedDataTitle => 'Dados detectados por IA';
 
   @override
-  String accountDetectedTransactions(num count) {
+  String accountDetectedTransactions(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
@@ -1450,13 +1427,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get validationEmailMessage => 'E-mail inválido';
 
   @override
-  String validationLengthMaxMessage(Object min) {
-    return 'Deve possuir no mínimo $min caracteres.';
+  String validationLengthMaxMessage(int max) {
+    return 'Deve possuir no máximo $max caracteres.';
   }
 
   @override
-  String validationLenghtMinMessage(Object max) {
-    return 'Deve possuir no máximo $max caracteres.';
+  String validationLengthMinMessage(int min) {
+    return 'Deve possuir no mínimo $min caracteres.';
   }
 
   @override
@@ -1533,7 +1510,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get dateInputPattern => 'dd/MM/yyyy';
 
   @override
-  String installmentCountDescription(Object count, Object number) {
+  String installmentCountDescription(int number, int count) {
     return '$number de $count';
   }
 
@@ -1595,7 +1572,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get periodFilterCustom => 'Customizado';
 
   @override
-  String completedMissionsSummary(num count, Object xp) {
+  String completedMissionsSummary(int count, String xp) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
@@ -1678,6 +1655,15 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get coachingReviewTips => 'Rever Dicas';
+
+  @override
+  String get coachingTypeWarning => 'Alerta';
+
+  @override
+  String get coachingTypeTip => 'Dica';
+
+  @override
+  String get coachingTypeInsight => 'Insight';
 
   @override
   String get weeklyMissionsTitle => 'Missões Semanais';
@@ -1769,29 +1755,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get badgeUnlockedAtLabel => 'Conquistado em';
-
-  @override
-  String get viewAchievementsButton => 'Ver Conquistas';
-
-  @override
-  String levelIndicatorSemantics(int level, int count) {
-    return 'Nível do Workspace: $level, Badges desbloqueados: $count';
-  }
-
-  @override
-  String get levelUpTitle => 'LEVEL UP!';
-
-  @override
-  String get levelUpSubtitle => 'Parabéns para a equipe!';
-
-  @override
-  String levelUpContent(int level) {
-    return 'Seu workspace subiu para o Nível $level!';
-  }
-
-  @override
-  String get levelUpMessage =>
-      'Continuem cooperando e planejando juntos para desbloquear novas conquistas e níveis!';
 
   @override
   String get statementDragOverTitle => 'Solte o arquivo do extrato aqui';
@@ -2102,13 +2065,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get compassTitle => 'Bússola da Liberdade';
 
   @override
-  String get compassCalibratingTitle => 'Sua bússola está sendo calibrada';
-
-  @override
-  String get compassCalibratingMessage =>
-      'Assim que houver um mês fechado, seu índice aparece aqui.';
-
-  @override
   String compassScoreOf(String score, String tier) {
     return '$score de 100 • $tier';
   }
@@ -2294,4 +2250,220 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get accountSavePendingSync =>
       'Salva neste dispositivo. Saldo inicial e fatura aparecem quando a conexão voltar.';
+
+  @override
+  String get celebrationXpTitle => 'XP ganho';
+
+  @override
+  String get celebrationMissionTitle => 'Missão concluída';
+
+  @override
+  String get celebrationBadgeTitle => 'Conquista desbloqueada';
+
+  @override
+  String get celebrationBadgeFallback => 'Veja na vitrine';
+
+  @override
+  String celebrationLevelTitle(int level) {
+    return 'Nível $level';
+  }
+
+  @override
+  String get celebrationLevelSubtitle => 'O cofre subiu de nível';
+
+  @override
+  String get celebrationTierTitle => 'Nova patente';
+
+  @override
+  String get settingsAppearanceSection => 'Aparência';
+
+  @override
+  String get settingsThemeMode => 'Tema';
+
+  @override
+  String get settingsThemeModeDesc =>
+      'Claro, escuro ou como o sistema estiver.';
+
+  @override
+  String get themeModeSystem => 'Sistema';
+
+  @override
+  String get themeModeLight => 'Claro';
+
+  @override
+  String get themeModeDark => 'Escuro';
+
+  @override
+  String get settingsCelebrationSound => 'Som nas conquistas';
+
+  @override
+  String get settingsCelebrationSoundDesc =>
+      'Desligado por padrão. A vibração continua.';
+
+  @override
+  String missionPersonalConsistencyPlanLimits(String target) {
+    return 'Planejar limites para pelo menos $target categorias e organizar a semana.';
+  }
+
+  @override
+  String missionPersonalDisciplineTopCategory(String category, String target) {
+    return 'Manter a categoria $category dentro do orçamento planejado por $target dias.';
+  }
+
+  @override
+  String missionPersonalOrganizationReconcileItems(String target) {
+    return 'Fazer a conciliação completa de um extrato com pelo menos $target itens.';
+  }
+
+  @override
+  String missionBusinessConsistencyCostCenters(String target) {
+    return 'Planejar o limite de $target centros de custo para o mês.';
+  }
+
+  @override
+  String missionBusinessConsistencyIncomeForecast(String target) {
+    return 'Confirmar o recebimento de $target% da receita prevista para a semana.';
+  }
+
+  @override
+  String missionBusinessDisciplineTopCostCenter(
+    String category,
+    String target,
+  ) {
+    return 'Manter o centro de custo $category dentro do plano por $target dias.';
+  }
+
+  @override
+  String get missionBusinessDisciplineMargin =>
+      'Fechar a semana com a margem (receita − despesa) acima da planejada.';
+
+  @override
+  String missionBusinessOrganizationReconcileStatements(String target) {
+    return 'Conciliar $target extrato das contas da empresa nesta semana.';
+  }
+
+  @override
+  String missionBusinessOrganizationCategorizeAuto(String target) {
+    return 'Categorizar ou descartar $target lançamentos automáticos antes do fechamento.';
+  }
+
+  @override
+  String missionBusinessOrganizationInvoiceOnTime(String target) {
+    return 'Fechar $target fatura do cartão corporativo pagando até o vencimento.';
+  }
+
+  @override
+  String get missionFallbackCategoryPersonal => 'de maior gasto';
+
+  @override
+  String get missionFallbackCategoryBusiness => 'de maior peso';
+
+  @override
+  String get missionCtaPlanning => 'Planejar agora';
+
+  @override
+  String get missionCtaPlanning503020 => 'Abrir o 50-30-20';
+
+  @override
+  String get missionCtaCategories => 'Ver a Party';
+
+  @override
+  String get missionCtaAccounts => 'Ver contas';
+
+  @override
+  String get missionCtaCategoryDetails => 'Ver categoria';
+
+  @override
+  String get missionCtaTransactionForm => 'Lançar agora';
+
+  @override
+  String get workspaceTypePersonalBadge => 'Pessoal';
+
+  @override
+  String get workspaceTypeBusinessBadge => 'Empresa';
+
+  @override
+  String levelBadgeShort(int level) {
+    return 'Nv $level';
+  }
+
+  @override
+  String levelBadgeSemantics(int level, int percent) {
+    return 'Nível $level do cofre, $percent% para o próximo';
+  }
+
+  @override
+  String get compassStripTitle => 'Bússola';
+
+  @override
+  String get compassStripOpen => 'Ver a Bússola completa';
+
+  @override
+  String compassStripDelta(String points) {
+    return '$points desde o mês passado';
+  }
+
+  @override
+  String get dueSoonTitle => 'Vence hoje e amanhã';
+
+  @override
+  String get dueSoonToday => 'Hoje';
+
+  @override
+  String get dueSoonTomorrow => 'Amanhã';
+
+  @override
+  String dueSoonInvoiceClosing(String card) {
+    return 'Fatura de $card fecha';
+  }
+
+  @override
+  String dueSoonSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count compromissos vencendo hoje ou amanhã',
+      one: '1 compromisso vencendo hoje ou amanhã',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String journeySeeAllGoals(int count) {
+    return 'Ver as $count metas';
+  }
+
+  @override
+  String get journeyNoRunningGoals => 'Nenhuma meta em andamento';
+
+  @override
+  String journeySeeClosedGoals(int count) {
+    return 'Ver $count encerradas';
+  }
+
+  @override
+  String planning503020PlannedPercent(String percent) {
+    return 'Planejado: $percent';
+  }
+
+  @override
+  String planning503020ActualPercent(String percent) {
+    return 'Real: $percent';
+  }
+
+  @override
+  String automaticTransactionSeeAll(int count) {
+    return 'Ver as $count pendências';
+  }
+
+  @override
+  String get goalsTitle => 'Metas';
+
+  @override
+  String missionProgressShort(String progress, String target) {
+    return '$progress/$target';
+  }
+
+  @override
+  String get automaticTransactionSeeAllShort => 'Ver todas';
 }

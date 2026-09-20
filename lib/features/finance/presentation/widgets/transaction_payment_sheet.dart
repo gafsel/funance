@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:funances/core/form/date_form_field.dart';
 import 'package:funances/core/form/responsive_form.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/widgets/money_form_field.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
@@ -44,15 +45,13 @@ class TransactionPaymentSheet extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Padding(
-          padding: const EdgeInsets.all(16),
+          padding: AppSpacing.allMd,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 l10n.reconciliationConfirm,
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: theme.textTheme.titleLarge,
               ),
               IconButton(
                 onPressed: () => Navigator.pop(context),
@@ -61,12 +60,8 @@ class TransactionPaymentSheet extends StatelessWidget {
             ],
           ),
         ),
-        Divider(),
-        ResponsiveForm<
-          TransactionFormState,
-          dynamic,
-          TransactionFormNotifier
-        >(
+        const Divider(),
+        ResponsiveForm<TransactionFormState, dynamic, TransactionFormNotifier>(
           provider,
           onSubmit: (snapshot, loading) async {
             if (!snapshot.validate()) return;
@@ -91,9 +86,6 @@ class TransactionPaymentSheet extends StatelessWidget {
                 initialValue: state.accountIdSource,
                 decoration: InputDecoration(
                   labelText: l10n.transactionAccountLabel,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
                 ),
                 onChanged: (accountId) {
                   notifier.updateAccountIdSource(accountId);
@@ -103,9 +95,6 @@ class TransactionPaymentSheet extends StatelessWidget {
                 initialValue: state.paidDate,
                 decoration: InputDecoration(
                   labelText: l10n.transactionDateLabel,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
                 ),
                 onChanged: (date) {
                   if (date != null) notifier.updatePaidDate(date);
@@ -115,9 +104,6 @@ class TransactionPaymentSheet extends StatelessWidget {
                 initialValue: state.paidAmount,
                 decoration: InputDecoration(
                   labelText: l10n.transactionAmountLabel,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
                 ),
                 onChanged: (value) {
                   if (value != null) notifier.updatePaidAmount(value);

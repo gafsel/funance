@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/form/loading_button.dart';
+import 'package:funances/core/theme/app_palette.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
@@ -41,6 +42,10 @@ abstract final class TransactionDeleteDialog {
               final state = ref.watch(provider.select((s) => s));
 
               return LoadingButton.text(
+                // Apagar é destrutivo: o botão veste o vermelho do tema.
+                style: TextButton.styleFrom(
+                  foregroundColor: context.palette.dangerText,
+                ),
                 onPressed: (loading) async {
                   final navigator = Navigator.of(context);
                   ReplicationCascade cascade = ReplicationCascade.none;
@@ -61,10 +66,7 @@ abstract final class TransactionDeleteDialog {
                     Navigator.of(context).pop(true); // Fecha tela de form
                   }
                 },
-                child: Text(
-                  l10n.deleteButton,
-                  style: const TextStyle(color: Colors.red),
-                ),
+                child: Text(l10n.deleteButton),
               );
             },
           ),

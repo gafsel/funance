@@ -6,8 +6,11 @@ import 'package:funances/features/workspace/presentation/widgets/badges/badge_gr
 import 'package:funances/features/workspace/presentation/widgets/badges/badge_theme.dart';
 import 'package:funances/features/workspace/presentation/widgets/badges/level_header_card.dart';
 import 'package:funances/features/workspace/presentation/widgets/badges/xp_sources_section.dart';
-import 'package:funances/l10n/app_localizations.dart';
+import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_spacing.dart';
+import 'package:funances/core/widgets/empty_state.dart';
 import 'package:funances/core/widgets/section_header.dart';
+import 'package:funances/l10n/app_localizations.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Vitrine de conquistas
@@ -33,7 +36,13 @@ class BadgesCabinetScreen extends ConsumerWidget {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    final catalog = catalogAsync.valueOrNull;
+    // A vitrine filtra pelo tipo do cofre: uma empresa não persegue "Regra de
+    // Ouro" e uma casa não persegue "conciliar 100% do extrato". O que já foi
+    // conquistado nunca some — ver `BadgeCatalog.forWorkspace`.
+    final catalog = catalogAsync.valueOrNull?.forWorkspace(
+      workspace.type,
+      workspace.unlockedBadges,
+    );
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.teamAchievementsTitle), elevation: 0),
@@ -98,7 +107,7 @@ class BadgesCabinetView extends StatelessWidget {
       slivers: [
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: AppSpacing.allMd,
             child: LevelHeaderCard(
               workspaceName: workspaceName,
               level: level,
@@ -118,13 +127,15 @@ class BadgesCabinetView extends StatelessWidget {
         // você já fez" sem nunca dizer o que rende pontos, e a régua estava
         // só na cabeça de quem escreveu o backend.
         if (catalog.xpSources.isNotEmpty)
-          SliverToBoxAdapter(child: XpSourcesSection(sources: catalog.xpSources)),
+          SliverToBoxAdapter(
+            child: XpSourcesSection(sources: catalog.xpSources),
+          ),
         for (final category in catalog.categories) ...[
           SliverToBoxAdapter(
             child: Builder(
               builder: (context) {
                 final color = category == BadgeCategory.advanced
-                    ? Colors.amber.shade700
+                    ? AppColors.goldDeep
                     : Theme.of(context).colorScheme.primary;
                 final unlocked = catalog
                     .ofCategory(category)
@@ -148,7 +159,7 @@ class BadgesCabinetView extends StatelessWidget {
             unlockedBadges: unlockedBadges,
           ),
         ],
-        const SliverToBoxAdapter(child: SizedBox(height: 32)),
+        const SliverToBoxAdapter(child: AppSpacing.gapXl),
       ],
     );
   }
@@ -160,37 +171,10 @@ class _CatalogUnavailable extends StatelessWidget {
   final AppLocalizations l10n;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.emoji_events_outlined,
-              size: 56,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              l10n.badgeCatalogUnavailableTitle,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              l10n.badgeCatalogUnavailableMessage,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => EmptyState.centered(
+    icon: Icons.emoji_events_outlined,
+    title: l10n.badgeCatalogUnavailableTitle,
+    message: l10n.badgeCatalogUnavailableMessage,
+    compact: true,
+  );
 }

@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:funances/core/form/loading_button.dart';
 import 'package:funances/core/money/money.dart';
+import 'package:funances/core/theme/app_breakpoints.dart';
+import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/features/finance/domain/models/reconciliation_model.dart';
@@ -67,12 +71,15 @@ class _ReconciliationReviewViewState extends State<ReconciliationReviewView> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isDesktop = constraints.maxWidth > 800;
+        // O layout é o do PAINEL, medido pelas constraints: com o rail aberto,
+        // uma janela de 1000px entregava 800 aqui e mesmo assim dizia
+        // "desktop".
+        final isDesktop = constraints.layout.isWide;
 
         return Column(
           children: [
             Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: AppSpacing.allMd,
               child: Text(
                 l10n.reconciliationTransactionsFound(state.matches.length),
                 style: Theme.of(context).textTheme.titleMedium,
@@ -81,8 +88,8 @@ class _ReconciliationReviewViewState extends State<ReconciliationReviewView> {
             if (suggestedCount > 3)
               Padding(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 16.0,
-                  vertical: 8.0,
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.xs,
                 ),
                 child: SizedBox(
                   width: double.infinity,
@@ -105,10 +112,12 @@ class _ReconciliationReviewViewState extends State<ReconciliationReviewView> {
                         suggestedAmount.asCurrency(locale: locale),
                       ),
                     ),
+                    // O botão continua sendo o de atenção — confirmar em bloco
+                    // o que o sistema só sugeriu —, e não o CTA dourado do
+                    // tema; só a cor e o padding saem do token.
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orange.withValues(alpha: 0.1),
-                      foregroundColor: Colors.orange,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      backgroundColor: AppColors.warning.withValues(alpha: 0.1),
+                      foregroundColor: context.palette.warningText,
                     ),
                   ),
                 ),
@@ -170,25 +179,29 @@ class ReconciliationUnansweredWarning extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
 
+    final theme = Theme.of(context);
+    final palette = context.palette;
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      color: Theme.of(context).colorScheme.error.withValues(alpha: 0.1),
+      padding: const EdgeInsets.symmetric(
+        vertical: AppSpacing.xs,
+        horizontal: AppSpacing.md,
+      ),
+      color: AppColors.danger.withValues(alpha: 0.1),
       child: Row(
         children: [
           Icon(
             Icons.warning_amber_rounded,
-            color: Theme.of(context).colorScheme.error,
+            color: palette.dangerText,
             size: 20,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.xs),
           Expanded(
             child: Text(
               l10n.reconciliationWarningUnanswered,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.error,
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: palette.dangerText,
               ),
             ),
           ),
@@ -212,14 +225,17 @@ class ReconciliationFooterActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final palette = context.palette;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: AppSpacing.allMd,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: palette.paper,
+        // Sombra para CIMA: é uma barra fixa no rodapé, e o degrau de
+        // `AppElevation` é sempre para baixo.
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: palette.ink.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, -5),
           ),
@@ -233,7 +249,7 @@ class ReconciliationFooterActions extends StatelessWidget {
               child: Text(l10n.reconciliationBack),
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             child: LoadingButton.elevated(
               onPressed: onConfirm,

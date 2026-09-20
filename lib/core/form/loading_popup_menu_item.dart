@@ -21,7 +21,8 @@ class LoadingPopupMenuItem<T> extends PopupMenuEntry<T> {
   bool represents(T? value) => false;
 
   @override
-  State<LoadingPopupMenuItem<T>> createState() => _LoadingPopupMenuItemState<T>();
+  State<LoadingPopupMenuItem<T>> createState() =>
+      _LoadingPopupMenuItemState<T>();
 }
 
 class _LoadingPopupMenuItemState<T> extends State<LoadingPopupMenuItem<T>> {
@@ -38,7 +39,9 @@ class _LoadingPopupMenuItemState<T> extends State<LoadingPopupMenuItem<T>> {
         child: AnimatedCrossFade(
           firstChild: widget.child,
           secondChild: _buildLoader(context),
-          crossFadeState: _loading ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+          crossFadeState: _loading
+              ? CrossFadeState.showSecond
+              : CrossFadeState.showFirst,
           duration: const Duration(milliseconds: 300),
         ),
       ),
@@ -65,18 +68,20 @@ class _LoadingPopupMenuItemState<T> extends State<LoadingPopupMenuItem<T>> {
   }
 
   Future<R?> _interceptor<R>(Future<R?> future) async {
-    final ScaffoldMessengerState scaffoldMessenger = ScaffoldMessenger.of(context);
+    final ScaffoldMessengerState scaffoldMessenger = ScaffoldMessenger.of(
+      context,
+    );
     try {
       setState(() {
         _loading = true;
       });
 
       final result = await future;
-      
+
       if (mounted) {
         Navigator.of(context).pop(result);
       }
-      
+
       return result;
     } on BusinessException catch (ex) {
       // A mensagem é localizada via context, que pode ter sido desmontado

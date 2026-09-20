@@ -144,10 +144,14 @@ class _NotifierEmMarco extends Planning503020Notifier {
   }
 }
 
-Future<void> _pump(WidgetTester tester) async {
+Future<void> _pump(
+  WidgetTester tester, {
+  Brightness brightness = Brightness.light,
+}) async {
   await tester.pumpWidget(
     goldenApp(
       const Planning503020Screen(),
+      brightness: brightness,
       overrides: goldenOverrides(
         categories: _categorias,
         extra: [
@@ -182,6 +186,31 @@ void main() {
     await expectLater(
       find.byType(Planning503020Screen),
       matchesGoldenFile('images/planning_503020_mobile.png'),
+    );
+  });
+
+  // M7 — as quatro telas grandes só tinham golden no tema CLARO: metade das
+  // superfícies do app não tinha rede nenhuma, e foi justamente no escuro que
+  // a auditoria achou o pior contraste de texto do projeto.
+  testWidgets('50-30-20 — três pools lado a lado (desktop, escuro)', (
+    tester,
+  ) async {
+    await setGoldenSurface(tester, const Size(1400, 900));
+    await _pump(tester, brightness: Brightness.dark);
+
+    await expectLater(
+      find.byType(Planning503020Screen),
+      matchesGoldenFile('images/planning_503020_desktop_escuro.png'),
+    );
+  });
+
+  testWidgets('50-30-20 — abas (mobile, escuro)', (tester) async {
+    await setGoldenSurface(tester, const Size(760, 1000));
+    await _pump(tester, brightness: Brightness.dark);
+
+    await expectLater(
+      find.byType(Planning503020Screen),
+      matchesGoldenFile('images/planning_503020_mobile_escuro.png'),
     );
   });
 }

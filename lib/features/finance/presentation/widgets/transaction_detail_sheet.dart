@@ -1,12 +1,13 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/enum_messages.dart';
 import 'package:funances/core/utils/icons_extension.dart';
-import 'package:funances/core/utils/num_extensions.dart';
+import 'package:funances/core/widgets/money_text.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
@@ -187,7 +188,7 @@ class _TransactionDetailSheetState
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
-    final locale = context.locale;
+    final palette = context.palette;
     final mq = MediaQuery.of(context);
 
     final isExpense = _currentInstallment.type == OrderType.expense;
@@ -197,9 +198,9 @@ class _TransactionDetailSheetState
     if (isTransfer) {
       amountColor = theme.colorScheme.primary;
     } else if (isExpense) {
-      amountColor = AppColors.error;
+      amountColor = palette.dangerText;
     } else {
-      amountColor = AppColors.success;
+      amountColor = palette.successText;
     }
 
     return Padding(
@@ -214,21 +215,18 @@ class _TransactionDetailSheetState
             onDelete: _deleteTransaction,
             onBackToPending: _backToPending,
           ),
-          Divider(),
+          const Divider(),
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: AppSpacing.allMd,
             child: Column(
-              spacing: 4,
+              spacing: AppSpacing.xxs,
               children: [
                 Container(
-                  padding: EdgeInsets.symmetric(vertical: 16),
+                  padding: AppSpacing.vMd,
                   alignment: Alignment.center,
-                  child: Text(
-                    _currentInstallment.referenceAmount.asCurrency(
-                      locale: locale,
-                    ),
+                  child: MoneyText(
+                    _currentInstallment.referenceAmount,
                     style: theme.textTheme.headlineLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
                       color: amountColor,
                     ),
                   ),
@@ -247,31 +245,28 @@ class _TransactionDetailSheetState
                       await loading(_changeCategory());
                     },
                   ),
-                TransactionDetailAccounts(
-                  installment: _currentInstallment,
-                ),
+                TransactionDetailAccounts(installment: _currentInstallment),
                 DetailItem(
                   label: l10n.transactionStatusLabel,
                   value: l10n.forInstallmentStatus(_currentInstallment.status),
                   icon: _getStatusIcon(_currentInstallment.status),
-                  iconColor: _getStatusColor(_currentInstallment.status),
+                  iconColor: _statusColor(_currentInstallment.status, palette),
                 ),
               ],
             ),
           ),
           if (_currentInstallment.status == InstallmentStatus.pending) ...[
-            Divider(),
+            const Divider(),
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: AppSpacing.allMd,
               child: FilledButton.icon(
                 onPressed: _registerPayment,
                 icon: const Icon(Icons.check),
                 label: Text(l10n.reconciliationConfirm),
+                // O botão ocupa a linha inteira; o resto (raio, tipografia,
+                // cor) já vem do `filledButtonTheme`.
                 style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(56),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
                 ),
               ),
             ),
@@ -290,12 +285,12 @@ class _TransactionDetailSheetState
     };
   }
 
-  Color _getStatusColor(InstallmentStatus status) {
+  Color _statusColor(InstallmentStatus status, AppPalette palette) {
     return switch (status) {
-      InstallmentStatus.pending => AppColors.antiqueGold,
-      InstallmentStatus.paid => AppColors.success,
-      InstallmentStatus.settled => AppColors.deepPurple,
-      InstallmentStatus.removed => AppColors.error,
+      InstallmentStatus.pending => AppColors.goldDeep,
+      InstallmentStatus.paid => palette.successText,
+      InstallmentStatus.settled => AppColors.violet,
+      InstallmentStatus.removed => palette.dangerText,
     };
   }
 }

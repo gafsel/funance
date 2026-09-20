@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:funances/core/theme/app_badge_palette.dart';
 import 'package:funances/features/workspace/presentation/widgets/badges/badge_theme.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -87,45 +88,30 @@ class MetallicIcon3D extends StatelessWidget {
       activePlateGradient = const RadialGradient(
         center: Alignment(-0.25, -0.25),
         radius: 0.85,
-        colors: [
-          Color(0xFFFFFFFF), // Specular shine
-          Color(0xFFF1F5F9), // Platinum silver
-          Color(0xFF94A3B8), // Slate silver
-          Color(0xFF475569), // Steel shadow
-        ],
+        colors: AppBadgePalette.coinPlatinum,
         stops: [0.0, 0.25, 0.75, 1.0],
       );
-      activePlateBorderColor = const Color(0xFFFFD54F); // Gold border to frame the coin
+      activePlateBorderColor = AppBadgePalette.coinRimGold;
       activeIconGradient = metallicGradientForColor(themeColor);
     } else if (xpRewardValue >= 75) {
       // Simple Silver Badge: Gold coin inside Silver Shape
       activePlateGradient = const RadialGradient(
         center: Alignment(-0.25, -0.25),
         radius: 0.85,
-        colors: [
-          Color(0xFFFFFDF0), // gold highlight
-          Color(0xFFFBBF24), // gold body
-          Color(0xFFCA8A04), // medium gold
-          Color(0xFF713F12), // dark gold shadow
-        ],
+        colors: AppBadgePalette.coinGold,
         stops: [0.0, 0.2, 0.7, 1.0],
       );
-      activePlateBorderColor = const Color(0xFFCBD5E1); // Silver border
+      activePlateBorderColor = AppBadgePalette.coinRimSilver;
       activeIconGradient = metallicGradientForColor(themeColor);
     } else {
       // Simple Bronze Badge: Silver/Steel coin inside Bronze Shape
       activePlateGradient = const RadialGradient(
         center: Alignment(-0.25, -0.25),
         radius: 0.85,
-        colors: [
-          Color(0xFFFFFFFF), // specular white
-          Color(0xFFECEFF1), // silver
-          Color(0xFF90A4AE), // medium steel
-          Color(0xFF37474F), // dark steel shadow
-        ],
+        colors: AppBadgePalette.coinSteel,
         stops: [0.0, 0.2, 0.7, 1.0],
       );
-      activePlateBorderColor = const Color(0xFFC2410C); // Bronze/Copper border
+      activePlateBorderColor = AppBadgePalette.coinRimBronze;
       activeIconGradient = metallicGradientForColor(themeColor);
     }
 
@@ -144,10 +130,7 @@ class MetallicIcon3D extends StatelessWidget {
       iconGradient = const LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: [
-          Color(0xFF475569), // Slate 600
-          Color(0xFF0F172A), // Slate 900 (very dark charcoal)
-        ],
+        colors: AppBadgePalette.lockedIcon,
       );
       plateBorderColor = toGrayscale(activePlateBorderColor);
     }
@@ -164,12 +147,12 @@ class MetallicIcon3D extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isUnlocked ? 0.35 : 0.20),
+            color: AppBadgePalette.shadow.withValues(alpha: isUnlocked ? 0.35 : 0.20),
             offset: const Offset(1, 1.5),
             blurRadius: 1.5,
           ),
           BoxShadow(
-            color: Colors.white.withValues(alpha: isUnlocked ? 0.45 : 0.20),
+            color: AppBadgePalette.specular.withValues(alpha: isUnlocked ? 0.45 : 0.20),
             offset: const Offset(-0.75, -0.75),
             blurRadius: 0.5,
           ),
@@ -186,7 +169,7 @@ class MetallicIcon3D extends StatelessWidget {
                 child: Icon(
                   icon,
                   size: size,
-                  color: Colors.white.withValues(alpha: 0.65),
+                  color: AppBadgePalette.specular.withValues(alpha: 0.65),
                 ),
               ),
             // Stamped drop shadow for the icon glyph
@@ -195,18 +178,14 @@ class MetallicIcon3D extends StatelessWidget {
               child: Icon(
                 icon,
                 size: size,
-                color: Colors.black.withValues(alpha: isUnlocked ? 0.45 : 0.50),
+                color: AppBadgePalette.shadow.withValues(alpha: isUnlocked ? 0.45 : 0.50),
               ),
             ),
             // Metal icon stamp
             ShaderMask(
               shaderCallback: (bounds) => iconGradient.createShader(bounds),
               blendMode: BlendMode.srcIn,
-              child: Icon(
-                icon,
-                size: size,
-                color: Colors.white,
-              ),
+              child: Icon(icon, size: size, color: AppBadgePalette.specular),
             ),
             // Specular glass glare reflection on top of the stamp (always visible)
             Opacity(
@@ -216,7 +195,7 @@ class MetallicIcon3D extends StatelessWidget {
                 child: Container(
                   width: size,
                   height: size,
-                  color: Colors.white,
+                  color: AppBadgePalette.specular,
                 ),
               ),
             ),

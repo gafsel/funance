@@ -169,7 +169,9 @@ class _LoadingButtonState extends State<LoadingButton> {
   }
 
   Future<T?> _interceptor<T>(Future<T?> future) async {
-    final ScaffoldMessengerState scaffoldMessenger = ScaffoldMessenger.of(context);
+    final ScaffoldMessengerState scaffoldMessenger = ScaffoldMessenger.of(
+      context,
+    );
 
     // O redirecionamento é o único caso em que o giro CONTINUA: a aba está
     // saindo para o Google, e devolver o botão ao normal daria a impressão de

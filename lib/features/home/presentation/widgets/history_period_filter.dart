@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_radius.dart';
 import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
@@ -162,14 +163,14 @@ class HistoryPeriodFilter extends StatelessWidget {
               },
               style: FilledButton.styleFrom(
                 backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                foregroundColor: AppColors.deepTurquoise,
+                foregroundColor: context.palette.ink,
                 shape: RoundedRectangleBorder(
                   side: BorderSide(
                     color: theme.dividerColor.withValues(alpha: 0.1),
                   ),
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(12),
-                    topLeft: Radius.circular(12),
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(AppRadius.md),
+                    topLeft: Radius.circular(AppRadius.md),
                   ),
                 ),
               ),
@@ -242,10 +243,8 @@ class HistoryPeriodFilter extends StatelessWidget {
                           children: [
                             Text(
                               selectedType.label(l10n),
-                              style: TextStyle(
+                              style: theme.textTheme.labelMedium?.copyWith(
                                 color: theme.colorScheme.onSurfaceVariant,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
                               ),
                             ),
                             const Icon(Icons.arrow_drop_down, size: 20),
@@ -254,10 +253,9 @@ class HistoryPeriodFilter extends StatelessWidget {
                         if (dateRangeLabel.isNotEmpty)
                           Text(
                             dateRangeLabel,
-                            style: TextStyle(
+                            style: theme.textTheme.labelSmall?.copyWith(
                               color: theme.colorScheme.onSurfaceVariant
                                   .withValues(alpha: 0.7),
-                              fontSize: 11,
                             ),
                           ),
                       ],
@@ -271,14 +269,14 @@ class HistoryPeriodFilter extends StatelessWidget {
             FilledButton(
               style: FilledButton.styleFrom(
                 backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                foregroundColor: AppColors.deepTurquoise,
+                foregroundColor: context.palette.ink,
                 shape: RoundedRectangleBorder(
                   side: BorderSide(
                     color: theme.dividerColor.withValues(alpha: 0.1),
                   ),
-                  borderRadius: BorderRadius.only(
-                    bottomRight: Radius.circular(12),
-                    topRight: Radius.circular(12),
+                  borderRadius: const BorderRadius.only(
+                    bottomRight: Radius.circular(AppRadius.md),
+                    topRight: Radius.circular(AppRadius.md),
                   ),
                 ),
               ),

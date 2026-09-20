@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_radius.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 
 /// Ponto de legenda do gráfico de progresso da meta.
 ///
@@ -20,18 +22,14 @@ class LegendDot extends StatelessWidget {
         Container(
           width: 12,
           height: 3,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(2),
-          ),
+          decoration: BoxDecoration(color: color, borderRadius: AppRadius.brXs),
         ),
-        const SizedBox(width: 4),
+        AppSpacing.gapXxs,
         Text(
           label,
-          style: TextStyle(
-            color: AppColors.pureWhite.withValues(alpha: 0.7),
-            fontSize: 11,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.labelSmall?.copyWith(color: AppColors.inkInverse2),
         ),
       ],
     );

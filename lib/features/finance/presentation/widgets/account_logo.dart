@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_radius.dart';
 import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/icons_extension.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
@@ -23,6 +24,7 @@ class AccountLogo extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final palette = context.palette;
     Widget logo;
 
     if (account.bankLogo != BankLogo.none) {
@@ -30,12 +32,12 @@ class AccountLogo extends ConsumerWidget {
         width: size,
         height: size,
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(size * 0.2),
-          border: Border.all(color: AppColors.softGrey, width: size * .02),
+          color: palette.paper,
+          borderRadius: AppRadius.brSm,
+          border: Border.all(color: palette.line, width: size * .02),
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(size * 0.2),
+          borderRadius: AppRadius.brSm,
           child: Image.asset(
             'assets/logos/${account.bankLogo.name}.png',
             fit: BoxFit.fitWidth,
@@ -52,9 +54,9 @@ class AccountLogo extends ConsumerWidget {
         width: size,
         height: size,
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(size * 0.2),
-          border: Border.all(color: AppColors.softGrey, width: size * .05),
+          color: palette.paper,
+          borderRadius: AppRadius.brSm,
+          border: Border.all(color: palette.line, width: size * .05),
         ),
         child: Icon(
           account.icon.asIcon(),
@@ -92,7 +94,7 @@ class AccountLogo extends ConsumerWidget {
                   return Container(
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 1),
+                      border: Border.all(color: palette.paper, width: 1),
                     ),
                     child: UserAvatar(
                       displayName: user?.displayName,

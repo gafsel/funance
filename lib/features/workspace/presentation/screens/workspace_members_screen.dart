@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_spacing.dart';
+import 'package:funances/core/widgets/app_scaffold.dart';
+import 'package:funances/core/widgets/empty_state.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/features/user/domain/models/user_model.dart';
@@ -35,33 +39,22 @@ class WorkspaceMembersScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.membersTitle)),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final content = RefreshIndicator(
-            onRefresh: notifier.loadMembers,
-            child: ListView(
-              padding: const EdgeInsets.only(bottom: 32),
-              children: [
-                SectionHeader.label(l10n.membersSectionActive),
-                ..._buildMembers(context, state, notifier),
-                const Divider(height: 32),
-                SectionHeader.label(l10n.membersSectionPending),
-                ..._buildInvites(context, state, notifier),
-              ],
-            ),
-          );
-
-          if (constraints.maxWidth > 700) {
-            return Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 700),
-                child: content,
-              ),
-            );
-          }
-
-          return content;
-        },
+      // A largura máxima vem do breakpoint, não de um 700 escrito à mão.
+      body: AppContentWidth(
+        gutter: 0,
+        child: RefreshIndicator(
+          onRefresh: notifier.loadMembers,
+          child: ListView(
+            padding: const EdgeInsets.only(bottom: AppSpacing.xl),
+            children: [
+              SectionHeader.label(l10n.membersSectionActive),
+              ..._buildMembers(context, state, notifier),
+              const Divider(height: AppSpacing.xl),
+              SectionHeader.label(l10n.membersSectionPending),
+              ..._buildInvites(context, state, notifier),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -76,7 +69,7 @@ class WorkspaceMembersScreen extends ConsumerWidget {
     if (state.isLoading) {
       return const [
         Padding(
-          padding: EdgeInsets.all(32),
+          padding: AppSpacing.allXl,
           child: Center(child: CircularProgressIndicator()),
         ),
       ];
@@ -128,7 +121,7 @@ class WorkspaceMembersScreen extends ConsumerWidget {
     if (!state.invitesLoaded) {
       return const [
         Padding(
-          padding: EdgeInsets.all(32),
+          padding: AppSpacing.allXl,
           child: Center(child: CircularProgressIndicator()),
         ),
       ];
@@ -136,13 +129,11 @@ class WorkspaceMembersScreen extends ConsumerWidget {
 
     if (state.pendingInvites.isEmpty) {
       return [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-          child: Text(
-            l10n.membersEmptyPending,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
+        EmptyState.message(
+          l10n.membersEmptyPending,
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.lg,
           ),
         ),
       ];
@@ -187,7 +178,9 @@ class WorkspaceMembersScreen extends ConsumerWidget {
             onPressed: () => Navigator.pop(context, true),
             child: Text(
               l10n.membersRemoveAction,
-              style: const TextStyle(color: Colors.red),
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge?.copyWith(color: AppColors.danger),
             ),
           ),
         ],
@@ -223,7 +216,9 @@ class WorkspaceMembersScreen extends ConsumerWidget {
             onPressed: () => Navigator.pop(context, true),
             child: Text(
               l10n.membersCancelInviteAction,
-              style: const TextStyle(color: Colors.red),
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge?.copyWith(color: AppColors.danger),
             ),
           ),
         ],
@@ -259,12 +254,15 @@ class _ErrorRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.lg,
+          ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(message, style: Theme.of(context).textTheme.bodyMedium),
-          const SizedBox(height: 8),
+          AppSpacing.gapXs,
           TextButton(onPressed: onRetry, child: Text(actionLabel)),
         ],
       ),
@@ -312,7 +310,6 @@ class _MemberTile extends StatelessWidget {
             subtitle,
             style: theme.textTheme.labelSmall?.copyWith(
               color: theme.colorScheme.primary,
-              fontWeight: FontWeight.bold,
             ),
           ),
         ],
@@ -328,7 +325,10 @@ class _MemberTile extends StatelessWidget {
             )
           : IconButton(
               tooltip: l10n.membersRemoveAction,
-              icon: const Icon(Icons.person_remove_outlined, color: Colors.red),
+              icon: const Icon(
+                Icons.person_remove_outlined,
+                color: AppColors.danger,
+              ),
               onPressed: onRemove,
             ),
     );
@@ -378,7 +378,7 @@ class _InviteTile extends StatelessWidget {
                 ),
                 IconButton(
                   tooltip: l10n.membersCancelInviteAction,
-                  icon: const Icon(Icons.close, color: Colors.red),
+                  icon: const Icon(Icons.close, color: AppColors.danger),
                   onPressed: onCancel,
                 ),
               ],

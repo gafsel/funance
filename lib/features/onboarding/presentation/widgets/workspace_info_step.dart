@@ -3,7 +3,8 @@ import 'package:funances/core/form/loading_button.dart';
 import 'package:funances/features/onboarding/presentation/provider.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:funances/features/workspace/domain/models/workspace_model.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
+import '../../../../core/theme/app_spacing.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -18,30 +19,30 @@ class WorkspaceInfoStep extends ConsumerWidget {
     final notifier = ref.read(OnboardingViewProviders.onboarding.notifier);
     final l10n = AppLocalizations.of(context)!;
     return Padding(
-      padding: const EdgeInsets.all(32.0),
+      padding: AppSpacing.allXl,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           IconButton(
             alignment: Alignment.centerLeft,
-            icon: const Icon(Icons.arrow_back, color: AppColors.pureWhite),
+            icon: Icon(Icons.arrow_back, color: context.palette.ink),
             onPressed: () {
               notifier.previousStep();
             },
           ),
-          const SizedBox(height: 32),
+          AppSpacing.gapXl,
           Text(
             l10n.onboardingWorkspaceNameTitle,
             style: Theme.of(context).textTheme.headlineSmall,
           ),
-          const SizedBox(height: 8),
+          AppSpacing.gapXs,
           Text(
             workspace.type == WorkspaceType.personal
                 ? l10n.onboardingWorkspaceNamePersonalHint
                 : l10n.onboardingWorkspaceNameBusinessHint,
             style: Theme.of(context).textTheme.bodyMedium,
           ),
-          const SizedBox(height: 32),
+          AppSpacing.gapXl,
           TextFormField(
             decoration: InputDecoration(
               labelText: l10n.onboardingWorkspaceNameLabel,

@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_spacing.dart';
+import 'package:funances/core/widgets/app_card.dart';
+import 'package:funances/core/widgets/app_progress_bar.dart';
 import 'package:funances/core/widgets/error_view.dart';
+import 'package:funances/core/widgets/money_text.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/icons_extension.dart';
-import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/features/home/domain/models/mission_model.dart';
 import 'package:funances/features/home/presentation/provider.dart';
 import 'package:go_router/go_router.dart';
@@ -25,18 +28,13 @@ class TeamStatusView extends ConsumerWidget {
       data: (mission) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            l10n.partyTitle,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 12),
+          Text(l10n.partyTitle, style: theme.textTheme.titleMedium),
+          AppSpacing.gapSm,
           if (mission.planningMissions.isEmpty)
             _EmptyParty()
           else ...[
             _buildPartyStatusBar(context, mission),
-            const SizedBox(height: 24),
+            AppSpacing.gapLg,
             // Era um `LayoutBuilder` que abria o builder e nunca lia
             // `constraints`: reconstruía os grupos a cada mudança de tamanho
             // sem usar a informação para nada.
@@ -50,13 +48,8 @@ class TeamStatusView extends ConsumerWidget {
       error: (e, st) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            l10n.partyTitle,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 12),
+          Text(l10n.partyTitle, style: theme.textTheme.titleMedium),
+          AppSpacing.gapSm,
           ErrorView(
             message: l10n.partyErrorMessage,
             onRetry: () => Retry.missions(ref),
@@ -69,12 +62,12 @@ class TeamStatusView extends ConsumerWidget {
   Widget _buildPartyStatusBar(BuildContext context, MissionModel mission) {
     final theme = Theme.of(context);
     final l10n = context.l10n;
-    final localeStr = context.locale;
+    final palette = context.palette;
 
     final color = switch (mission.partyStatus) {
-      PartyStatus.healthy => AppColors.success,
-      PartyStatus.strained => Colors.orange,
-      PartyStatus.defeated => AppColors.error,
+      PartyStatus.healthy => palette.successText,
+      PartyStatus.strained => palette.warningText,
+      PartyStatus.defeated => palette.dangerText,
     };
 
     final statusText = switch (mission.partyStatus) {
@@ -94,19 +87,14 @@ class TeamStatusView extends ConsumerWidget {
         ? mission.totalActualAmount - mission.totalPlannedAmount
         : 0.0;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: 0.3), width: 2),
-      ),
+    return AppCard(
+      borderColor: color.withValues(alpha: 0.3),
       child: Column(
         children: [
           Row(
             children: [
-              Text(emoji, style: const TextStyle(fontSize: 40)),
-              const SizedBox(width: 16),
+              Text(emoji, style: theme.textTheme.displayLarge),
+              AppSpacing.gapMd,
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -114,66 +102,57 @@ class TeamStatusView extends ConsumerWidget {
                     Text(
                       statusText,
                       style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
                         color: color,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    AppSpacing.gapXs,
                     Row(
                       children: [
                         Text(
                           l10n.partyHpLabel,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: theme.textTheme.labelSmall,
                         ),
                         const Spacer(),
                         Text(
                           '${(mission.partyHp * 100).toInt()}%',
                           style: theme.textTheme.labelSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
                             color: color,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: LinearProgressIndicator(
-                        value: mission.partyHp,
-                        minHeight: 12,
-                        backgroundColor: color.withValues(alpha: 0.1),
-                        valueColor: AlwaysStoppedAnimation(color),
-                      ),
+                    AppSpacing.gapXxs,
+                    AppProgressBar(
+                      value: mission.partyHp,
+                      size: AppProgressSize.thick,
+                      color: color,
+                      trackColor: color.withValues(alpha: 0.1),
+                      semanticLabel: l10n.partyHpLabel,
                     ),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          AppSpacing.gapMd,
           Row(
             children: [
-              _buildValueInfo(
-                context,
-                l10n.planned,
-                mission.totalPlannedAmount.asCurrency(locale: localeStr),
-              ),
-              const SizedBox(width: 16),
+              _buildValueInfo(context, l10n.planned, mission.totalPlannedAmount),
+              AppSpacing.gapMd,
               _buildValueInfo(
                 context,
                 l10n.actual,
-                mission.totalActualAmount.asCurrency(locale: localeStr),
-                valueColor: isOverBudget ? AppColors.error : null,
+                mission.totalActualAmount,
+                valueColor: isOverBudget ? palette.dangerText : null,
               ),
               if (isOverBudget) ...[
-                const SizedBox(width: 16),
+                AppSpacing.gapMd,
                 _buildValueInfo(
                   context,
                   l10n.excess,
-                  '+${excess.asCurrency(locale: localeStr)}',
-                  valueColor: AppColors.error,
+                  excess,
+                  showSign: true,
+                  valueColor: palette.dangerText,
                 ),
               ],
             ],
@@ -186,8 +165,9 @@ class TeamStatusView extends ConsumerWidget {
   Widget _buildValueInfo(
     BuildContext context,
     String label,
-    String value, {
+    double value, {
     Color? valueColor,
+    bool showSign = false,
   }) {
     final theme = Theme.of(context);
     return Column(
@@ -195,18 +175,13 @@ class TeamStatusView extends ConsumerWidget {
         Text(
           label.toUpperCase(),
           style: theme.textTheme.labelSmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: .8),
-            fontWeight: FontWeight.bold,
-            letterSpacing: 0.5,
-            fontSize: 8,
+            color: context.palette.ink2,
           ),
         ),
-        Text(
+        MoneyText(
           value,
-          style: theme.textTheme.bodySmall?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: valueColor,
-          ),
+          showSign: showSign,
+          style: theme.textTheme.labelMedium?.copyWith(color: valueColor),
         ),
       ],
     );
@@ -216,14 +191,15 @@ class TeamStatusView extends ConsumerWidget {
   Widget _buildChallengeGroups(BuildContext context, MissionModel mission) {
     final theme = Theme.of(context);
     final l10n = context.l10n;
+    final palette = context.palette;
 
     final groups = ChallengeStatus.values.reversed.map(
       (status) => (
         status: status,
         color: switch (status) {
-          ChallengeStatus.stable => AppColors.success,
-          ChallengeStatus.warning => Colors.orange,
-          ChallengeStatus.critical => AppColors.error,
+          ChallengeStatus.stable => palette.successText,
+          ChallengeStatus.warning => palette.warningText,
+          ChallengeStatus.critical => palette.dangerText,
         },
         label: switch (status) {
           ChallengeStatus.stable => l10n.challengeStatusStable,
@@ -242,36 +218,29 @@ class TeamStatusView extends ConsumerWidget {
     );
 
     return Column(
-      spacing: 16,
+      spacing: AppSpacing.md,
       children: [
         for (final group in groups) ...[
           if (group.items.isNotEmpty) ...[
-            Container(
-              padding: const EdgeInsets.all(12),
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: group.color.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: group.color.withValues(alpha: 0.2),
-                  width: 1,
-                ),
-              ),
+            AppCard(
+              padding: AppSpacing.allSm,
+              borderColor: group.color.withValues(alpha: 0.2),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                spacing: 16,
+                spacing: AppSpacing.md,
                 children: [
-                  Text(
-                    "${group.emoji} ${group.label.toUpperCase()}",
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: group.color,
+                  SizedBox(
+                    width: double.infinity,
+                    child: Text(
+                      "${group.emoji} ${group.label.toUpperCase()}",
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: group.color,
+                      ),
                     ),
                   ),
                   Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
+                    spacing: AppSpacing.xs,
+                    runSpacing: AppSpacing.xs,
                     children: [
                       for (final item in group.items)
                         _buildChallengeCard(context, item),
@@ -289,12 +258,12 @@ class TeamStatusView extends ConsumerWidget {
   Widget _buildChallengeCard(BuildContext context, PlanningMission mission) {
     final theme = Theme.of(context);
     final l10n = context.l10n;
-    final locale = context.locale;
+    final palette = context.palette;
 
     final color = switch (mission.status) {
-      ChallengeStatus.stable => AppColors.success,
-      ChallengeStatus.warning => Colors.orange,
-      ChallengeStatus.critical => AppColors.error,
+      ChallengeStatus.stable => palette.successText,
+      ChallengeStatus.warning => palette.warningText,
+      ChallengeStatus.critical => palette.dangerText,
     };
 
     final isOverLimit = mission.progress > 1;
@@ -304,7 +273,7 @@ class TeamStatusView extends ConsumerWidget {
     return SizedBox(
       width: 70,
       child: Column(
-        spacing: 8,
+        spacing: AppSpacing.xs,
         children: [
           Stack(
             clipBehavior: Clip.none,
@@ -325,7 +294,7 @@ class TeamStatusView extends ConsumerWidget {
                 right: 0,
                 top: 0,
                 child: Container(
-                  padding: const EdgeInsets.all(4),
+                  padding: AppSpacing.allXxs,
                   decoration: BoxDecoration(
                     color: mission.category.color.asColor().withValues(
                       alpha: 0.1,
@@ -343,10 +312,7 @@ class TeamStatusView extends ConsumerWidget {
           ),
           Text(
             mission.category.name,
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              fontSize: 8,
-            ),
+            style: theme.textTheme.labelSmall,
             maxLines: 2,
             textAlign: TextAlign.center,
             overflow: TextOverflow.ellipsis,
@@ -355,16 +321,11 @@ class TeamStatusView extends ConsumerWidget {
             _buildValueInfo(
               context,
               l10n.excess,
-              excess.asCurrency(locale: locale),
-              valueColor: AppColors.error,
+              excess,
+              valueColor: palette.dangerText,
             ),
           ] else ...[
-            _buildValueInfo(
-              context,
-              l10n.rest,
-              rest.asCurrency(locale: locale),
-              valueColor: AppColors.deepTurquoise,
-            ),
+            _buildValueInfo(context, l10n.rest, rest, valueColor: palette.ink),
           ],
         ],
       ),
@@ -388,9 +349,7 @@ class _EmptyParty extends StatelessWidget {
       icon: Icons.shield_outlined,
       title: l10n.partyEmptyTitle,
       message: l10n.partyEmptyMessage,
-      padding: const EdgeInsets.all(16),
-      borderRadius: 16,
-      borderAlpha: 0.2,
+      padding: AppSpacing.allMd,
       action: FilledButton.icon(
         onPressed: () => context.push('/planning?type=expense'),
         icon: const Icon(Icons.add, size: 18),

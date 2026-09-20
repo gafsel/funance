@@ -4,9 +4,10 @@ import 'package:funances/features/onboarding/presentation/provider.dart';
 import 'package:funances/features/workspace/domain/models/workspace_model.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_durations.dart';
 import '../../../../core/theme/app_gradients.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/app_scaffold.dart';
 import '../widgets/accounts_step.dart';
 import '../widgets/goals_analysis_step.dart';
 import '../widgets/members_step.dart';
@@ -57,29 +58,29 @@ class OnboardingScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final currentStep = ref.watch(OnboardingViewProviders.onboarding.select((s) => s.currentStep));
-    
-    // Tema customizado para fundo escuro do onboarding
-    final darkContentTheme = Theme.of(context).copyWith(
-      textTheme: AppTheme.darkTextTheme,
-      inputDecorationTheme: Theme.of(context).inputDecorationTheme.copyWith(
-            labelStyle: const TextStyle(color: AppColors.paleGold),
-            hintStyle: TextStyle(color: AppColors.pureWhite.withValues(alpha: 0.5)),
-            prefixIconColor: AppColors.paleGold,
-          ),
+    final currentStep = ref.watch(
+      OnboardingViewProviders.onboarding.select((s) => s.currentStep),
     );
 
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: AppGradients.backgroundGradient,
-        ),
+      body: DecoratedBox(
+        decoration: const BoxDecoration(gradient: AppGradients.background),
         child: SafeArea(
+          // O onboarding inteiro é superfície de jogo: em vez de um tema
+          // improvisado por tela, o bloco escuro declara isso uma vez e os
+          // filhos leem a tinta certa sozinhos.
           child: Theme(
-            data: darkContentTheme,
+            data: AppTheme.onGame(context),
             child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
-              child: _buildStep(context, currentStep),
+              duration: AppDurations.normal,
+              // Os seis passos têm a MESMA largura de leitura. Antes dois
+              // deles se limitavam a 600 por conta própria e os outros
+              // quatro não, então o wizard mudava de largura ao avançar.
+              child: AppContentWidth.reading(
+                gutter: 0,
+                key: ValueKey(currentStep),
+                child: _buildStep(context, currentStep),
+              ),
             ),
           ),
         ),

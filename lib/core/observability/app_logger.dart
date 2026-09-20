@@ -37,11 +37,12 @@ class AppLogger {
   ///
   /// Vai para o mesmo lugar dos erros não tratados — é o que permite descobrir
   /// que uma tela "funcionando" está engolindo exceção desde a semana passada.
-  static void error(
-    String message,
-    Object error, [
-    StackTrace? stackTrace,
-  ]) {
+  ///
+  /// A [message] é o que o app SABIA quando pegou a falha: qual documento,
+  /// qual operação. Ela ia só para o log de debug, e em release o relatório
+  /// recebia a exceção sozinha — quase sempre um `TypeError` genérico, sem
+  /// nada que permitisse achar o caso. Agora ela viaja como `reason`.
+  static void error(String message, Object error, [StackTrace? stackTrace]) {
     if (kDebugMode) {
       developer.log(
         message,
@@ -52,6 +53,6 @@ class AppLogger {
       );
     }
 
-    CrashReporter.recordError(error, stackTrace);
+    CrashReporter.recordError(error, stackTrace, reason: message);
   }
 }

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/presentation/retry.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/core/utils/error_messages.dart';
@@ -82,15 +84,14 @@ class WeekChecklist extends ConsumerWidget {
                 Text(
                   l10n.overdueMissions,
                   style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.error,
+                    color: context.palette.dangerText,
                   ),
                 ),
-                const SizedBox(height: 12),
+                AppSpacing.gapSm,
                 ...mission.overdueInstallments.map(
                   (inst) => InstallmentItem(installmentInfo: inst),
                 ),
-                const SizedBox(height: 24),
+                AppSpacing.gapLg,
               ],
 
               if (mission.pendingInstallments.isNotEmpty) ...[
@@ -104,7 +105,7 @@ class WeekChecklist extends ConsumerWidget {
                 ...mission.pendingInstallments.map(
                   (inst) => InstallmentItem(installmentInfo: inst),
                 ),
-                const SizedBox(height: 24),
+                AppSpacing.gapLg,
               ],
             ],
 
@@ -144,14 +145,12 @@ class WeekChecklist extends ConsumerWidget {
     );
 
     return Theme(
-      data: theme.copyWith(dividerColor: Colors.transparent),
+      data: theme.copyWith(dividerColor: AppColors.transparent),
       child: ExpansionTile(
         tilePadding: EdgeInsets.zero,
         title: Text(
           l10n.completedMissions,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+          style: theme.textTheme.titleMedium,
         ),
         subtitle: Text(
           l10n.completedMissionsSummary(
@@ -159,7 +158,7 @@ class WeekChecklist extends ConsumerWidget {
             totalCompletedXp.round().toString(),
           ),
           style: theme.textTheme.labelSmall?.copyWith(
-            color: AppColors.deepTurquoise,
+            color: context.palette.ink,
           ),
         ),
         children: mission.completedInstallments

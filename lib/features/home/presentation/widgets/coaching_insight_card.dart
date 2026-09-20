@@ -4,7 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:funances/core/exceptions/callable_error_message.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_radius.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
+import 'package:funances/core/widgets/app_card.dart';
 import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/core/widgets/loading_modal.dart';
 import 'package:funances/core/analytics/analytics_providers.dart';
@@ -16,61 +20,71 @@ import 'package:funances/core/utils/error_messages.dart';
 import 'package:funances/core/presentation/retry.dart';
 
 class CoachingInsightCard extends ConsumerWidget {
-  const CoachingInsightCard({super.key});
+  const CoachingInsightCard({super.key, this.compact = false});
+
+  /// Uma LINHA em vez do cartão inteiro.
+  ///
+  /// Na Home o coaching custava 120px fixos de altura — e o dobro disso
+  /// quando não havia análise recente, porque o cartão de convite tem título,
+  /// parágrafo e botão. Análise de IA não é informação diária: ela é lida uma
+  /// vez e vale por semanas. A linha diz que existe algo a ler (ou a pedir) e
+  /// leva à tela onde isso acontece; o cartão inteiro continua existindo para
+  /// onde ele é o assunto.
+  final bool compact;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final lastInsightAsync = ref.watch(CoachingViewProviders.lastInsight);
     final theme = Theme.of(context);
     final l10n = context.l10n;
+
+    if (compact) {
+      // A linha não mostra carregamento nem erro: sem análise ela já é o
+      // convite para pedir uma, que é a mesma coisa que o usuário faria
+      // depois de ver um erro.
+      return _CoachingLine(insight: lastInsightAsync.valueOrNull);
+    }
+
     return lastInsightAsync.when(
       data: (lastInsight) {
         return Column(
           children: [
             _buildCoachingCall(context, lastInsight),
-            const SizedBox(height: 24),
+            AppSpacing.gapLg,
           ],
         );
       },
-      loading: () => Container(
-        width: double.infinity,
-        height: 120,
-        margin: const EdgeInsets.only(bottom: 24),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHighest.withValues(
-            alpha: 0.3,
+      loading: () => const Padding(
+        padding: EdgeInsets.only(bottom: AppSpacing.lg),
+        child: AppCard(
+          padding: EdgeInsets.zero,
+          child: SizedBox(
+            width: double.infinity,
+            height: 120,
+            child: Center(child: CircularProgressIndicator()),
           ),
-          borderRadius: BorderRadius.circular(20),
         ),
-        child: const Center(child: CircularProgressIndicator()),
       ),
-      error: (error, _) => Container(
-        width: double.infinity,
-        margin: const EdgeInsets.only(bottom: 24),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          border: Border.all(color: theme.dividerColor),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.psychology_outlined, color: theme.colorScheme.error),
-            const SizedBox(width: 8),
-            // Sem rede, "não foi possível gerar sua análise" manda o
-            // usuário tentar de novo sem dizer o que falta.
-            Expanded(
-              child: Text(
-                callableErrorMessage(
-                  error,
-                  errorMessageFor(context, error),
+      error: (error, _) => Padding(
+        padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+        child: AppCard(
+          child: Row(
+            children: [
+              Icon(Icons.psychology_outlined, color: theme.colorScheme.error),
+              AppSpacing.gapXs,
+              // Sem rede, "não foi possível gerar sua análise" manda o
+              // usuário tentar de novo sem dizer o que falta.
+              Expanded(
+                child: Text(
+                  callableErrorMessage(error, errorMessageFor(context, error)),
                 ),
               ),
-            ),
-            TextButton(
-              onPressed: () => Retry.lastInsight(ref),
-              child: Text(l10n.retry),
-            ),
-          ],
+              TextButton(
+                onPressed: () => Retry.lastInsight(ref),
+                child: Text(l10n.retry),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -88,23 +102,8 @@ class CoachingInsightCard extends ConsumerWidget {
     final l10n = context.l10n;
     final theme = Theme.of(context);
 
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppColors.deepTurquoise, AppColors.vibrantTeal],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.darkNavy.withValues(alpha: 0.2),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+    return AppCard.game(
+      padding: EdgeInsets.zero,
       child: Stack(
         children: [
           Positioned(
@@ -113,57 +112,58 @@ class CoachingInsightCard extends ConsumerWidget {
             child: Icon(
               Icons.auto_awesome,
               size: 120,
-              color: AppColors.successGold.withValues(alpha: 0.1),
+              color: AppColors.gold.withValues(alpha: 0.1),
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(20),
+            padding: AppSpacing.allMd,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(8),
+                      padding: AppSpacing.allXs,
                       decoration: BoxDecoration(
-                        color: AppColors.successGold.withValues(alpha: 0.2),
+                        color: AppColors.gold.withValues(alpha: 0.2),
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(
+                      child: const Icon(
                         Icons.psychology,
-                        color: AppColors.successGold,
+                        color: AppColors.gold,
                         size: 24,
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    AppSpacing.gapSm,
                     Expanded(
                       child: Text(
                         l10n.coachingTitle,
                         style: theme.textTheme.titleLarge?.copyWith(
-                          color: AppColors.pureWhite,
-                          fontWeight: FontWeight.bold,
+                          color: AppColors.inkInverse,
                         ),
                       ),
                     ),
                     InkWell(
                       onTap: () => context.push('/coaching/history'),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: AppRadius.brSm,
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.xs,
+                          vertical: AppSpacing.xxs,
+                        ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
                               l10n.coachingViewHistory,
                               style: theme.textTheme.labelMedium?.copyWith(
-                                color: AppColors.pureWhite.withValues(alpha: 0.9),
-                                fontWeight: FontWeight.bold,
+                                color: AppColors.inkInverse2,
                               ),
                             ),
-                            const SizedBox(width: 4),
-                            Icon(
+                            AppSpacing.gapXxs,
+                            const Icon(
                               Icons.history,
-                              color: AppColors.pureWhite.withValues(alpha: 0.9),
+                              color: AppColors.inkInverse2,
                               size: 16,
                             ),
                           ],
@@ -172,76 +172,21 @@ class CoachingInsightCard extends ConsumerWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                AppSpacing.gapSm,
                 Text(
                   l10n.coachingConsultingDesc,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: AppColors.pureWhite.withValues(alpha: 0.9),
+                    color: AppColors.inkInverse2,
                   ),
                 ),
-                const SizedBox(height: 20),
+                AppSpacing.gapMd,
                 SizedBox(
                   width: double.infinity,
                   child: Consumer(
                     builder: (context, ref, _) {
                       return ElevatedButton(
-                        onPressed: () async {
-                          final messenger = ScaffoldMessenger.of(context);
-                          try {
-                            final coaching = await showLoadingModal(
-                              context,
-                              ref
-                                  .read(CoachingDomainProviders.service)
-                                  .generateCoaching(),
-                              child: AnalysisLoadingView(
-                                title: l10n.coachingConsulting,
-                                description: l10n.coachingConsultingDesc,
-                              ),
-                            );
-
-                            ref.invalidate(CoachingViewProviders.lastInsight);
-                            ref.invalidate(
-                              CoachingViewProviders.insightsHistory,
-                            );
-
-                            if (context.mounted) {
-                              _logCoachingOpened(ref);
-                              unawaited(
-                                context.push('/coaching?id=${coaching.id}'),
-                              );
-                            }
-                          } catch (e) {
-                            // Sem isso a falha era silenciosa: o modal fechava
-                            // e nada acontecia após minutos de espera.
-                            messenger.showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  callableErrorMessage(
-                                    e,
-                                    l10n.coachingError,
-                                    offlineMessage: l10n.errorOfflineCallable,
-                                  ),
-                                ),
-                              ),
-                            );
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.successGold,
-                          foregroundColor: AppColors.darkNavy,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 4,
-                        ),
-                        child: Text(
-                          l10n.coachingConsultAction.toUpperCase(),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.2,
-                          ),
-                        ),
+                        onPressed: () => generateAndOpen(context, ref),
+                        child: Text(l10n.coachingConsultAction.toUpperCase()),
                       );
                     },
                   ),
@@ -261,30 +206,19 @@ class CoachingInsightCard extends ConsumerWidget {
     final theme = Theme.of(context);
     final l10n = context.l10n;
     final locale = context.locale;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        border: Border.all(color: theme.dividerColor),
-        borderRadius: BorderRadius.circular(16),
-      ),
+    final palette = context.palette;
+    return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(
-                Icons.psychology_outlined,
-                color: AppColors.deepTurquoise,
-                size: 20,
-              ),
-              const SizedBox(width: 8),
+              Icon(Icons.psychology_outlined, color: palette.ink, size: 20),
+              AppSpacing.gapXs,
               Expanded(
                 child: Text(
                   l10n.coachingTitle,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: theme.textTheme.titleSmall,
                 ),
               ),
               Text(
@@ -293,42 +227,37 @@ class CoachingInsightCard extends ConsumerWidget {
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
-              const SizedBox(width: 8),
+              AppSpacing.gapXs,
               InkWell(
                 onTap: () => context.push('/coaching/history'),
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: AppRadius.brXs,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: AppSpacing.allXxs,
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         l10n.coachingViewHistory,
                         style: theme.textTheme.labelSmall?.copyWith(
-                          color: AppColors.deepTurquoise,
-                          fontWeight: FontWeight.bold,
+                          color: palette.tealText,
                         ),
                       ),
                       const SizedBox(width: 2),
-                      const Icon(
-                        Icons.history,
-                        color: AppColors.deepTurquoise,
-                        size: 14,
-                      ),
+                      Icon(Icons.history, color: palette.tealText, size: 14),
                     ],
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          AppSpacing.gapXs,
           Text(
             lastCoaching.message,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.bodySmall,
           ),
-          const SizedBox(height: 12),
+          AppSpacing.gapSm,
           Consumer(
             builder: (context, ref, _) => InkWell(
               onTap: () {
@@ -338,8 +267,7 @@ class CoachingInsightCard extends ConsumerWidget {
               child: Text(
                 l10n.coachingViewLast,
                 style: theme.textTheme.labelLarge?.copyWith(
-                  color: AppColors.deepTurquoise,
-                  fontWeight: FontWeight.bold,
+                  color: palette.tealText,
                 ),
               ),
             ),
@@ -349,11 +277,127 @@ class CoachingInsightCard extends ConsumerWidget {
     );
   }
 
+  /// Gera uma análise nova e abre, com o modal de espera e o tratamento de
+  /// falha. Extraído para que a LINHA compacta da Home ofereça exatamente a
+  /// mesma ação que o botão do cartão — e não uma segunda cópia dela.
+  static Future<void> generateAndOpen(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final l10n = context.l10n;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final coaching = await showLoadingModal(
+        context,
+        ref.read(CoachingDomainProviders.service).generateCoaching(),
+        child: AnalysisLoadingView(
+          title: l10n.coachingConsulting,
+          description: l10n.coachingConsultingDesc,
+        ),
+      );
+
+      ref.invalidate(CoachingViewProviders.lastInsight);
+      ref.invalidate(CoachingViewProviders.insightsHistory);
+
+      if (context.mounted) {
+        _logCoachingOpened(ref);
+        unawaited(context.push('/coaching?id=${coaching.id}'));
+      }
+    } catch (e) {
+      // Sem isso a falha era silenciosa: o modal fechava e nada acontecia
+      // após minutos de espera.
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            callableErrorMessage(
+              e,
+              l10n.coachingError,
+              offlineMessage: l10n.errorOfflineCallable,
+            ),
+          ),
+        ),
+      );
+    }
+  }
+
   /// Dispara o evento de funil sem bloquear a navegação nem deixar uma falha
   /// de analytics impedir o usuário de abrir o coaching.
   static void _logCoachingOpened(WidgetRef ref) {
     unawaited(
       ref.read(analyticsServiceProvider).logCoachingOpened().catchError((_) {}),
+    );
+  }
+}
+
+/// O coaching em uma linha, para a Home.
+class _CoachingLine extends ConsumerWidget {
+  const _CoachingLine({required this.insight});
+
+  final CoachingModel? insight;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final palette = context.palette;
+    final l10n = context.l10n;
+
+    final fresh = insight != null && !insight!.isDeprecated;
+    final texto = fresh ? insight!.message : l10n.coachingConsultingDesc;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          borderRadius: AppRadius.brMd,
+          onTap: () {
+            if (fresh) {
+              CoachingInsightCard._logCoachingOpened(ref);
+              context.push('/coaching?id=${insight!.id}');
+            } else {
+              CoachingInsightCard.generateAndOpen(context, ref);
+            }
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: AppRadius.brMd,
+              border: Border.all(color: palette.line),
+            ),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.sm,
+              vertical: AppSpacing.xs,
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.psychology_outlined,
+                  size: 18,
+                  color: palette.tealText,
+                ),
+                const SizedBox(width: AppSpacing.xs),
+                Expanded(
+                  child: Text(
+                    texto,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: palette.ink,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.xs),
+                Text(
+                  fresh ? l10n.coachingViewLast : l10n.coachingConsultAction,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: palette.tealText,
+                  ),
+                ),
+                Icon(Icons.chevron_right, size: 18, color: palette.ink2),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

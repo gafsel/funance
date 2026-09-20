@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:funances/core/utils/error_messages.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
+import '../theme/app_palette.dart';
+import '../theme/app_radius.dart';
+import '../theme/app_spacing.dart';
+
 /// Erro de carregamento de um pedaço da tela, com ação de tentar de novo.
 ///
 /// Diferente de `AppErrorWidget`, que substitui a tela inteira quando o próprio
@@ -35,31 +39,35 @@ class ErrorView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final palette = context.palette;
     final l10n = AppLocalizations.of(context)!;
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: AppSpacing.allMd,
+      // Fundo e borda saem da TINTA de erro do tema, nas mesmas frações que
+      // a `StatusPill` usa (12% e 28%). Antes vinham de `errorContainer` e
+      // `error` com opacidades próprias (35% e 25%): três fontes de vermelho
+      // para o mesmo bloco, e nenhuma delas comparável às outras superfícies
+      // de aviso do app. O resultado era um cartão de erro que não parecia da
+      // mesma família das pílulas de "atrasado" e "acima do plano".
       decoration: BoxDecoration(
-        color: theme.colorScheme.errorContainer.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(16),
+        color: palette.dangerText.withValues(alpha: 0.12),
+        borderRadius: AppRadius.brLg,
+        border: Border.all(color: palette.dangerText.withValues(alpha: 0.28)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.cloud_off,
-            color: theme.colorScheme.error,
-            size: 32,
-          ),
-          const SizedBox(height: 8),
+          Icon(Icons.cloud_off, color: palette.dangerText, size: 32),
+          AppSpacing.gapXs,
           Text(
             message,
             textAlign: TextAlign.center,
-            style: theme.textTheme.bodyMedium,
+            style: theme.textTheme.bodyMedium?.copyWith(color: palette.ink),
           ),
           if (onRetry != null) ...[
-            const SizedBox(height: 12),
+            AppSpacing.gapSm,
             OutlinedButton.icon(
               onPressed: onRetry,
               icon: const Icon(Icons.refresh, size: 18),

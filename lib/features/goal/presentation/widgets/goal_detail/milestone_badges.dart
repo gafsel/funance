@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_durations.dart';
+import 'package:funances/core/theme/app_radius.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 
 /// Selos de 25%, 50%, 75% e 100% do progresso da meta.
 ///
@@ -42,38 +45,43 @@ class _Badge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 400),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      duration: AppDurations.respectingMotion(context, AppDurations.celebrate),
+      curve: AppDurations.curve,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.xs,
+        vertical: AppSpacing.xxs,
+      ),
       decoration: BoxDecoration(
         gradient: reached
             ? LinearGradient(
-                colors: [AppColors.limeGreen, statusColor],
+                colors: [AppColors.progressStart, statusColor],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               )
             : null,
-        color: reached ? null : AppColors.pureWhite.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
+        color: reached ? null : AppColors.inkInverse.withValues(alpha: 0.1),
+        borderRadius: AppRadius.brPill,
         border: Border.all(
           color: reached
-              ? Colors.transparent
-              : AppColors.pureWhite.withValues(alpha: 0.3),
+              ? AppColors.transparent
+              : AppColors.inkInverse.withValues(alpha: 0.3),
         ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (reached) const Icon(Icons.star, size: 12, color: Colors.white),
-          if (reached) const SizedBox(width: 4),
+          if (reached)
+            const Icon(Icons.star, size: 12, color: AppColors.inkInverse),
+          if (reached) AppSpacing.gapXxs,
           Text(
             label,
-            style: TextStyle(
+            style: theme.textTheme.labelSmall?.copyWith(
               color: reached
-                  ? Colors.white
-                  : AppColors.pureWhite.withValues(alpha: 0.5),
-              fontSize: 11,
-              fontWeight: reached ? FontWeight.bold : FontWeight.normal,
+                  ? AppColors.inkInverse
+                  : AppColors.inkInverse.withValues(alpha: 0.5),
             ),
           ),
         ],

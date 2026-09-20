@@ -48,8 +48,8 @@ class UserProfileNotifier extends FormNotifier<UserProfileFormState, void> {
           uiSettings: [
             AndroidUiSettings(
               toolbarTitle: 'Ajustar Foto',
-              toolbarColor: AppColors.deepTurquoise,
-              toolbarWidgetColor: Colors.white,
+              toolbarColor: AppColors.surfaceDeep,
+              toolbarWidgetColor: AppColors.inkInverse,
               initAspectRatio: CropAspectRatioPreset.square,
               lockAspectRatio: true,
             ),

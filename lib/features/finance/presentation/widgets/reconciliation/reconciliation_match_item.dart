@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:funances/core/presentation/display_names.dart';
+import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_radius.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
+import 'package:funances/core/widgets/money_text.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
@@ -37,6 +42,8 @@ class ReconciliationMatchItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = context.palette;
     final l10n = context.l10n;
     final locale = context.locale;
     final docTx = match.documentTransaction;
@@ -65,8 +72,11 @@ class ReconciliationMatchItem extends StatelessWidget {
     }
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: isSystemOnly ? Colors.purple.withValues(alpha: 0.05) : null,
+      margin: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.xs,
+      ),
+      color: isSystemOnly ? AppColors.violet.withValues(alpha: 0.05) : null,
       child: Column(
         children: [
           ListTile(
@@ -81,17 +91,14 @@ class ReconciliationMatchItem extends StatelessWidget {
               (docTx?.date ?? sysInst?.referenceDate ?? DateTime.now())
                   .formated(l10n.formatSimpleDate, locale),
             ),
-            trailing: Text(
-              (docTx?.amount ?? sysInst?.referenceAmount ?? 0).asCurrency(
-                locale: locale,
-              ),
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
+            trailing: MoneyText(
+              docTx?.amount ?? sysInst?.referenceAmount ?? 0,
+              style: theme.textTheme.titleSmall?.copyWith(
                 color:
                     (docTx?.type ?? sysInst?.type ?? OrderType.expense) ==
                         OrderType.income
-                    ? Colors.green
-                    : Colors.red,
+                    ? palette.successText
+                    : palette.dangerText,
               ),
             ),
           ),
@@ -99,34 +106,39 @@ class ReconciliationMatchItem extends StatelessWidget {
               createdOrder != null ||
               match.customDescription != null)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.xs,
+              ),
               child: Container(
-                padding: const EdgeInsets.all(8),
+                padding: AppSpacing.allXs,
                 decoration: BoxDecoration(
-                  color: Colors.grey.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  // Bloco agrupado dentro do cartão: é papel secundário, não
+                  // um cinza de 10% que some no tema escuro.
+                  color: palette.paper2,
+                  borderRadius: AppRadius.brMd,
                 ),
                 child: Row(
                   children: [
                     const Icon(Icons.link, size: 16),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppSpacing.xs),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             description ?? "",
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                            style: theme.textTheme.titleSmall,
                           ),
                           Text(
                             '${(sysInst?.referenceDate ?? createdOrder?.firstDueDate ?? docTx?.date ?? DateTime.now()).formated(l10n.formatSimpleDate)} • ${(sysInst?.referenceAmount ?? createdOrder?.amount ?? docTx?.amount.abs() ?? 0).asCurrency(locale: locale)}',
-                            style: const TextStyle(fontSize: 12),
+                            style: theme.textTheme.bodySmall,
                           ),
                           if (category != null)
                             Text(
                               category.displayName(l10n),
-                              style: const TextStyle(
-                                fontSize: 10,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: palette.ink2,
                                 fontStyle: FontStyle.italic,
                               ),
                             ),

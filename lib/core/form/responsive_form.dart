@@ -4,6 +4,7 @@ import 'package:funances/core/firestore/offline_write.dart';
 import 'package:funances/core/form/form_notifier.dart';
 import 'package:funances/core/form/loading_button.dart';
 import 'package:funances/core/form/manual_form.dart';
+import 'package:funances/core/theme/app_breakpoints.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/l10n/app_localizations.dart';
@@ -99,7 +100,10 @@ class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
                   padding: const EdgeInsets.all(16),
                   child: LayoutBuilder(
                     builder: (context, constraints) {
-                      final isLargeWidth = constraints.maxWidth > 500;
+                      // Era `> 500`, um corte que não existia em nenhum outro
+                      // lugar do app. Passa a ser o mesmo corte de todo
+                      // mundo, medido no painel e não na janela.
+                      final isLargeWidth = !constraints.layout.isCompact;
 
                       if (isLargeWidth) {
                         return Row(
@@ -143,9 +147,9 @@ class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
     return LoadingButton.filled(
       style: FilledButton.styleFrom(
         backgroundColor: submitButtonColor,
-        foregroundColor: (submitButtonColor?.computeLuminance() ?? 0) < .5
-            ? AppColors.pureWhite
-            : AppColors.deepTurquoise,
+        foregroundColor: submitButtonColor == null
+            ? null
+            : AppColors.inkOn(submitButtonColor!),
       ),
       onPressed: (submitEnabled?.call(snapshot.model) ?? true)
           ? (loading) async {
@@ -200,7 +204,10 @@ class _ResponsiveGrid extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final double maxWidth = constraints.maxWidth;
-        final bool isLargeScreen = maxWidth > 800;
+        // Idem: era `> 800`. A conta de colunas abaixo já resolve sozinha as
+        // larguras entre 600 e 800 — `(700 / 350) = 2` vira duas colunas de
+        // 350, que é exatamente a largura mínima de um campo.
+        final bool isLargeScreen = !constraints.layout.isCompact;
 
         if (isLargeScreen) {
           final int columns = (maxWidth / 350).toInt().clamp(1, 4);

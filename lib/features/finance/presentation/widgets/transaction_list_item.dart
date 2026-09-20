@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/list/infinite_list_notifier.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
-import 'package:funances/core/utils/num_extensions.dart';
+import 'package:funances/core/widgets/money_text.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
@@ -31,8 +33,8 @@ class TransactionListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final locale = context.locale;
     final theme = Theme.of(context);
+    final palette = context.palette;
     final isExpense = installment.type == OrderType.expense;
     final isTransfer = installment.type == OrderType.transfer;
 
@@ -42,17 +44,17 @@ class TransactionListItem extends StatelessWidget {
     if (isTransfer) {
       if (accountId != null) {
         final isOutgoing = installment.accountIdSource == accountId;
-        amountColor = isOutgoing ? AppColors.error : AppColors.limeGreen;
+        amountColor = isOutgoing ? palette.dangerText : palette.successText;
         amountPrefix = isOutgoing ? '-' : '+';
       } else {
-        amountColor = Theme.of(context).colorScheme.primary;
+        amountColor = theme.colorScheme.primary;
         amountPrefix = '';
       }
     } else if (isExpense) {
-      amountColor = AppColors.error;
+      amountColor = palette.dangerText;
       amountPrefix = '-';
     } else {
-      amountColor = AppColors.limeGreen;
+      amountColor = palette.successText;
       amountPrefix = '+';
     }
 
@@ -70,10 +72,10 @@ class TransactionListItem extends StatelessWidget {
       },
       child: Padding(
         padding:
-            const EdgeInsets.symmetric(horizontal: 16) +
-            EdgeInsets.only(bottom: 16, top: 8),
+            AppSpacing.hMd +
+            const EdgeInsets.only(bottom: AppSpacing.md, top: AppSpacing.xs),
         child: Row(
-          spacing: 8,
+          spacing: AppSpacing.xs,
           children: [
             Stack(
               clipBehavior: Clip.none,
@@ -85,21 +87,13 @@ class TransactionListItem extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(2),
                     decoration: BoxDecoration(
-                      color: installment.status == InstallmentStatus.settled
-                          ? AppColors.deepPurple
-                          : installment.status == InstallmentStatus.paid
-                          ? AppColors.limeGreen
-                          : AppColors.antiqueGold,
+                      color: _statusFill(installment.status),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
-                      installment.status == InstallmentStatus.settled
-                          ? Icons.done_all
-                          : installment.status == InstallmentStatus.paid
-                          ? Icons.check
-                          : Icons.schedule,
+                      _statusIcon(installment.status),
                       size: 10,
-                      color: Colors.white,
+                      color: AppColors.inkInverse,
                     ),
                   ),
                 ),
@@ -109,12 +103,10 @@ class TransactionListItem extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SizedBox(height: 16),
+                  AppSpacing.gapMd,
                   Text(
                     installment.description,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: theme.textTheme.titleMedium,
                   ),
                   Consumer(
                     builder: (context, ref, _) {
@@ -140,7 +132,7 @@ class TransactionListItem extends StatelessWidget {
                             : null;
 
                         return Row(
-                          spacing: 8,
+                          spacing: AppSpacing.xs,
                           children: [
                             if (source != null)
                               AccountLogo(
@@ -151,7 +143,7 @@ class TransactionListItem extends StatelessWidget {
                             Text(
                               source?.name ?? '-',
                               style: theme.textTheme.labelSmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
+                                color: palette.ink2,
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -166,7 +158,7 @@ class TransactionListItem extends StatelessWidget {
                               child: Text(
                                 target?.name ?? '-',
                                 style: theme.textTheme.labelSmall?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
+                                  color: palette.ink2,
                                 ),
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -176,7 +168,7 @@ class TransactionListItem extends StatelessWidget {
                       }
 
                       return Row(
-                        spacing: 8,
+                        spacing: AppSpacing.xs,
                         children: [
                           if (source != null)
                             AccountLogo(
@@ -188,7 +180,7 @@ class TransactionListItem extends StatelessWidget {
                             child: Text(
                               source?.name ?? "-",
                               style: theme.textTheme.labelSmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
+                                color: palette.ink2,
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -203,11 +195,13 @@ class TransactionListItem extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(
-                  "$amountPrefix${installment.referenceAmount.asCurrency(locale: locale)}",
-                  style: theme.textTheme.bodyLarge?.copyWith(
+                MoneyText(
+                  amountPrefix == '-'
+                      ? -installment.referenceAmount
+                      : installment.referenceAmount,
+                  showSign: amountPrefix.isNotEmpty,
+                  style: theme.textTheme.titleMedium?.copyWith(
                     color: amountColor,
-                    fontWeight: FontWeight.bold,
                   ),
                 ),
                 if (installment.installmentCount != null &&
@@ -218,7 +212,7 @@ class TransactionListItem extends StatelessWidget {
                       installment.installmentNumber!,
                     ),
                     style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                      color: palette.ink2,
                     ),
                   ),
               ],
@@ -228,4 +222,19 @@ class TransactionListItem extends StatelessWidget {
       ),
     );
   }
+
+  /// O selo de status é um preenchimento com ícone claro por cima — por isso
+  /// aqui vale a cor cheia (`success`, `violet`, `goldDeep`) e não a tinta de
+  /// texto da paleta.
+  static Color _statusFill(InstallmentStatus status) => switch (status) {
+    InstallmentStatus.settled => AppColors.violet,
+    InstallmentStatus.paid => AppColors.success,
+    _ => AppColors.goldDeep,
+  };
+
+  static IconData _statusIcon(InstallmentStatus status) => switch (status) {
+    InstallmentStatus.settled => Icons.done_all,
+    InstallmentStatus.paid => Icons.check,
+    _ => Icons.schedule,
+  };
 }

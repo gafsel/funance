@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/icons_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
+import 'package:funances/core/widgets/app_chip.dart';
+import 'package:funances/core/widgets/money_text.dart';
 import 'package:funances/features/home/presentation/model/overview_view_model.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/core/presentation/display_names.dart';
@@ -24,71 +27,41 @@ class CategoryDetailTable extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
+    final palette = context.palette;
     final isExpense = type == CategoryType.expense;
 
     return SizedBox(
       width: double.infinity,
       child: DataTable(
-        columnSpacing: 24,
-        headingRowColor: WidgetStateProperty.all(
-          theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-        ),
+        columnSpacing: AppSpacing.lg,
         columns: [
-          DataColumn(
-            label: Text(
-              l10n.category,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-          DataColumn(
-            label: Text(
-              l10n.overviewPlanning,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            numeric: true,
-          ),
-          DataColumn(
-            label: Text(
-              l10n.overviewEffective,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            numeric: true,
-          ),
-          DataColumn(
-            label: Text(
-              l10n.realization,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            numeric: true,
-          ),
-          DataColumn(
-            label: Text(
-              l10n.difference,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
+          DataColumn(label: Text(l10n.category)),
+          DataColumn(label: Text(l10n.overviewPlanning), numeric: true),
+          DataColumn(label: Text(l10n.overviewEffective), numeric: true),
+          DataColumn(label: Text(l10n.realization), numeric: true),
+          DataColumn(label: Text(l10n.difference)),
         ],
         rows: summaries.map((summary) {
           final realization = summary.plannedAmount > 0
               ? (summary.actualAmount / summary.plannedAmount)
               : 0.0;
           final difference = summary.actualAmount - summary.plannedAmount;
-          
+
           Color statusColor;
           IconData statusIcon;
 
           if (summary.actualAmount == 0) {
-            statusColor = Colors.grey;
+            statusColor = palette.ink3;
             statusIcon = Icons.do_not_disturb_on;
           } else if (summary.actualAmount == summary.plannedAmount) {
-            statusColor = AppColors.success;
+            statusColor = palette.successText;
             statusIcon = Icons.check_circle;
           } else {
             final isSuccess = isExpense
                 ? summary.actualAmount < summary.plannedAmount
                 : summary.actualAmount > summary.plannedAmount;
-            
-            statusColor = isSuccess ? AppColors.brightCyan : AppColors.error;
+
+            statusColor = isSuccess ? palette.tealText : palette.dangerText;
             statusIcon = isSuccess ? Icons.check_circle : Icons.error;
           }
 
@@ -110,49 +83,32 @@ class CategoryDetailTable extends StatelessWidget {
                   children: [
                     Icon(
                       summary.category.icon.asIcon(),
+                      // A cor da categoria é DADO, escolhida pelo usuário.
                       color: summary.category.color.asColor(),
                       size: 20,
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppSpacing.xs),
                     Text(summary.category.displayName(context.l10n)),
                   ],
                 ),
               ),
-              DataCell(Text(summary.plannedAmount.asCurrency(locale: locale))),
-              DataCell(Text(summary.actualAmount.asCurrency(locale: locale))),
+              DataCell(MoneyText(summary.plannedAmount)),
+              DataCell(MoneyText(summary.actualAmount)),
               DataCell(
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    realization.asPercent(locale: context.locale),
-                    style: TextStyle(
-                      color: statusColor,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                StatusPill(
+                  label: realization.asPercent(locale: context.locale),
+                  color: statusColor,
                 ),
               ),
               DataCell(
                 Row(
-                  spacing: 8,
+                  spacing: AppSpacing.xs,
                   children: [
-                    Icon(
-                      statusIcon,
-                      color: statusColor,
-                      size: 20,
-                    ),
+                    Icon(statusIcon, color: statusColor, size: 20),
                     if (difference != 0)
                       Text(
                         diffText,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
+                        style: theme.textTheme.titleSmall?.copyWith(
                           color: statusColor,
                         ),
                       ),

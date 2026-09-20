@@ -119,10 +119,14 @@ class _NotifierEmRevisao extends ReconciliationNotifier {
   }
 }
 
-Future<void> _pump(WidgetTester tester) async {
+Future<void> _pump(
+  WidgetTester tester, {
+  Brightness brightness = Brightness.light,
+}) async {
   await tester.pumpWidget(
     goldenApp(
       ReconciliationScreen(account: _conta),
+      brightness: brightness,
       overrides: goldenOverrides(
         accounts: [_conta],
         categories: [_categoria],
@@ -166,6 +170,31 @@ void main() {
     await expectLater(
       find.byType(ReconciliationScreen),
       matchesGoldenFile('images/reconciliation_desktop.png'),
+    );
+  });
+
+  // M7 — o mesmo par no tema escuro.
+  testWidgets('conciliação — revisão em cartões (mobile, escuro)', (
+    tester,
+  ) async {
+    await setGoldenSurface(tester, const Size(760, 1600));
+    await _pump(tester, brightness: Brightness.dark);
+
+    await expectLater(
+      find.byType(ReconciliationScreen),
+      matchesGoldenFile('images/reconciliation_mobile_escuro.png'),
+    );
+  });
+
+  testWidgets('conciliação — revisão em duas colunas (desktop, escuro)', (
+    tester,
+  ) async {
+    await setGoldenSurface(tester, const Size(1400, 1400));
+    await _pump(tester, brightness: Brightness.dark);
+
+    await expectLater(
+      find.byType(ReconciliationScreen),
+      matchesGoldenFile('images/reconciliation_desktop_escuro.png'),
     );
   });
 }
