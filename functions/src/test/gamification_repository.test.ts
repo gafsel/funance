@@ -92,17 +92,23 @@ describe("GamificationRepositoryImpl.getPeriodSummaries", () => {
         const rows = await new GamificationRepositoryImpl().getPeriodSummaries("w1", 2026, 7);
 
         expect(rows).toEqual([
+            // F1.10 — a linha carrega também os três totais em CENTAVOS
+            // INTEIROS, que são a fonte da verdade para quem soma (o XP dos
+            // aldeões compara realizado com planejado e depois soma o mês).
             {
                 categoryId: "salario", type: "income", allocation: undefined, isSystem: false,
                 actualAmount: 8000, generalPlannedAmount: 0, specificPlannedAmount: 0,
+                actualAmountCents: 800000, generalPlannedAmountCents: 0, specificPlannedAmountCents: 0,
             },
             {
                 categoryId: "lazer", type: "expense", allocation: "comfort", isSystem: false,
                 actualAmount: 620, generalPlannedAmount: 500, specificPlannedAmount: 400,
+                actualAmountCents: 62000, generalPlannedAmountCents: 50000, specificPlannedAmountCents: 40000,
             },
             {
                 categoryId: "aportes", type: "expense", allocation: "investment", isSystem: false,
                 actualAmount: 1000, generalPlannedAmount: 1000, specificPlannedAmount: 1000,
+                actualAmountCents: 100000, generalPlannedAmountCents: 100000, specificPlannedAmountCents: 100000,
             },
         ]);
     });

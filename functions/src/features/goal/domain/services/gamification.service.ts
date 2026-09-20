@@ -17,6 +17,7 @@ import {
     WeeklyMissionType,
     WeeklyMissionWrite,
     WeeklySummaryRow,
+    XpOnceGroup,
     readWorkspaceStreaks,
 } from "../repositories/gamification.repository";
 import { CategoryPlanningModel } from "../../../finance/domain/models/finance.models";
@@ -51,6 +52,29 @@ import {
     localMidnightInstant,
     startOfWeekInTz,
 } from "./gamification_time.util";
+import { isMonthKey } from "../../../../core/utils/month_key";
+import { MonthlyVillagersReport } from "../models/monthly_report.model";
+import {
+    VILLAGE_ALIVE_XP,
+    VILLAGE_MIN_VILLAGERS,
+    VILLAGER_ALIVE_XP,
+    VILLAGER_XP_CATEGORY_CAP,
+    VillagerRow,
+    VillagersOutcome,
+    evaluateVillagers,
+} from "./villagers";
+
+/**
+ * Último instante de um mês `YYYY-MM`, no fuso do produto.
+ *
+ * É o que decide QUAL semana recebe o XP da aldeia na barra semanal. Derivar
+ * da chave (e não do relógio de quem chama) é o que faz o cron do dia 1 e o
+ * recálculo retroativo de dois meses depois creditarem a mesma semana.
+ */
+function monthEndInstant(monthKey: string): Date {
+    const [year, month] = monthKey.split("-").map(Number);
+    return getMonthRangeInTz(localMidnightInstant(year, month, 1), 0).end;
+}
 
 /**
  * Um planning cobre o mês se startMonth <= mês <= endMonth (chaves "YYYY-MM").
@@ -806,6 +830,10 @@ export const XP_VALUES = {
     planningCreated: 30,
     /** Ao criar a PRIMEIRA recorrência de uma categoria (uma vez por categoria). */
     recurringCreated: 30,
+    /** HUD mensal — por ALDEÃO (categoria com orçamento) que sobreviveu ao mês. */
+    villagerAlive: VILLAGER_ALIVE_XP,
+    /** HUD mensal — a VILA inteira dentro do plano no fechamento do mês. */
+    villageAlive: VILLAGE_ALIVE_XP,
 } as const;
 
 /** Uma linha da tabela publicada em `config/badges.xpSources`. */
@@ -877,6 +905,24 @@ export const XP_SOURCES: XpSourceConfig[] = [
         },
     },
     {
+        id: "villager_alive",
+        name: { pt: "Aldeão protegido", en: "Villager protected" },
+        xp: XP_VALUES.villagerAlive,
+        description: {
+            pt: `Cada categoria com orçamento que fecha o MÊS sem estourar. Até ${VILLAGER_XP_CATEGORY_CAP} categorias por mês. Categoria sem orçamento não é aldeão e não perde nada.`,
+            en: `Each category with a budget that closes the MONTH without going over. Up to ${VILLAGER_XP_CATEGORY_CAP} categories per month. A category with no budget is not a villager and loses nothing.`,
+        },
+    },
+    {
+        id: "village_alive",
+        name: { pt: "Vila protegida", en: "Village protected" },
+        xp: XP_VALUES.villageAlive,
+        description: {
+            pt: `Bônus no fechamento do mês quando a soma do realizado fica dentro da soma do planejado, com pelo menos ${VILLAGE_MIN_VILLAGERS} categorias com orçamento.`,
+            en: `Bonus at month close when total spending stays within total budget, with at least ${VILLAGE_MIN_VILLAGERS} budgeted categories.`,
+        },
+    },
+    {
         id: "installment_paid",
         name: { pt: "Lançamento planejado pago", en: "Planned entry paid" },
         xp: 15,
@@ -907,12 +953,28 @@ export const XP_SOURCES: XpSourceConfig[] = [
  */
 export type WeeklyXpWriter = (workspaceId: string, date: Date, deltaXp: number) => Promise<void>;
 
+/**
+ * Publicação de `workspaces/{w}.expectedIncome` (HUD mensal).
+ *
+ * INJETADA pelo mesmo motivo do `WeeklyXpWriter`: a implementação vive em
+ * `ExpectedIncomeService` (feature `finance`), e alcançá-la daqui por
+ * `import { container }` arrastaria o container inteiro — com o SDK do Gemini
+ * e o `ofx-js` — para dentro de qualquer arquivo que apenas leia o catálogo de
+ * badges.
+ *
+ * Quem chama é o cron MENSAL: no dia 1 o mês virou, e a previsão publicada
+ * ainda fala do mês que acabou. Os gatilhos de parcela de receita mantêm o
+ * número em dia durante o mês.
+ */
+export type ExpectedIncomePublisher = (workspaceId: string, now: Date) => Promise<void>;
+
 export class GamificationService {
     constructor(
         private gamificationRepository: IGamificationRepository,
         private aiRepository?: IAIRepository,
         private idempotencyService?: IIdempotencyService,
-        private weeklyXpWriter?: WeeklyXpWriter
+        private weeklyXpWriter?: WeeklyXpWriter,
+        private expectedIncomePublisher?: ExpectedIncomePublisher
     ) { }
 
     async addXp(workspaceId: string, amount: number, reason: string): Promise<void> {
@@ -1982,16 +2044,16 @@ export class GamificationService {
      */
     private async awardOnceAndCredit(
         workspaceId: string,
-        group: "planning" | "recurring",
-        categoryId: string,
+        group: XpOnceGroup,
+        key: string,
         xp: number,
         reason: string,
-        now: Date
+        weekDate: Date
     ): Promise<boolean> {
         const awarded = await this.gamificationRepository.awardXpOnce(
             workspaceId,
             group,
-            categoryId,
+            key,
             xp,
             reason
         );
@@ -2000,10 +2062,13 @@ export class GamificationService {
         if (!this.weeklyXpWriter) return true;
 
         try {
-            await this.weeklyXpWriter(workspaceId, now, xp);
+            // `weekDate` é um instante DENTRO da semana que recebe o XP: a
+            // semana corrente para limite/recorrência, o último instante do
+            // mês fechado para a aldeia.
+            await this.weeklyXpWriter(workspaceId, weekDate, xp);
         }
         catch (e) {
-            logger.error(`[GamificationService] XP único ${group}/${categoryId} concedido a ${workspaceId}, mas a barra semanal não atualizou:`, e);
+            logger.error(`[GamificationService] XP único ${group}/${key} concedido a ${workspaceId}, mas a barra semanal não atualizou:`, e);
         }
         return true;
     }
@@ -2124,6 +2189,143 @@ export class GamificationService {
     }
 
     /**
+     * HUD MENSAL — O XP DOS ALDEÕES, no fechamento do mês anterior.
+     *
+     * Cada categoria de DESPESA com orçamento no mês é um aldeão; o HP dele é
+     * o orçamento que sobra. Sobreviveu (realizado ≤ planejado), rende 15 XP,
+     * até 10 categorias; a vila inteira dentro do plano (soma ≤ soma, com no
+     * mínimo 3 aldeões) rende mais 100. A regra em si é pura e mora em
+     * `villagers.ts`.
+     *
+     * Roda dentro do `monthlyGamificationCron` (dia 1, 03:00), que avalia o mês
+     * ANTERIOR — completo desde a meia-noite.
+     *
+     * DUAS idempotências, e as duas são necessárias:
+     *
+     *  - `_idempotency` por `${workspaceId}_${monthKey}` + `monthlyVillagersXp`,
+     *    igual ao XP semanal: duas instâncias do cron no mesmo minuto não
+     *    duplicam o trabalho;
+     *  - o marcador DURÁVEL `xpAwardedFor.monthlyVillagers.<monthKey>`, que é o
+     *    que de fato garante o pagamento único. O marcador de `_idempotency`
+     *    tem TTL de 30 dias, e o script de recálculo retroativo roda depois
+     *    disso — sem o marcador durável, ele pagaria agosto uma segunda vez.
+     */
+    async evaluateMonthlyVillagersXp(workspaceId: string, now: Date = new Date()): Promise<void> {
+        const lastMonth = getMonthRangeInTz(now, -1);
+        const monthKey = `${lastMonth.year}-${String(lastMonth.month).padStart(2, "0")}`;
+
+        const run = async () => {
+            await this.closeMonthlyVillagers(workspaceId, monthKey, now);
+        };
+
+        if (this.idempotencyService) {
+            await this.idempotencyService.runIdempotency(`${workspaceId}_${monthKey}`, "monthlyVillagersXp", run);
+        }
+        else {
+            await run();
+        }
+    }
+
+    /**
+     * Fecha a aldeia de um mês: calcula, concede o XP (uma vez) e grava o
+     * retrato.
+     *
+     * PÚBLICO e sem o embrulho de `_idempotency` de propósito: é por aqui que o
+     * script `recompute_monthly_villagers` recalcula um mês retroativamente. A
+     * proteção contra pagamento duplo é o marcador durável, não o embrulho.
+     *
+     * A semana que recebe o XP na BARRA semanal sai do PRÓPRIO `monthKey` — o
+     * último instante do mês avaliado —, e não do relógio: o mérito é daquele
+     * mês, e é na barra daquela semana que o histórico precisa mostrá-lo
+     * (mesma decisão do XP semanal, que credita a semana AVALIADA). Assim o
+     * cron e o recálculo retroativo creditam a MESMA semana.
+     */
+    async closeMonthlyVillagers(
+        workspaceId: string,
+        monthKey: string,
+        now: Date = new Date()
+    ): Promise<MonthlyVillagersReport | null> {
+        const outcome = await this.computeMonthlyVillagers(workspaceId, monthKey);
+        const xpWeekDate = monthEndInstant(monthKey);
+
+        // Nenhuma categoria com orçamento: não havia aldeia para defender.
+        // Sem retrato e sem XP — gravar um documento por workspace por mês
+        // dizendo "zero aldeões" encheria a base de nada.
+        if (outcome.villagersPlanned === 0) return null;
+
+        const report: MonthlyVillagersReport = {
+            monthKey,
+            villagersPlanned: outcome.villagersPlanned,
+            villagersAlive: outcome.villagersAlive,
+            villageAlive: outcome.villageAlive,
+            // O que o MÊS rendeu, e não o que esta execução concedeu: um
+            // recálculo concede zero (o marcador já existe) e não pode apagar
+            // do histórico o valor do mês.
+            xpAwarded: outcome.xpAwarded,
+            computedAt: now.toISOString(),
+        };
+
+        if (outcome.xpAwarded > 0) {
+            const parts = [`${outcome.villagersAlive}/${outcome.villagersPlanned} aldeões vivos`];
+            if (outcome.villageAlive) parts.push("vila protegida");
+
+            await this.awardOnceAndCredit(
+                workspaceId,
+                "monthlyVillagers",
+                monthKey,
+                outcome.xpAwarded,
+                `Aldeia de ${monthKey}: ${parts.join(", ")}`,
+                xpWeekDate
+            );
+        }
+
+        // O retrato é gravado SEMPRE que houve aldeia — inclusive no mês em que
+        // todos os aldeões morreram (XP zero). É o detalhe do ícone: o app
+        // precisa poder mostrar o mês ruim, não só o bom.
+        await this.gamificationRepository.saveMonthlyReport(workspaceId, report);
+
+        return report;
+    }
+
+    /**
+     * Lê o sumário do mês e avalia a aldeia. LEITURA PURA — nenhuma escrita.
+     *
+     * É o que o `--dry-run` do script de recálculo executa, e é o que torna a
+     * simulação honesta: ela roda exatamente o mesmo cálculo do `--apply`.
+     */
+    async computeMonthlyVillagers(workspaceId: string, monthKey: string): Promise<VillagersOutcome> {
+        if (!isMonthKey(monthKey)) {
+            throw new Error(`[Villagers] monthKey inválido: ${monthKey}`);
+        }
+
+        const [year, month] = monthKey.split("-").map(Number);
+        const rows = await this.gamificationRepository.getPeriodSummaries(workspaceId, year, month);
+
+        const villagers: VillagerRow[] = [];
+        for (const row of rows) {
+            // Categorias de SISTEMA (saldo inicial, virtuais de transferência)
+            // não são escolha de consumo — mesmo filtro do XP semanal.
+            if (row.isSystem) continue;
+            // Só DESPESA vira aldeão: o HP é "orçamento que sobra", e não
+            // existe estourar o limite de uma receita. Um orçamento numa
+            // categoria de receita é um dado estranho, não um aldeão.
+            if (row.type !== CategoryType.expense) continue;
+            // SEM ORÇAMENTO NÃO É ALDEÃO. A categoria aparece no detalhe como
+            // "sem proteção" e não perde nada: o jogo premia planejar de
+            // propósito, então quem ainda não planejou não é punido.
+            if (row.generalPlannedAmountCents <= 0) continue;
+
+            villagers.push({
+                categoryId: row.categoryId,
+                plannedCents: row.generalPlannedAmountCents,
+                actualCents: row.actualAmountCents,
+            });
+        }
+
+        return evaluateVillagers(villagers);
+    }
+
+    /**
      * Badge no_credit_debt ("Livre de Juros"): concedido no cron mensal quando
      * o workspace possui pelo menos uma conta de cartão de crédito e nenhuma
      * parcela PENDENTE vinculada a cartão com vencimento no mês anterior.
@@ -2219,7 +2421,7 @@ export class GamificationService {
      * scheduler todo dia 1, 03:00 America/Sao_Paulo). Mesma varredura
      * paginada com checkpoint do cron semanal.
      */
-    async runMonthlyCronForAllWorkspaces(): Promise<void> {
+    async runMonthlyCronForAllWorkspaces(now: Date = new Date()): Promise<void> {
         const result = await forEachWorkspacePaged(
             {
                 checkpointKey: "gamification_monthly",
@@ -2229,8 +2431,48 @@ export class GamificationService {
             },
             async (workspaceId) => {
                 await this.evaluateMonthlyMissionsCron(workspaceId);
+
+                // HUD mensal: fecha a ALDEIA do mês anterior (XP + retrato).
+                //
+                // Com try/catch PRÓPRIO, como o publisher lá embaixo. O
+                // `forEachWorkspacePaged` já isola a falha de um workspace dos
+                // demais, mas não isola os passos DENTRO de um workspace: um
+                // sumário mensal corrompido derrubaria, junto com a aldeia, os
+                // dois badges que vêm depois — e eles não têm nada a ver com o
+                // HUD. Quem não tem retrato de agosto não pode ficar sem
+                // `no_credit_debt` por causa disso.
+                try {
+                    await this.evaluateMonthlyVillagersXp(workspaceId, now);
+                }
+                catch (e) {
+                    logger.error(
+                        `[GamificationService] Falha ao fechar a aldeia de ${workspaceId}:`,
+                        e
+                    );
+                }
+
                 await this.checkFinancialHealthBadges(workspaceId);
                 await this.checkNoCreditDebtBadge(workspaceId);
+
+                // HUD mensal: o mês virou, e a receita prevista publicada
+                // ainda fala do mês que acabou — republicá-la é o que faz as
+                // razões de poção/ovo/gota apontarem para o mês novo no
+                // primeiro dia dele, sem depender de o usuário lançar algo.
+                //
+                // Best-effort e por último: é APRESENTAÇÃO, e uma falha aqui
+                // não pode derrubar o fechamento do mês (que já aconteceu)
+                // nem os badges dos workspaces seguintes.
+                if (this.expectedIncomePublisher) {
+                    try {
+                        await this.expectedIncomePublisher(workspaceId, now);
+                    }
+                    catch (e) {
+                        logger.error(
+                            `[GamificationService] Falha ao publicar a receita prevista de ${workspaceId}:`,
+                            e
+                        );
+                    }
+                }
             }
         );
 

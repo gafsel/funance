@@ -183,6 +183,15 @@ describe("firestore.rules", () => {
                 // `weeklyStreaks` continua NÚMERO; o mapa vive em `streaks`.
                 weeklyStreaks: 2,
                 streaks: { missions: 2, plan: 3 },
+                // HUD mensal: a receita prevista publicada pelo servidor. O
+                // membro LÊ (é o denominador das razões do HUD) e nunca
+                // escreve.
+                expectedIncome: {
+                    monthKey: "2026-09",
+                    cents: 850000,
+                    source: "planned",
+                    updatedAt: "2026-09-01T06:00:00.000Z",
+                },
             });
             await setDoc(doc(db, `invites/${INVITE_ID}`), inviteDoc());
             await setDoc(doc(db, `workspaces/${WORKSPACE_ID}/orders/${ORDER_ID}`), {
@@ -242,6 +251,18 @@ describe("firestore.rules", () => {
             await setDoc(
                 doc(db, `workspaces/${WORKSPACE_ID}/weekly_xp/${WEEK_ID}`),
                 { year: 2026, week: 37, xp: 175 }
+            );
+            // HUD mensal: o retrato da aldeia no fechamento do mês.
+            await setDoc(
+                doc(db, `workspaces/${WORKSPACE_ID}/monthly_reports/${HEALTH_MONTH_ID}`),
+                {
+                    monthKey: HEALTH_MONTH_ID,
+                    villagersPlanned: 4,
+                    villagersAlive: 3,
+                    villageAlive: true,
+                    xpAwarded: 145,
+                    computedAt: "2026-09-01T06:00:00.000Z",
+                }
             );
         });
     });
@@ -728,6 +749,90 @@ describe("firestore.rules", () => {
             const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
 
             await assertFails(deleteDoc(doc(db, historyPath)));
+        });
+    });
+
+    // ---- HUD mensal: o retrato da aldeia é do servidor ----------------------
+
+    describe("monthly_reports", () => {
+        const reportPath = `workspaces/${WORKSPACE_ID}/monthly_reports/${HEALTH_MONTH_ID}`;
+
+        it("permite que um membro leia o retrato da aldeia", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            const snapshot = await assertSucceeds(getDoc(doc(db, reportPath)));
+            expect(snapshot.data()?.villagersAlive).toBe(3);
+        });
+
+        it("nega leitura para quem não é membro do workspace", async () => {
+            const db = testEnv.authenticatedContext(OUTSIDER_UID).firestore();
+
+            await assertFails(getDoc(doc(db, reportPath)));
+        });
+
+        it("nega leitura para quem não está autenticado", async () => {
+            const db = testEnv.unauthenticatedContext().firestore();
+
+            await assertFails(getDoc(doc(db, reportPath)));
+        });
+
+        it("nega que o membro ressuscite os próprios aldeões", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            await assertFails(
+                updateDoc(doc(db, reportPath), { villagersAlive: 10, xpAwarded: 250 })
+            );
+        });
+
+        it("nega que o membro invente um mês de retrato", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            await assertFails(
+                setDoc(
+                    doc(db, `workspaces/${WORKSPACE_ID}/monthly_reports/2026-09`),
+                    { monthKey: "2026-09", villagersPlanned: 5, villagersAlive: 5, villageAlive: true, xpAwarded: 175 }
+                )
+            );
+        });
+
+        it("nega que o membro apague um mês de retrato", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            await assertFails(deleteDoc(doc(db, reportPath)));
+        });
+    });
+
+    // ---- HUD mensal: expectedIncome no documento do workspace ---------------
+
+    describe("workspaces.expectedIncome", () => {
+        it("permite que o membro LEIA a receita prevista publicada", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            const snapshot = await assertSucceeds(getDoc(doc(db, `workspaces/${WORKSPACE_ID}`)));
+            expect(snapshot.data()?.expectedIncome?.cents).toBe(850000);
+        });
+
+        it("nega que o membro escolha o próprio denominador", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            await assertFails(
+                updateDoc(doc(db, `workspaces/${WORKSPACE_ID}`), {
+                    expectedIncome: { monthKey: "2026-09", cents: 1, source: "planned" },
+                })
+            );
+        });
+
+        it("nega que o workspace NASÇA com uma receita prevista", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            await assertFails(
+                setDoc(doc(db, "workspaces/ws-nascendo-com-pocao"), {
+                    name: "Casa",
+                    type: "personal",
+                    members: [MEMBER_UID],
+                    expectedIncome: { monthKey: "2026-09", cents: 99999999, source: "planned" },
+                })
+            );
         });
     });
 
