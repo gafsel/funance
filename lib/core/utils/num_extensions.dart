@@ -16,8 +16,15 @@ extension NumExtensions on num {
     return "${(this * 100).asCompact(locale: locale)}%";
   }
 
+  /// O valor com sinal EXPLÍCITO quando ele é uma variação.
+  ///
+  /// Zero não leva sinal. O `+` afirma que algo subiu, e "+R$ 0,00" afirma
+  /// uma subida de nada — uma semana sem movimento aparecia como se tivesse
+  /// tido um ganho. É a mesma regra de `AppPalette.moneyInk`, que também
+  /// trata zero como neutro de propósito: um saldo zerado não é uma boa nem
+  /// uma má notícia.
   String asSignedCurrency({String? locale}) {
-    final sign = this >= 0 ? '+' : '';
+    final sign = this > 0 ? '+' : '';
     return '$sign${asCurrency(locale: locale)}';
   }
 }
