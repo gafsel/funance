@@ -1347,5 +1347,6 @@
         "type": "int"
       }
     }
-  }
+  },
+  "automaticTransactionSeeAllShort": "See all"
 }

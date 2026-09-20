@@ -2466,4 +2466,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String missionProgressShort(String progress, String target) {
     return '$progress/$target';
   }
+
+  @override
+  String get automaticTransactionSeeAllShort => 'Ver todas';
 }

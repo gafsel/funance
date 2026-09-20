@@ -123,4 +123,96 @@ void main() {
       expect(find.byType(MissionsScreen), findsNothing);
     });
   });
+
+  group('AutomaticTransactionsScreen', () {
+    testWidgets('B3 — lista TODAS, com ignorar e mover', (tester) async {
+      await _pump(
+        tester,
+        em: '/automatic-transactions',
+        overrides: homeOverrides(
+          pendingAutomatic: homeTypicalPending(count: 5),
+          outroCofre: true,
+        ),
+      );
+
+      expect(
+        find.textContaining('COMPRA CARTAO'),
+        findsNWidgets(5),
+        reason: 'a Home mostra três; a tela é onde estão as outras',
+      );
+
+      // As duas ações que a linha compacta da Home NÃO tem, e que eram o
+      // motivo de a tela precisar de uma porta.
+      expect(find.text('Ignorar'), findsNWidgets(5));
+      expect(find.byIcon(Icons.swap_horiz), findsNWidgets(5));
+      expect(find.text('Cadastrar'), findsNWidgets(5));
+    });
+
+    testWidgets('B3 — sem um segundo cofre, mover não é oferecido', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        em: '/automatic-transactions',
+        overrides: homeOverrides(pendingAutomatic: homeTypicalPending(count: 2)),
+      );
+
+      expect(find.text('Ignorar'), findsNWidgets(2));
+      expect(find.byIcon(Icons.swap_horiz), findsNothing);
+    });
+  });
+
+  group('as portas da Home', () {
+    testWidgets('B3 — "Ver as N pendências" abre a tela cheia', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        em: '/jornada',
+        overrides: homeOverrides(pendingAutomatic: homeTypicalPending()),
+      );
+
+      expect(find.byType(AutomaticTransactionsScreen), findsNothing);
+
+      await tester.tap(find.text('Ver as 35 pendências'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AutomaticTransactionsScreen), findsOneWidget);
+      expect(find.textContaining('COMPRA CARTAO'), findsNWidgets(35));
+    });
+
+    testWidgets('B3 — o cabeçalho das pendências abre a mesma tela', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        em: '/jornada',
+        overrides: homeOverrides(
+          pendingAutomatic: homeTypicalPending(count: 2),
+        ),
+      );
+
+      await tester.tap(find.text('Lançamentos Identificados'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AutomaticTransactionsScreen), findsOneWidget);
+    });
+
+    testWidgets('B3 — "Ver as N metas" abre a lista de metas', (tester) async {
+      await _pump(
+        tester,
+        em: '/jornada',
+        overrides: homeOverrides(goals: homeTwoGoals()),
+      );
+
+      expect(find.byType(GoalsScreen), findsNothing);
+
+      await tester.tap(find.text('Ver as 2 metas'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(GoalsScreen), findsOneWidget);
+      expect(find.text('Reserva de emergência'), findsOneWidget);
+      expect(find.text('Trocar de carro'), findsOneWidget);
+    });
+  });
 }

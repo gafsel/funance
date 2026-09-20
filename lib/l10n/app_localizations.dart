@@ -4393,6 +4393,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'{progress}/{target}'**
   String missionProgressShort(String progress, String target);
+
+  /// No description provided for @automaticTransactionSeeAllShort.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver todas'**
+  String get automaticTransactionSeeAllShort;
 }
 
 class _AppLocalizationsDelegate
