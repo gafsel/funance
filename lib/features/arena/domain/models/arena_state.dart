@@ -5,22 +5,48 @@ import 'package:funances/features/finance/domain/models/installment_model.dart';
 
 part 'arena_state.freezed.dart';
 
-/// Aparência do herói de um membro.
+/// Aparência do herói de um membro — o AVATAR que o usuário escolhe.
 ///
-/// Existe como enum — e não como índice de sprite — porque a customização por
-/// usuário já tem lugar guardado: `users/{uid}.avatar`. Nesta POC o app **não
-/// grava** nada lá; a skin é escolhida pela ordem de entrada no workspace
-/// ([ArenaCalculator.skinForIndex]), e o dia em que o campo existir só o
-/// `fromName` muda.
+/// Existe como enum — e não como índice de sprite — porque o índice é
+/// coordenada de folha e muda quando a arte mudar; o `name` de cada valor é o
+/// que vai para o Firestore em `users/{uid}.avatar` e precisa sobreviver a
+/// isso. Quem traduz enum → tile é `ArenaSprites.hero`, e é o único lugar do
+/// app que sabe de números.
+///
+/// **A ordem importa.** Os quatro primeiros são os da POC, quando a skin
+/// saía da ordem de entrada no workspace ([ArenaCalculator.skinForIndex]):
+/// mantê-los na frente é o que faz quem nunca escolheu nada continuar com o
+/// mesmo boneco de sempre.
 enum HeroSkin {
   knight,
   mage,
   ranger,
-  warrior;
+  warrior,
+  healer,
+  barbarian,
+  monk,
+  smith;
 
+  /// O valor guardado no documento do usuário → a skin, ou NULO quando não dá
+  /// para saber.
+  ///
+  /// Nulo tem dois significados que valem a mesma coisa para quem chama:
+  /// "nunca escolheu" (campo ausente) e "escolheu algo que este app não
+  /// conhece" (um avatar aposentado do catálogo, um documento gravado por uma
+  /// versão futura). Quem decide o que fazer com o nulo é o chamador — a
+  /// Arena cai no boneco da ordem de entrada, o seletor do perfil não marca
+  /// tile nenhum. Nenhum dos dois pode inventar o cavaleiro no lugar, que é o
+  /// que este método fazia antes: uma edição de nome regravava `knight` por
+  /// cima da escolha de quem nunca tinha mexido no seletor.
+  static HeroSkin? tryFromName(String? name) =>
+      HeroSkin.values.where((skin) => skin.name == name).firstOrNull;
+
+  /// Como [tryFromName], mas com o cavaleiro no lugar do nulo.
+  ///
+  /// Só para quem PRECISA de uma skin e não tem índice de membro para cair —
+  /// a pré-visualização de uma grade vazia, por exemplo.
   static HeroSkin fromName(String? name) =>
-      HeroSkin.values.where((skin) => skin.name == name).firstOrNull ??
-      HeroSkin.knight;
+      tryFromName(name) ?? HeroSkin.knight;
 }
 
 /// Aparência — e nome — do monstro da semana.
@@ -59,6 +85,14 @@ sealed class ArenaHero with _$ArenaHero {
     required String name,
     required HeroSkin skin,
     String? photoUrl,
+
+    /// Alguém ANTES dele na fila já usa este mesmo avatar.
+    ///
+    /// Nada impede um casal de escolher o mesmo boneco, e não deveria
+    /// impedir: o avatar é de quem escolhe. Mas dois sprites idênticos lado a
+    /// lado apagam a única informação que a cena tem sobre quem é quem — daí
+    /// o distintivo do segundo ([HeroActor] desenha um anel no chão).
+    @Default(false) bool duplicate,
   }) = _ArenaHero;
 }
 

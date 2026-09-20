@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/features/auth/presentation/providers.dart';
 import 'package:funances/features/user/presentation/controller/user_profile_notifier.dart';
 import 'package:funances/features/user/presentation/model/user_view_models.dart';
 import '../../data/repositories/user_repository_impl.dart';
@@ -23,6 +24,14 @@ sealed class UserViewProviders {
         UserProfileFormState
       >((ref) {
         final userService = ref.watch(UserDomainProviders.service);
-        return UserProfileNotifier(userService: userService);
+
+        // `read`, e não `watch`: o usuário serve para o estado INICIAL do
+        // formulário. Observando-o, a gravação do próprio perfil emitiria o
+        // documento novo pelo `watchUser` e reconstruiria o notifier no meio
+        // da edição, jogando fora o que estava digitado.
+        return UserProfileNotifier(
+          userService: userService,
+          user: ref.read(AuthDomainProviders.currentUser),
+        );
       });
 }

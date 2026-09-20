@@ -75,6 +75,7 @@ apenas reage ao que o cliente gravou.
 | `workspaces/{w}/ai_logs/{id}` — metadados da chamada | servidor | ninguém (rules negam) | F5.3 | [Logs de IA](#logs-de-ia-ai_logs-e-ttl) |
 | `workspaces/{w}/financial_coaching/{id}` — `{message, summary, type, slides[], date, generatedBy}` | servidor | app | F1.11 (tipada no backend) | [`actionPath` dos slides](#actionpath-dos-slides-de-coaching) |
 | `workspaces/{w}/planning_analysis/{YYYY-MM}` — `{month, summary, groups[], categories[], insights[], projectedIncome, incomeSource, generatedBy, createdAt}` | servidor | app | F1.11 (tipada no backend) | — |
+| `users/{uid}.avatar` — o avatar da Arena: `"knight"` \| `"mage"` \| `"ranger"` \| `"warrior"` \| `"healer"` \| `"barbarian"` \| `"monk"` \| `"smith"`; **ausente == nunca escolheu** | app (o dono do documento; as rules de `users/{uid}` já permitem) | app — o próprio usuário direto, e os DEMAIS membros pela callable `getWorkspaceMembers` | wp/avatar | [Avatar do herói](#avatar-do-herói-usersuidavatar) |
 | **Todos os `*Cents`** — `orders.amountCents`, `installments.{amount,paidAmount,referenceAmount}Cents`, `accounts.{initialBalance,limit}Cents`, `accounts.nextInvoice.amountCents`, `goals.{targetAmount,currentAmount}Cents`, `category_planning.{amount,appliedAmount}Cents`, `balance.{delta,balance}Cents`, `period_summaries.categories.{id}.{generalPlannedAmount,specificPlannedAmount,actualAmount}Cents` | servidor (rules negam ao cliente) | ninguém **ainda** — o app passa a ler na etapa C | F1.10 | [Dinheiro em centavos](#dinheiro-em-centavos-f110) |
 
 > **Quando `weekly_missions` da semana corrente EXISTE.** As missões da semana
@@ -86,6 +87,54 @@ apenas reage ao que o cliente gravou.
 > primeiro evento, a consulta devolve vazio: **o app deve mostrar o bloco de
 > missões vazio** (ou o seu estado de "ainda não há missões"), não um erro nem
 > um esqueleto infinito.
+
+### Avatar do herói (`users/{uid}.avatar`)
+
+O boneco que representa o usuário na Arena. Quem escolhe é ele, no onboarding
+(passo do perfil) e na edição de perfil; quem grava é o APP, direto em
+`users/{uid}` — as rules daquele documento já permitem que o dono escreva
+nele, e nenhuma regra mudou por causa deste campo.
+
+**Valores válidos** (oito, e só eles): `knight`, `mage`, `ranger`, `warrior`,
+`healer`, `barbarian`, `monk`, `smith`. São os `name` do enum `HeroSkin` do
+app, e não índices de sprite: a folha de arte é placeholder e vai ser trocada,
+o texto gravado no Firestore não.
+
+**O padrão é a AUSÊNCIA do campo**, não um valor. Quem entrou no app antes do
+seletor existir não escolheu nada, e o app desenha para essa gente o boneco da
+ordem de entrada no workspace (o primeiro membro é o cavaleiro, o segundo é o
+mago) — que é exatamente o que ele já fazia. Um valor fora da lista recebe o
+mesmo tratamento. **O servidor não valida e não preenche**: quem sabe a ordem
+de entrada é o app.
+
+**Quem lê.** A lista de membros da Arena vem INTEIRA da callable
+`getWorkspaceMembers` — inclusive a linha do próprio usuário —, e a callable
+projeta `{id, email, displayName, photoUrl, avatar, createdAt, lastLogin}`.
+As rules de `users/{uid}` só deixam cada um ler o próprio documento, então sem
+esta projeção a escolha do parceiro existiria no banco e nunca chegaria à
+cena.
+
+O app **sobrepõe**, sobre essa lista, o `avatar` do documento local do usuário
+corrente (`ArenaCalculator.roster`). É isso que faz a metade da funcionalidade
+que não depende de servidor nenhum funcionar antes do deploy: **cada um vê a
+própria escolha; a do parceiro só aparece depois que as functions subirem.**
+Sem a sobreposição ninguém veria nada, porque nem a própria linha traz o campo.
+
+**Ordem de rollout: functions ANTES do app.** Não há migração nem
+retrocompatibilidade a proteger — o campo é novo e a projeção só ACRESCENTA
+uma chave a um objeto que o app já sabe ler (`UserModel.avatar` é opcional, e
+uma versão antiga do app simplesmente ignora a chave). Subir as functions
+primeiro faz o avatar do parceiro já estar disponível no instante em que a
+versão nova do app chega às lojas; subir na ordem inversa deixa uma janela em
+que cada um só vê a si mesmo, sem nada quebrado e sem aviso nenhum na tela.
+
+**Ordem de entrada.** A callable lê os documentos com
+`where(documentId, in: [...])`, e o Firestore devolve isso na ordem dos UIDs —
+não na ordem de chegada. Quem precisa da chegada (a Arena, para decidir o
+boneco de quem não escolheu) ordena pelo array `workspaces/{w}.members`, que é
+a mesma lista que o backend usa em `assertWorkspaceOwner` para saber quem é o
+dono. **A ordem da resposta da callable não é contrato** e não deve ser
+tratada como tal.
 
 ### O que o app precisa acompanhar
 

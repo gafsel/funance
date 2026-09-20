@@ -15,7 +15,16 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$UserModel {
 
- String get id; String get email; String? get displayName; String? get photoUrl; DateTime get createdAt; DateTime? get lastLogin;
+ String get id; String get email; String? get displayName; String? get photoUrl;/// O herói que representa este usuário na Arena — o `name` de um
+/// `HeroSkin` (`knight`, `mage`, `ranger`, `warrior`, `healer`,
+/// `barbarian`, `monk`, `smith`).
+///
+/// **Nulo é um valor legítimo**, e não um campo faltando por engano:
+/// todo mundo que entrou no app antes do seletor existir não escolheu
+/// nada, e a Arena continua desenhando para essa gente o boneco da
+/// ordem de entrada. Guardado como TEXTO, e não como índice de sprite,
+/// porque o índice é coordenada da folha de arte e a folha vai mudar.
+ String? get avatar; DateTime get createdAt; DateTime? get lastLogin;
 /// Create a copy of UserModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +37,16 @@ $UserModelCopyWith<UserModel> get copyWith => _$UserModelCopyWithImpl<UserModel>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserModel&&(identical(other.id, id) || other.id == id)&&(identical(other.email, email) || other.email == email)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.photoUrl, photoUrl) || other.photoUrl == photoUrl)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.lastLogin, lastLogin) || other.lastLogin == lastLogin));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserModel&&(identical(other.id, id) || other.id == id)&&(identical(other.email, email) || other.email == email)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.photoUrl, photoUrl) || other.photoUrl == photoUrl)&&(identical(other.avatar, avatar) || other.avatar == avatar)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.lastLogin, lastLogin) || other.lastLogin == lastLogin));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,email,displayName,photoUrl,createdAt,lastLogin);
+int get hashCode => Object.hash(runtimeType,id,email,displayName,photoUrl,avatar,createdAt,lastLogin);
 
 @override
 String toString() {
-  return 'UserModel(id: $id, email: $email, displayName: $displayName, photoUrl: $photoUrl, createdAt: $createdAt, lastLogin: $lastLogin)';
+  return 'UserModel(id: $id, email: $email, displayName: $displayName, photoUrl: $photoUrl, avatar: $avatar, createdAt: $createdAt, lastLogin: $lastLogin)';
 }
 
 
@@ -48,7 +57,7 @@ abstract mixin class $UserModelCopyWith<$Res>  {
   factory $UserModelCopyWith(UserModel value, $Res Function(UserModel) _then) = _$UserModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String email, String? displayName, String? photoUrl, DateTime createdAt, DateTime? lastLogin
+ String id, String email, String? displayName, String? photoUrl, String? avatar, DateTime createdAt, DateTime? lastLogin
 });
 
 
@@ -65,12 +74,13 @@ class _$UserModelCopyWithImpl<$Res>
 
 /// Create a copy of UserModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? email = null,Object? displayName = freezed,Object? photoUrl = freezed,Object? createdAt = null,Object? lastLogin = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? email = null,Object? displayName = freezed,Object? photoUrl = freezed,Object? avatar = freezed,Object? createdAt = null,Object? lastLogin = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String,displayName: freezed == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
 as String?,photoUrl: freezed == photoUrl ? _self.photoUrl : photoUrl // ignore: cast_nullable_to_non_nullable
+as String?,avatar: freezed == avatar ? _self.avatar : avatar // ignore: cast_nullable_to_non_nullable
 as String?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,lastLogin: freezed == lastLogin ? _self.lastLogin : lastLogin // ignore: cast_nullable_to_non_nullable
 as DateTime?,
@@ -155,10 +165,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String email,  String? displayName,  String? photoUrl,  DateTime createdAt,  DateTime? lastLogin)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String email,  String? displayName,  String? photoUrl,  String? avatar,  DateTime createdAt,  DateTime? lastLogin)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _UserModel() when $default != null:
-return $default(_that.id,_that.email,_that.displayName,_that.photoUrl,_that.createdAt,_that.lastLogin);case _:
+return $default(_that.id,_that.email,_that.displayName,_that.photoUrl,_that.avatar,_that.createdAt,_that.lastLogin);case _:
   return orElse();
 
 }
@@ -176,10 +186,10 @@ return $default(_that.id,_that.email,_that.displayName,_that.photoUrl,_that.crea
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String email,  String? displayName,  String? photoUrl,  DateTime createdAt,  DateTime? lastLogin)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String email,  String? displayName,  String? photoUrl,  String? avatar,  DateTime createdAt,  DateTime? lastLogin)  $default,) {final _that = this;
 switch (_that) {
 case _UserModel():
-return $default(_that.id,_that.email,_that.displayName,_that.photoUrl,_that.createdAt,_that.lastLogin);}
+return $default(_that.id,_that.email,_that.displayName,_that.photoUrl,_that.avatar,_that.createdAt,_that.lastLogin);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -193,10 +203,10 @@ return $default(_that.id,_that.email,_that.displayName,_that.photoUrl,_that.crea
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String email,  String? displayName,  String? photoUrl,  DateTime createdAt,  DateTime? lastLogin)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String email,  String? displayName,  String? photoUrl,  String? avatar,  DateTime createdAt,  DateTime? lastLogin)?  $default,) {final _that = this;
 switch (_that) {
 case _UserModel() when $default != null:
-return $default(_that.id,_that.email,_that.displayName,_that.photoUrl,_that.createdAt,_that.lastLogin);case _:
+return $default(_that.id,_that.email,_that.displayName,_that.photoUrl,_that.avatar,_that.createdAt,_that.lastLogin);case _:
   return null;
 
 }
@@ -208,13 +218,23 @@ return $default(_that.id,_that.email,_that.displayName,_that.photoUrl,_that.crea
 @JsonSerializable()
 
 class _UserModel implements UserModel {
-  const _UserModel({required this.id, required this.email, this.displayName, this.photoUrl, required this.createdAt, this.lastLogin});
+  const _UserModel({required this.id, required this.email, this.displayName, this.photoUrl, this.avatar, required this.createdAt, this.lastLogin});
   factory _UserModel.fromJson(Map<String, dynamic> json) => _$UserModelFromJson(json);
 
 @override final  String id;
 @override final  String email;
 @override final  String? displayName;
 @override final  String? photoUrl;
+/// O herói que representa este usuário na Arena — o `name` de um
+/// `HeroSkin` (`knight`, `mage`, `ranger`, `warrior`, `healer`,
+/// `barbarian`, `monk`, `smith`).
+///
+/// **Nulo é um valor legítimo**, e não um campo faltando por engano:
+/// todo mundo que entrou no app antes do seletor existir não escolheu
+/// nada, e a Arena continua desenhando para essa gente o boneco da
+/// ordem de entrada. Guardado como TEXTO, e não como índice de sprite,
+/// porque o índice é coordenada da folha de arte e a folha vai mudar.
+@override final  String? avatar;
 @override final  DateTime createdAt;
 @override final  DateTime? lastLogin;
 
@@ -231,16 +251,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserModel&&(identical(other.id, id) || other.id == id)&&(identical(other.email, email) || other.email == email)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.photoUrl, photoUrl) || other.photoUrl == photoUrl)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.lastLogin, lastLogin) || other.lastLogin == lastLogin));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserModel&&(identical(other.id, id) || other.id == id)&&(identical(other.email, email) || other.email == email)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.photoUrl, photoUrl) || other.photoUrl == photoUrl)&&(identical(other.avatar, avatar) || other.avatar == avatar)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.lastLogin, lastLogin) || other.lastLogin == lastLogin));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,email,displayName,photoUrl,createdAt,lastLogin);
+int get hashCode => Object.hash(runtimeType,id,email,displayName,photoUrl,avatar,createdAt,lastLogin);
 
 @override
 String toString() {
-  return 'UserModel(id: $id, email: $email, displayName: $displayName, photoUrl: $photoUrl, createdAt: $createdAt, lastLogin: $lastLogin)';
+  return 'UserModel(id: $id, email: $email, displayName: $displayName, photoUrl: $photoUrl, avatar: $avatar, createdAt: $createdAt, lastLogin: $lastLogin)';
 }
 
 
@@ -251,7 +271,7 @@ abstract mixin class _$UserModelCopyWith<$Res> implements $UserModelCopyWith<$Re
   factory _$UserModelCopyWith(_UserModel value, $Res Function(_UserModel) _then) = __$UserModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String email, String? displayName, String? photoUrl, DateTime createdAt, DateTime? lastLogin
+ String id, String email, String? displayName, String? photoUrl, String? avatar, DateTime createdAt, DateTime? lastLogin
 });
 
 
@@ -268,12 +288,13 @@ class __$UserModelCopyWithImpl<$Res>
 
 /// Create a copy of UserModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? email = null,Object? displayName = freezed,Object? photoUrl = freezed,Object? createdAt = null,Object? lastLogin = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? email = null,Object? displayName = freezed,Object? photoUrl = freezed,Object? avatar = freezed,Object? createdAt = null,Object? lastLogin = freezed,}) {
   return _then(_UserModel(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String,displayName: freezed == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
 as String?,photoUrl: freezed == photoUrl ? _self.photoUrl : photoUrl // ignore: cast_nullable_to_non_nullable
+as String?,avatar: freezed == avatar ? _self.avatar : avatar // ignore: cast_nullable_to_non_nullable
 as String?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,lastLogin: freezed == lastLogin ? _self.lastLogin : lastLogin // ignore: cast_nullable_to_non_nullable
 as DateTime?,

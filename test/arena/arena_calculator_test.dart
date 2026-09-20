@@ -153,10 +153,16 @@ ArenaAccountReading _account(
   current: current,
 );
 
-UserModel _member(String id, {String? name, String email = ''}) => UserModel(
+UserModel _member(
+  String id, {
+  String? name,
+  String email = '',
+  String? avatar,
+}) => UserModel(
   id: id,
   email: email.isEmpty ? '$id@funances.test' : email,
   displayName: name,
+  avatar: avatar,
   createdAt: _sunday,
 );
 
@@ -165,6 +171,8 @@ ArenaInputs _inputs({
   List<InstallmentModel> week = const [],
   List<InstallmentModel> overdue = const [],
   List<UserModel> members = const [],
+  List<String> memberOrder = const [],
+  UserModel? currentUser,
   DateTime? today,
   double weeklyXp = 0,
   Map<String, AccountType> types = _contas,
@@ -175,6 +183,8 @@ ArenaInputs _inputs({
   weekInstallments: week,
   overdueInstallments: overdue,
   members: members,
+  memberOrder: memberOrder,
+  currentUser: currentUser,
   accountTypes: types,
   weeklyXp: weeklyXp,
 );
@@ -1304,6 +1314,150 @@ void main() {
       expect(state.heroes.map((h) => h.name).toList(), ['Gabriel', 'Ana']);
       expect(state.heroes.first.skin, isNot(state.heroes.last.skin));
       expect(state.extraMembers, 1);
+    });
+
+    test('o herói usa o avatar ESCOLHIDO pelo membro', () {
+      final state = ArenaCalculator.from(
+        _inputs(
+          members: [
+            _member('u1', name: 'Gabriel', avatar: 'smith'),
+            _member('u2', name: 'Ana', avatar: 'healer'),
+          ],
+        ),
+      );
+
+      expect(state.heroes.map((h) => h.skin).toList(), [
+        HeroSkin.smith,
+        HeroSkin.healer,
+      ]);
+      expect(state.heroes.every((h) => !h.duplicate), isTrue);
+    });
+
+    test('sem avatar, vale a ordem de entrada — como antes do seletor', () {
+      final state = ArenaCalculator.from(
+        _inputs(members: [_member('u1'), _member('u2')]),
+      );
+
+      expect(state.heroes.map((h) => h.skin).toList(), [
+        HeroSkin.knight,
+        HeroSkin.mage,
+      ]);
+    });
+
+    test('um avatar desconhecido cai no boneco da ordem de entrada', () {
+      final state = ArenaCalculator.from(
+        _inputs(
+          members: [
+            _member('u1', avatar: 'necromante'),
+            _member('u2', avatar: ''),
+          ],
+        ),
+      );
+
+      expect(state.heroes.map((h) => h.skin).toList(), [
+        HeroSkin.knight,
+        HeroSkin.mage,
+      ]);
+    });
+
+    test('avatares iguais: só o SEGUNDO ganha o distintivo', () {
+      final state = ArenaCalculator.from(
+        _inputs(
+          members: [
+            _member('u1', avatar: 'mage'),
+            _member('u2', avatar: 'mage'),
+          ],
+        ),
+      );
+
+      expect(state.heroes.map((h) => h.skin).toList(), [
+        HeroSkin.mage,
+        HeroSkin.mage,
+      ]);
+      expect(state.heroes.map((h) => h.duplicate).toList(), [false, true]);
+    });
+
+    test('a ordem é a do array do workspace, não a dos UIDs', () {
+      // A callable lê os documentos com `where(documentId, in: [...])`, e o
+      // Firestore devolve isso na ordem dos UIDs. Aqui a lista chega ao
+      // contrário da chegada — que é o caso real de um cofre em que o
+      // criador tem uid "z".
+      final state = ArenaCalculator.from(
+        _inputs(
+          members: [
+            _member('a-ana', name: 'Ana'),
+            _member('z-gabriel', name: 'Gabriel'),
+          ],
+          memberOrder: const ['z-gabriel', 'a-ana'],
+        ),
+      );
+
+      expect(state.heroes.map((h) => h.name).toList(), ['Gabriel', 'Ana']);
+      // E o boneco da ordem de entrada segue o criador, não o alfabeto.
+      expect(state.heroes.first.skin, HeroSkin.knight);
+      expect(state.heroes.last.skin, HeroSkin.mage);
+    });
+
+    test('quem não está no array vai para o fim, sem sumir', () {
+      final state = ArenaCalculator.from(
+        _inputs(
+          members: [
+            _member('novato', name: 'Novato'),
+            _member('dono', name: 'Dono'),
+          ],
+          memberOrder: const ['dono'],
+        ),
+      );
+
+      expect(state.heroes.map((h) => h.name).toList(), ['Dono', 'Novato']);
+    });
+
+    test('sem o array, a ordem que veio é mantida', () {
+      final state = ArenaCalculator.from(
+        _inputs(
+          members: [_member('u1', name: 'Um'), _member('u2', name: 'Dois')],
+        ),
+      );
+
+      expect(state.heroes.map((h) => h.name).toList(), ['Um', 'Dois']);
+    });
+
+    test('o avatar do PRÓPRIO usuário vem do documento local', () {
+      // A callable ainda não devolve `avatar` (o deploy das functions não
+      // aconteceu): a linha do próprio usuário chega sem o campo, e mesmo
+      // assim ele tem de se ver como escolheu.
+      final state = ArenaCalculator.from(
+        _inputs(
+          members: [
+            _member('u1', name: 'Gabriel'),
+            _member('u2', name: 'Ana'),
+          ],
+          memberOrder: const ['u1', 'u2'],
+          currentUser: _member('u1', name: 'Gabriel', avatar: 'barbarian'),
+        ),
+      );
+
+      expect(state.heroes.first.skin, HeroSkin.barbarian);
+      // E o parceiro continua dependendo do servidor: sem o campo, fallback.
+      expect(state.heroes.last.skin, HeroSkin.mage);
+    });
+
+    test('a sobreposição não mexe em quem não é o usuário corrente', () {
+      final state = ArenaCalculator.from(
+        _inputs(
+          members: [
+            _member('u1', name: 'Gabriel', avatar: 'smith'),
+            _member('u2', name: 'Ana', avatar: 'healer'),
+          ],
+          memberOrder: const ['u1', 'u2'],
+          currentUser: _member('u2', name: 'Ana', avatar: 'monk'),
+        ),
+      );
+
+      expect(state.heroes.map((h) => h.skin).toList(), [
+        HeroSkin.smith,
+        HeroSkin.monk,
+      ]);
     });
 
     test('sem nome, o herói usa o começo do e-mail', () {

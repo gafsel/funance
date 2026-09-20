@@ -474,6 +474,43 @@ class AppLocalizationsPt extends AppLocalizations {
   String get profilePhotoGallery => 'Galeria';
 
   @override
+  String get profileAvatarLabel => 'Seu herói na Arena';
+
+  @override
+  String get profileAvatarHint => 'É este boneco que luta por você na semana.';
+
+  @override
+  String get profileAvatarPreview => 'Na Arena, você fica assim';
+
+  @override
+  String get profileAvatarUnknown =>
+      'O herói que estava salvo não existe mais. Escolha outro.';
+
+  @override
+  String get avatarKnight => 'Cavaleiro';
+
+  @override
+  String get avatarMage => 'Mago';
+
+  @override
+  String get avatarRanger => 'Batedor';
+
+  @override
+  String get avatarWarrior => 'Guerreira';
+
+  @override
+  String get avatarHealer => 'Curandeira';
+
+  @override
+  String get avatarBarbarian => 'Bárbaro';
+
+  @override
+  String get avatarMonk => 'Monge';
+
+  @override
+  String get avatarSmith => 'Ferreiro';
+
+  @override
   String get planning503020Title => 'Planejamento 50-30-20';
 
   @override
