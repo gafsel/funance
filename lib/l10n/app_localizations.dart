@@ -4633,6 +4633,18 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'{days, plural, =1{O caixa não cobre os compromissos da semana. O maior é {name}, {amount}, vencido há 1 dia.} other{O caixa não cobre os compromissos da semana. O maior é {name}, {amount}, vencido há {days} dias.}}'**
   String arenaShortfallCauseOverdue(String name, String amount, int days);
+
+  /// No description provided for @arenaResidue.
+  ///
+  /// In pt, this message translates to:
+  /// **'{amount} de resíduo'**
+  String arenaResidue(String amount);
+
+  /// No description provided for @arenaAdjustPayment.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ajustar pagamento'**
+  String get arenaAdjustPayment;
 }
 
 class _AppLocalizationsDelegate

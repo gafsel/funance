@@ -666,6 +666,68 @@ void main() {
       expect(state.isDefeated, isFalse);
     });
 
+    test('resíduo de centavos conta como quitado', () {
+      // Medido na base: de 73 faturas do cofre, TRÊS fecharam com dois a
+      // quatro centavos faltando. É o arredondamento do banco, não dívida —
+      // e com "resto exatamente zero" essas semanas terminariam com o monstro
+      // vivo em quatro centavos, para sempre, sem vitória nenhuma.
+      final state = ArenaCalculator.from(
+        _inputs(week: [invoicePaid(id: 'c6', amount: 3942.04, paid: 3942.00)]),
+      );
+
+      final linha = state.commitments.single;
+      expect(linha.isStruck, isTrue);
+      expect(linha.isPartial, isFalse);
+      expect(linha.residue, closeTo(0.04, 0.001));
+      expect(state.isDefeated, isTrue, reason: 'a semana acabou');
+
+      // O VALOR continua exato: a tolerância decide quando a luta acabou, não
+      // quanto ela custou.
+      expect(state.monsterHp, closeTo(0.04, 0.001));
+      expect(state.monsterMaxHp, 3942.04);
+    });
+
+    test('um real faltando NÃO é resíduo', () {
+      final state = ArenaCalculator.from(
+        _inputs(week: [invoicePaid(id: 'f', amount: 3942.04, paid: 3941.04)]),
+      );
+
+      final linha = state.commitments.single;
+      expect(linha.isStruck, isFalse);
+      expect(linha.isPartial, isTrue);
+      expect(linha.residue, 0);
+      expect(state.isDefeated, isFalse);
+      expect(state.monsterHp, 1);
+    });
+
+    test('cinco centavos ainda é resíduo; seis não é', () {
+      // O limite, dos dois lados. Medido no histórico: o maior resíduo real é
+      // de quatro centavos, e cinco dá uma folga de um.
+      final noLimite = ArenaCalculator.from(
+        _inputs(week: [invoicePaid(id: 'a', amount: 100.05, paid: 100.00)]),
+      );
+      final passouDoLimite = ArenaCalculator.from(
+        _inputs(week: [invoicePaid(id: 'b', amount: 100.06, paid: 100.00)]),
+      );
+
+      expect(noLimite.isDefeated, isTrue);
+      expect(passouDoLimite.isDefeated, isFalse);
+    });
+
+    test('uma linha com resíduo não salva a semana inteira', () {
+      final state = ArenaCalculator.from(
+        _inputs(
+          week: [
+            invoicePaid(id: 'quitada', amount: 3942.04, paid: 3942.00),
+            _expense(id: 'luz', amount: 180, dayOffset: 2),
+          ],
+        ),
+      );
+
+      expect(state.isDefeated, isFalse);
+      expect(state.struckCount, 1);
+    });
+
     test('o atraso conta pelo que ainda FALTA', () {
       // Uma fatura vencida com pagamento parcial deve o resto, não o total.
       final state = ArenaCalculator.from(

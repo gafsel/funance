@@ -2644,4 +2644,12 @@ class AppLocalizationsPt extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String arenaResidue(String amount) {
+    return '$amount de resíduo';
+  }
+
+  @override
+  String get arenaAdjustPayment => 'Ajustar pagamento';
 }

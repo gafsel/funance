@@ -1559,5 +1559,14 @@
         "type": "int"
       }
     }
-  }
+  },
+  "arenaResidue": "{amount} de resíduo",
+  "@arenaResidue": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "arenaAdjustPayment": "Ajustar pagamento"
 }

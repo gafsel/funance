@@ -220,6 +220,10 @@ Widget arenaApp(
           path: '/accounts/:id/statement',
           builder: (_, _) => const _Marker('extrato'),
         ),
+        GoRoute(
+          path: '/transactions/form',
+          builder: (_, _) => const _Marker('editar lançamento'),
+        ),
       ],
     ),
     localizationsDelegates: arenaLocalizationDelegates,

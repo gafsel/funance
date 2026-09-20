@@ -1559,5 +1559,14 @@
         "type": "int"
       }
     }
-  }
+  },
+  "arenaResidue": "{amount} residue",
+  "@arenaResidue": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "arenaAdjustPayment": "Adjust payment"
 }

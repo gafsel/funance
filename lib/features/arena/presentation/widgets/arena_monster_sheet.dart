@@ -11,6 +11,7 @@ import 'package:funances/core/widgets/money_text.dart';
 import 'package:funances/features/arena/domain/models/arena_state.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/presentation/widgets/transaction_payment_sheet.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 /// O que o monstro guarda: **todos** os compromissos da semana.
@@ -264,6 +265,18 @@ class _CommitmentRow extends StatelessWidget {
                       color: palette.warningText,
                     ),
                   ),
+                // Centavos de arredondamento do banco numa linha já dada por
+                // quitada. Discreto de propósito: não é dívida, mas some da
+                // tela faria a soma da folha não bater com a barra.
+                if (commitment.residue > 0)
+                  Text(
+                    l10n.arenaResidue(
+                      commitment.residue.asCurrency(locale: context.locale),
+                    ),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: palette.ink3,
+                    ),
+                  ),
                 // Pagou a mais: o excedente não derruba o monstro além do que
                 // ele tinha, mas some da tela seria pior.
                 if (commitment.overpaid > 0)
@@ -286,12 +299,23 @@ class _CommitmentRow extends StatelessWidget {
                 commitment.planned,
                 style: theme.textTheme.titleSmall?.copyWith(color: ink),
               ),
-              // O botão é para o que está PENDENTE. Uma linha com pagamento
-              // parcial já tem status `paid` na base, e o caminho de quitação
-              // do app é para quitar pendente: reabri-lo ali seria inventar
-              // um fluxo que esta POC não verificou. O resto se resolve pela
-              // edição do lançamento, e a folha garante a leitura certa.
-              if (!commitment.isPaid)
+              // O botão de QUITAR é para o que está pendente. Uma linha com
+              // pagamento parcial já tem status `paid` na base, e reabrir o
+              // caminho de quitação sobre ela seria inventar um fluxo que
+              // esta POC não verificou.
+              //
+              // O que ela ganha é a porta para EDITAR o lançamento, que é
+              // onde o valor pago se corrige. A rota já existe e é a mesma
+              // que o histórico usa.
+              if (commitment.isPartial)
+                TextButton(
+                  key: const ValueKey('arena-adjust-payment'),
+                  onPressed: () => context.push(
+                    '/transactions/form?installmentId=${installment.id}',
+                  ),
+                  child: Text(l10n.arenaAdjustPayment),
+                )
+              else if (!commitment.isPaid)
                 TextButton(
                   onPressed: () async {
                     final navigator = Navigator.of(context);

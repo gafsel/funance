@@ -308,6 +308,68 @@ void main() {
       expect(find.text('Confirmar pago'), findsNothing);
     });
 
+    testWidgets('resíduo de centavos: espada inteira e texto discreto', (
+      tester,
+    ) async {
+      await pumpArena(
+        tester,
+        state: arenaTestState(
+          commitments: [
+            arenaTestCommitment(
+              id: 'c6',
+              description: 'Fatura Cartão C6',
+              amount: 3942.04,
+              partial: 3942.00,
+              dayOffset: 2,
+            ),
+          ],
+        ),
+      );
+
+      expect(
+        find.text('Derrotado'),
+        findsOneWidget,
+        reason: 'quatro centavos de arredondamento não mantêm o bicho vivo',
+      );
+
+      await tester.tap(find.byType(ArenaHpBar).last);
+      await arenaFrames(tester);
+
+      expect(
+        tester.widgetList<SwordMark>(find.byType(SwordMark)).single.half,
+        isFalse,
+        reason: 'a linha caiu: espada inteira',
+      );
+      expect(find.textContaining('de resíduo'), findsOneWidget);
+      expect(find.textContaining('0,04'), findsWidgets);
+      expect(find.textContaining('de R\$ 3.942,04'), findsNothing);
+    });
+
+    testWidgets('a linha parcial oferece ajustar o pagamento', (tester) async {
+      await pumpArena(
+        tester,
+        state: arenaTestState(
+          commitments: [
+            arenaTestCommitment(
+              id: 'inter',
+              description: 'Fatura do Cartão Inter',
+              amount: 12130.09,
+              partial: 1000,
+              dayOffset: 2,
+            ),
+          ],
+        ),
+      );
+
+      await tester.tap(find.byType(ArenaHpBar).last);
+      await arenaFrames(tester);
+
+      await tester.tap(find.byKey(const ValueKey('arena-adjust-payment')));
+      await arenaFrames(tester, count: 20);
+
+      expect(find.text('editar lançamento'), findsOneWidget);
+    });
+
     testWidgets('pagar a mais aparece na linha, não na barra', (tester) async {
       await pumpArena(
         tester,

@@ -129,16 +129,35 @@ sealed class ArenaCommitment with _$ArenaCommitment {
     return over > 0 ? over : 0;
   }
 
-  /// Houve pagamento, mas ele não cobriu o compromisso inteiro.
-  bool get isPartial => struck > 0 && remaining > 0;
+  /// Até quanto um resto conta como zero, em reais.
+  ///
+  /// Medido na base: de 73 faturas do cofre, TRÊS fecharam com dois a quatro
+  /// centavos faltando (R\$ 3.942,04 cobrados, R\$ 3.942,00 pagos). É o
+  /// arredondamento do banco, não uma dívida — e com "resto exatamente zero"
+  /// essas semanas terminariam com o monstro vivo em quatro centavos, para
+  /// sempre, sem vitória nenhuma.
+  ///
+  /// Cinco centavos é o maior resíduo que o histórico mostra, com folga de
+  /// um. O valor em reais continua EXATO nas somas: o que a tolerância muda é
+  /// só a leitura de "isto acabou".
+  static const double residueTolerance = 0.05;
 
-  /// O golpe caiu POR INTEIRO: nada mais falta deste compromisso.
+  /// O resto que sobrou de um compromisso já dado por quitado. Zero quando
+  /// ele fechou redondo.
+  double get residue => isStruck ? remaining : 0;
+
+  /// Houve pagamento, mas ele não cobriu o compromisso — de verdade, e não
+  /// por causa de centavos.
+  bool get isPartial => struck > 0 && remaining > residueTolerance;
+
+  /// O golpe caiu POR INTEIRO: nada relevante falta deste compromisso.
   ///
   /// É o que conta como linha resolvida. Um pagamento marcado para sexta não
   /// desconta hoje — senão o monstro nasceria abatido no domingo, com a
   /// semana inteira de débitos automáticos já descontada antes de qualquer um
   /// deles sair da conta.
-  bool get isStruck => !isScheduledStrike && remaining <= 0 && planned > 0;
+  bool get isStruck =>
+      !isScheduledStrike && remaining <= residueTolerance && planned > 0;
 
   /// Pendente e já vencida DENTRO desta semana. Não enfurece o monstro (isso
   /// é privilégio do atraso de semanas anteriores), mas sobe para o topo da
@@ -294,9 +313,23 @@ sealed class ArenaState with _$ArenaState {
 
   bool get isEnraged => overdueAmount > 0;
 
-  /// O monstro morre quando TUDO está pago. Não há mais rateio de orçamento
-  /// aqui: o que mantém o bicho em pé é compromisso, e só.
-  bool get isDefeated => commitmentsInitial > 0 && commitmentsRemaining <= 0;
+  /// O monstro morre quando TODA linha caiu.
+  ///
+  /// Linha a linha, e não pelo total: "caiu" tolera o resíduo de centavos
+  /// (ver [ArenaCommitment.residueTolerance]), e um total com quatro centavos
+  /// de arredondamento manteria o bicho vivo para sempre. O número da barra
+  /// continua exato — o que a tolerância decide é quando a luta acabou, não
+  /// quanto ela custou.
+  bool get isDefeated {
+    if (commitmentsInitial <= 0) return false;
+    if (commitments.isEmpty) return commitmentsRemaining <= 0;
+
+    return commitments.every((c) => c.isStruck);
+  }
+
+  /// Centavos de arredondamento que sobraram numa semana vencida.
+  double get residue =>
+      commitments.fold<double>(0, (total, c) => total + c.residue);
 
   List<ArenaCommitment> get pendingCommitments =>
       commitments.where((c) => !c.isStruck).toList();

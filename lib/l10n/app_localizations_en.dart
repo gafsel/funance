@@ -2626,4 +2626,12 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String arenaResidue(String amount) {
+    return '$amount residue';
+  }
+
+  @override
+  String get arenaAdjustPayment => 'Adjust payment';
 }
