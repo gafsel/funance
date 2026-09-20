@@ -73,6 +73,9 @@ class AppProgressBar extends StatelessWidget {
   final String? semanticLabel;
   final bool animate;
 
+  /// Chave do retângulo preenchido, para medida em teste.
+  static const Key fillKey = _Fill.fillKey;
+
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
@@ -81,6 +84,13 @@ class AppProgressBar extends StatelessWidget {
     // espessura — `brPill` satura na metade da menor dimensão.
     const radius = AppRadius.brPill;
 
+    // O `SizedBox` externo é quem dá altura à barra, e o `Positioned.fill`
+    // repassa essa altura ao preenchimento em constraints APERTADAS. Sem ele,
+    // o preenchimento era um filho não posicionado do `Stack`, recebia
+    // constraints frouxas e terminava num `DecoratedBox` sem filho — que se
+    // dimensiona por `constraints.smallest`, ou seja, 4, 8 ou 12 pixels de
+    // altura zero. Nenhuma barra do app pintava progresso; os goldens
+    // registraram a barra vazia como se fosse o desenho certo.
     final bar = ClipRRect(
       borderRadius: radius,
       child: SizedBox(
@@ -90,11 +100,14 @@ class AppProgressBar extends StatelessWidget {
             Positioned.fill(
               child: ColoredBox(color: trackColor ?? palette.line),
             ),
-            _Fill(
-              fraction: fraction,
-              color: color,
-              radius: radius,
-              animate: animate && !AppDurations.reduceMotion(context),
+            Positioned.fill(
+              child: _Fill(
+                fraction: fraction,
+                color: color,
+                radius: radius,
+                height: size.height,
+                animate: animate && !AppDurations.reduceMotion(context),
+              ),
             ),
           ],
         ),
@@ -114,13 +127,24 @@ class _Fill extends StatelessWidget {
     required this.fraction,
     required this.color,
     required this.radius,
+    required this.height,
     required this.animate,
   });
 
   final double fraction;
   final Color? color;
   final BorderRadius radius;
+
+  /// Altura da barra, repassada explicitamente: é o que garante que o
+  /// preenchimento tenha área. Ver o comentário em [AppProgressBar.build].
+  final double height;
   final bool animate;
+
+  /// Chave do retângulo pintado. Existe para que um teste possa MEDIR a área
+  /// preenchida — `tester.getSize(find.byKey(AppProgressBar.fillKey))` — em
+  /// vez de só conferir que o widget está na árvore. Era exatamente a
+  /// diferença entre o defeito e o desenho certo.
+  static const Key fillKey = ValueKey('app-progress-fill');
 
   @override
   Widget build(BuildContext context) {
@@ -130,11 +154,15 @@ class _Fill extends StatelessWidget {
         alignment: Alignment.centerLeft,
         child: FractionallySizedBox(
           widthFactor: f,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: color,
-              gradient: color == null ? AppGradients.progress : null,
-              borderRadius: radius,
+          child: SizedBox(
+            key: fillKey,
+            height: height,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: color,
+                gradient: color == null ? AppGradients.progress : null,
+                borderRadius: radius,
+              ),
             ),
           ),
         ),
@@ -255,26 +283,44 @@ class AppPoolBar extends StatelessWidget {
             child: Stack(
               children: [
                 Positioned.fill(child: ColoredBox(color: palette.line)),
+                // `Positioned.fill` de novo, e pelo mesmo motivo do
+                // preenchimento de [AppProgressBar]: como filho solto do
+                // `Stack` a linha recebia constraints frouxas e se media pelo
+                // conteúdo. Um segmento SEM rótulo é um `ColoredBox` sem
+                // filho, de altura zero — ou seja, os pools estreitos, os que
+                // não têm espaço para o número, eram justamente os que não
+                // pintavam nada. Com rótulo a faixa ficava da altura do texto,
+                // nunca da altura pedida.
                 if (visible.isNotEmpty)
-                  Row(
-                    children: [
-                      for (var i = 0; i < visible.length; i++) ...[
-                        Expanded(
-                          flex: (visible[i].fraction * 1000).round(),
-                          child: ColoredBox(
-                            color: visible[i].color,
-                            child: _label(context, visible[i]),
+                  Positioned.fill(
+                    child: Row(
+                      // E `stretch` para fechar a mesma porta no eixo cruzado:
+                      // o alinhamento padrão do `Row` é `center`, que passa
+                      // altura FROUXA para as faixas e devolve a altura zero
+                      // por outro caminho.
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (var i = 0; i < visible.length; i++) ...[
+                          Expanded(
+                            // O flex é a fração em milésimos, com piso 1: um
+                            // pool de 0,04% arredondaria para zero e sumiria
+                            // da barra em vez de virar um fio.
+                            flex: _flex(visible[i].fraction),
+                            child: ColoredBox(
+                              color: visible[i].color,
+                              child: _label(context, visible[i]),
+                            ),
                           ),
-                        ),
-                        if (i < visible.length - 1) SizedBox(width: gap),
+                          if (i < visible.length - 1) SizedBox(width: gap),
+                        ],
+                        // O resto do trilho, quando os pools não somam o total.
+                        if (total < 1)
+                          Expanded(
+                            flex: _flex(1 - total),
+                            child: const SizedBox.shrink(),
+                          ),
                       ],
-                      // O resto do trilho, quando os pools não somam o total.
-                      if (total < 1)
-                        Expanded(
-                          flex: ((1 - total) * 1000).round(),
-                          child: const SizedBox.shrink(),
-                        ),
-                    ],
+                    ),
                   ),
               ],
             ),
@@ -283,6 +329,10 @@ class AppPoolBar extends StatelessWidget {
       ),
     );
   }
+
+  /// Peso da faixa na linha, em milésimos e nunca zero.
+  static int _flex(double fraction) =>
+      (fraction.clamp(0.0, 1.0) * 1000).round().clamp(1, 1000);
 
   /// O rótulo dentro do segmento, quando ele couber.
   ///
