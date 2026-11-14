@@ -21,7 +21,7 @@ permissions:
 
 env:
   NODE_VERSION: '20'
-  JAVA_VERSION: '17'
+  JAVA_VERSION: '21'
   FIREBASE_PROJECT_ID: funances2-testes
 
 jobs:

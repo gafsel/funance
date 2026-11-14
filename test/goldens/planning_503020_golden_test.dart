@@ -1,3 +1,9 @@
+// As imagens de referência foram gravadas no macOS. No Linux do CI o texto
+// renderiza diferente (1,7% a 2,5% dos pixels), então o CI roda com
+// `--exclude-tags golden`; localmente estes testes continuam valendo.
+@Tags(['golden'])
+library;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:funances/features/finance/domain/models/category_planning_model.dart';
@@ -29,8 +35,9 @@ class _PlanejamentosFake with NaoUsado implements CategoryPlanningService {
   final List<CategoryPlanningModel> itens;
 
   @override
-  Future<List<CategoryPlanningModel>> plannings({required String month}) async =>
-      itens;
+  Future<List<CategoryPlanningModel>> plannings({
+    required String month,
+  }) async => itens;
 }
 
 class _ResumoFake with NaoUsado implements PeriodSummaryService {

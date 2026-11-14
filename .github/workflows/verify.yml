@@ -17,8 +17,8 @@ env:
   FLUTTER_VERSION: 3.44.3
   # As Cloud Functions declaram "engines": { "node": "20" }.
   NODE_VERSION: '20'
-  # O emulador do Firestore roda em Java; 17 é o mínimo suportado.
-  JAVA_VERSION: '17'
+  # O emulador do Firestore roda em Java; o firebase-tools 15 exige 21 ou mais.
+  JAVA_VERSION: '21'
 
 jobs:
   flutter:
@@ -46,8 +46,10 @@ jobs:
       - name: Analyze
         run: flutter analyze
 
+      # Os testes de imagem (tag `golden`) ficam de fora: as referências foram
+      # gravadas no macOS e não batem no Linux. Rodam localmente.
       - name: Testes
-        run: flutter test
+        run: flutter test --exclude-tags golden
 
       - name: Build web
         run: flutter build web --release --dart-define=AMBIENTE=${{ inputs.ambiente }}

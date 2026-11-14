@@ -1,3 +1,9 @@
+// As imagens de referência foram gravadas no macOS. No Linux do CI o texto
+// renderiza diferente (1,7% a 2,5% dos pixels), então o CI roda com
+// `--exclude-tags golden`; localmente estes testes continuam valendo.
+@Tags(['golden'])
+library;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -229,10 +235,7 @@ class _TokenSheet extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text('Elevado', style: theme.textTheme.titleMedium),
-                        Text(
-                          'meta, conta',
-                          style: theme.textTheme.bodySmall,
-                        ),
+                        Text('meta, conta', style: theme.textTheme.bodySmall),
                       ],
                     ),
                   ),

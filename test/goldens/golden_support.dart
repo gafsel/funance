@@ -68,9 +68,7 @@ Future<void> loadAppFonts() async {
       // Leitura SÍNCRONA de propósito: dentro de `testWidgets` o relógio é
       // falso e um `await` de I/O real nunca completa — o golden travava.
       final bytes = File('assets/fonts/$file.ttf').readAsBytesSync();
-      loader.addFont(
-        Future<ByteData>.value(ByteData.sublistView(bytes)),
-      );
+      loader.addFont(Future<ByteData>.value(ByteData.sublistView(bytes)));
     }
     await loader.load();
   }
@@ -121,12 +119,12 @@ class FakeAccountRepository with NaoUsado implements IAccountRepository {
   final List<AccountModel> accounts;
 
   @override
-  Stream<List<AccountModel>> getAccounts(String workspaceId, {AccountType? type}) =>
-      Stream.value(
-        type == null
-            ? accounts
-            : accounts.where((a) => a.type == type).toList(),
-      );
+  Stream<List<AccountModel>> getAccounts(
+    String workspaceId, {
+    AccountType? type,
+  }) => Stream.value(
+    type == null ? accounts : accounts.where((a) => a.type == type).toList(),
+  );
 }
 
 class FakeCategoryRepository with NaoUsado implements ICategoryRepository {

@@ -1,0 +1,4 @@
+# Tags usadas nos testes. `golden` marca os testes de imagem de test/goldens,
+# que só batem na plataforma em que as referências foram gravadas (macOS).
+tags:
+  golden:

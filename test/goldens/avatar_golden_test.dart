@@ -1,3 +1,9 @@
+// As imagens de referência foram gravadas no macOS. No Linux do CI o texto
+// renderiza diferente (1,7% a 2,5% dos pixels), então o CI roda com
+// `--exclude-tags golden`; localmente estes testes continuam valendo.
+@Tags(['golden'])
+library;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -57,10 +63,7 @@ Future<void> _pumpSeletor(
             padding: AppSpacing.allMd,
             child: Align(
               alignment: Alignment.topLeft,
-              child: AvatarField(
-                selected: HeroSkin.ranger,
-                onSelected: (_) {},
-              ),
+              child: AvatarField(selected: HeroSkin.ranger, onSelected: (_) {}),
             ),
           ),
         ),

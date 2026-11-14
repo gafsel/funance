@@ -1,3 +1,9 @@
+// As imagens de referência foram gravadas no macOS. No Linux do CI o texto
+// renderiza diferente (1,7% a 2,5% dos pixels), então o CI roda com
+// `--exclude-tags golden`; localmente estes testes continuam valendo.
+@Tags(['golden'])
+library;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
@@ -57,7 +63,11 @@ InstallmentModel _parcela({
 final _matches = <ReconciliationMatch>[
   // Casado
   ReconciliationMatch(
-    documentTransaction: _doc(description: 'SUPERMERCADO XYZ', amount: -250, dia: 3),
+    documentTransaction: _doc(
+      description: 'SUPERMERCADO XYZ',
+      amount: -250,
+      dia: 3,
+    ),
     systemInstallment: _parcela(
       id: 'i1',
       description: 'Mercado do mês',
@@ -68,7 +78,11 @@ final _matches = <ReconciliationMatch>[
   ),
   // Sugerido
   ReconciliationMatch(
-    documentTransaction: _doc(description: 'PADARIA CENTRAL', amount: -48.9, dia: 5),
+    documentTransaction: _doc(
+      description: 'PADARIA CENTRAL',
+      amount: -48.9,
+      dia: 5,
+    ),
     systemInstallment: _parcela(
       id: 'i2',
       description: 'Padaria',
@@ -112,10 +126,7 @@ class _NotifierEmRevisao extends ReconciliationNotifier {
     required super.account,
     required super.analytics,
   }) {
-    state = state.copyWith(
-      step: ReconciliationStep.review,
-      matches: _matches,
-    );
+    state = state.copyWith(step: ReconciliationStep.review, matches: _matches);
   }
 }
 
