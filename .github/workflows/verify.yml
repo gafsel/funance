@@ -15,8 +15,8 @@ name: Verify
 env:
   # Mesma versão usada localmente (flutter --version -> 3.44.3, Dart 3.12.2).
   FLUTTER_VERSION: 3.44.3
-  # As Cloud Functions declaram "engines": { "node": "20" }.
-  NODE_VERSION: '20'
+  # As Cloud Functions declaram "engines": { "node": "22" }.
+  NODE_VERSION: '22'
   # O emulador do Firestore roda em Java; o firebase-tools 15 exige 21 ou mais.
   JAVA_VERSION: '21'
 

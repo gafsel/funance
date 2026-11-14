@@ -15,7 +15,7 @@
     "test:rules": "firebase emulators:exec --project demo-funances --only firestore \"jest --config jest.integration.config.js --testPathPatterns src/test/rules\""
   },
   "engines": {
-    "node": "20"
+    "node": "22"
   },
   "main": "lib/index.js",
   "dependencies": {

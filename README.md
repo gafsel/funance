@@ -192,8 +192,8 @@ chamado tanto no pull request quanto no push para `main`:
 | Job | O que roda |
 |---|---|
 | `flutter` | `pub get`, `gen-l10n`, `build_runner`, `analyze`, `test` (sem os testes de imagem, tag `golden`), `build web` (Flutter pinado em 3.44.3 stable) |
-| `functions` | Node 20 + Java 21, `npm ci`, `lint`, `build`, `npm test` |
-| `rules` | Node 20 + Java 21, `npm ci`, `npm run test:rules` |
+| `functions` | Node 22 + Java 21, `npm ci`, `lint`, `build`, `npm test` |
+| `rules` | Node 22 + Java 21, `npm ci`, `npm run test:rules` |
 
 No PR, o preview do Hosting só publica depois que os três jobs passam. No push
 para `main`, o deploy (Hosting, Functions, rules do Firestore e do Storage e
