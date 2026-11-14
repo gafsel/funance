@@ -1,11 +1,12 @@
 import 'dart:convert';
 
+import 'package:funances/firebase_ambiente.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:funances/features/finance/domain/models/planning_503020_analysis.dart';
 import 'package:funances/features/finance/domain/repositories/planning_analysis_repository.dart';
 
 class PlanningAnalysisRepositoryImpl implements IPlanningAnalysisRepository {
-  final FirebaseFunctions _functions = FirebaseFunctions.instance;
+  final FirebaseFunctions _functions = funcoesDoAmbiente;
 
   @override
   Future<Planning503020Analysis> analyze(String workspaceId) async {

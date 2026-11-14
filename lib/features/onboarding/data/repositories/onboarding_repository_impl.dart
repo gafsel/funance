@@ -1,3 +1,4 @@
+import 'package:funances/firebase_ambiente.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:funances/core/exceptions/business_exception.dart';
 import 'package:funances/features/finance/data/models/finance_mapper.dart';
@@ -5,7 +6,7 @@ import 'package:funances/features/onboarding/domain/models/onboarding_models.dar
 import 'package:funances/features/onboarding/domain/repositories/onboarding_repository.dart';
 
 class OnboardingRepositoryImpl implements OnboardingRepository {
-  final FirebaseFunctions _functions = FirebaseFunctions.instance;
+  final FirebaseFunctions _functions = funcoesDoAmbiente;
 
   @override
   Future<PlanningSuggestions> analysePlanning({

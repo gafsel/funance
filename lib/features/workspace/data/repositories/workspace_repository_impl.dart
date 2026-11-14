@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:funances/firebase_ambiente.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:funances/core/exceptions/business_exception.dart';
 import 'package:funances/core/firestore/offline_write.dart';
@@ -10,7 +11,7 @@ import 'package:funances/features/workspace/domain/repositories/workspace_reposi
 
 class WorkspaceRepositoryImpl implements IWorkspaceRepository {
   final _firestore = FirebaseFirestore.instance;
-  final _functions = FirebaseFunctions.instance;
+  final _functions = funcoesDoAmbiente;
   final String _collection = 'workspaces';
 
   @override

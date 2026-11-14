@@ -1,9 +1,10 @@
+import 'package:funances/firebase_ambiente.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:funances/features/goal/domain/models/goal_feasibility_model.dart';
 import 'package:funances/features/goal/presentation/model/goal_view_model.dart';
 
 class GoalFeasibilityRepository {
-  final _functions = FirebaseFunctions.instance;
+  final _functions = funcoesDoAmbiente;
 
   Future<GoalFeasibilityModel> analyze(
     String workspaceId,

@@ -1,3 +1,4 @@
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 
 import 'firebase_options.dart';
@@ -29,3 +30,14 @@ FirebaseOptions firebaseOptionsDoAmbiente() {
       );
   }
 }
+
+/// Região das Cloud Functions do ambiente. Tem de ser a mesma que o servidor
+/// usa (`functions/src/core/config/region.ts`): o projeto antigo fica em
+/// `us-central1` e os do Funances 2 em São Paulo.
+String get regiaoDasFunctions =>
+    ambiente == 'legado' ? 'us-central1' : 'southamerica-east1';
+
+/// Use isto no lugar de `FirebaseFunctions.instance`, que sempre aponta para
+/// `us-central1`.
+FirebaseFunctions get funcoesDoAmbiente =>
+    FirebaseFunctions.instanceFor(region: regiaoDasFunctions);

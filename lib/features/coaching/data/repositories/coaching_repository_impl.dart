@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:funances/firebase_ambiente.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:funances/features/coaching/data/models/coaching_mapper.dart';
 import '../../domain/models/coaching_model.dart';
@@ -6,7 +7,7 @@ import '../../domain/repositories/coaching_repository.dart';
 
 class CoachingRepositoryImpl implements ICoachingRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseFunctions _functions = FirebaseFunctions.instance;
+  final FirebaseFunctions _functions = funcoesDoAmbiente;
 
   CollectionReference _getInsightsCollection(String workspaceId) {
     return _firestore
