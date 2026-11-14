@@ -16,3 +16,9 @@ firebase-debug.log
 firebase-debug.*.log
 firestore-debug.log
 .firebase/
+
+# Variáveis de ambiente e segredos locais. A chave do Gemini fica no Secret
+# Manager (ver src/core/config/secrets.ts); nenhum arquivo .env é versionado.
+.env
+.env.*
+.secret.local

@@ -1,8 +1,8 @@
 import { GenerateContentConfig, GenerateContentResponse, GoogleGenAI, Schema, Type } from "@google/genai";
-import { defineString } from "firebase-functions/params";
 import { HttpsError } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 import { AIConfig, DEFAULT_CONFIG, PINNED_FLASH_MODEL, PINNED_PRO_MODEL } from "../config/ai.config";
+import { GEMINI_API_KEY } from "../config/secrets";
 import { InstallmentType, OrderModel, OrderStatus, OrderType } from "../../features/finance/domain/models/finance.models";
 import * as ofx from "ofx-js";
 import * as crypto from "crypto";
@@ -22,8 +22,6 @@ import {
     ValidatedWeeklyMissions,
     WeeklyMissionExpectation,
 } from "./ai_validation";
-
-const geminiApiKey = defineString("GEMINI_API_KEY");
 
 // Cache em memória do config de IA (evita uma leitura no Firestore a cada chamada)
 const CONFIG_CACHE_TTL_MS = 5 * 60 * 1000; // ~5 minutos
@@ -501,7 +499,7 @@ interface GenerateParams {
 }
 
 export class GeminiAIRepositoryImpl implements IAIRepository {
-    private genAI: GoogleGenAI;
+    private _genAI?: GoogleGenAI;
 
     // Modelos estáveis usados quando o primário falha por indisponibilidade
     // (503 "high demand", 404 de modelo aposentado etc.).
@@ -513,8 +511,16 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
     private static readonly FILE_PROCESSING_TIMEOUT_MS = 60_000;
     private static readonly FILE_POLL_INTERVAL_MS = 1_000;
 
-    constructor() {
-        this.genAI = new GoogleGenAI({ apiKey: geminiApiKey.value() });
+    /**
+     * Cliente criado na PRIMEIRA chamada, e não no construtor: o valor de um
+     * segredo só existe em execução, e `.value()` lança se for lido enquanto o
+     * CLI carrega o módulo para descobrir as funções no deploy.
+     */
+    private get genAI(): GoogleGenAI {
+        if (!this._genAI) {
+            this._genAI = new GoogleGenAI({ apiKey: GEMINI_API_KEY.value() });
+        }
+        return this._genAI;
     }
 
     /**

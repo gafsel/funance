@@ -9,6 +9,7 @@
 
 import * as admin from "firebase-admin";
 import { setGlobalOptions } from "firebase-functions/v2";
+import { GEMINI_API_KEY } from "./core/config/secrets";
 
 // Padrão para os triggers leves (gatilhos de Firestore, crons de manutenção e
 // callables simples): pouca memória, timeout curto e teto de instâncias baixo
@@ -21,6 +22,8 @@ setGlobalOptions({
     maxInstances: 10,
     memory: "256MiB",
     timeoutSeconds: 60,
+    // Vinculado a todas as funções de propósito — ver core/config/secrets.ts.
+    secrets: [GEMINI_API_KEY],
 });
 
 admin.initializeApp();
