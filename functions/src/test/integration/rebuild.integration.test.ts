@@ -562,7 +562,12 @@ describe("rebuildWorkspace — cenário determinístico", () => {
 
 describe("rebuildWorkspace — generalPlannedAmount com histórico", () => {
     const WORKSPACE_ID = `ws-plan-${Date.now()}`;
-    const NOW = new Date();
+    // Data FIXA, e não `new Date()`: as asserções abaixo citam a semana
+    // `2026-W31` e o valor 67743, que só valem enquanto três das quatro
+    // janelas de 12 meses cobrem essa semana. Com o relógio real o teste
+    // passou a falhar na virada para outubro de 2026 (duas janelas) e de novo
+    // em novembro (uma), sem nenhuma mudança no código.
+    const NOW = new Date(2026, 8, 17, 12);
 
     const monthKey = (offset: number) => {
         const date = new Date(NOW.getFullYear(), NOW.getMonth() + offset, 1);
