@@ -5,6 +5,12 @@ name: Verify
 
 'on':
   workflow_call:
+    inputs:
+      # Projeto Firebase para o qual o build web aponta (ver
+      # lib/firebase_ambiente.dart). O CI nunca compila para o projeto antigo.
+      ambiente:
+        type: string
+        default: testes
 
 env:
   # Mesma versão usada localmente (flutter --version -> 3.44.3, Dart 3.12.2).
@@ -44,7 +50,7 @@ jobs:
         run: flutter test
 
       - name: Build web
-        run: flutter build web --release
+        run: flutter build web --release --dart-define=AMBIENTE=${{ inputs.ambiente }}
 
       - uses: actions/upload-artifact@v4
         with:

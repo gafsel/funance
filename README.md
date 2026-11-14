@@ -204,26 +204,18 @@ vez e reaproveitado pelos jobs de deploy via artifact.
 > houver warnings/infos pré-existentes no projeto. Remova os flags depois da
 > limpeza do analyzer.
 
-### Pendência: IAM do service account para o `deploy_backend`
+### Onde o CI publica
 
-O job `deploy_backend` reaproveita o secret `FIREBASE_SERVICE_ACCOUNT_FUNANCE_CEF1B`
-como credencial do Firebase CLI. Esse service account foi criado pelo
-`firebase init hosting:github` apenas com *Firebase Hosting Admin* e
-*API Keys Viewer* — **ele ainda não consegue publicar Functions, rules nem
-indexes**. Antes do primeiro deploy é preciso conceder a ele, no IAM do
-projeto, os seis papéis:
+O CI publica só no projeto de testes do Funances 2 (`funances2-testes`), pelo
+workflow `deploy-testes.yml`. O projeto antigo (`funance-cef1b`, apelido
+`legado` no `.firebaserc`) é a cópia de segurança do app atual e não recebe
+publicação do CI. O desenho completo está em `docs/funances2/etapa-1-ci.md`.
 
-- Cloud Functions Admin
-- Service Account User
-- Firebase Rules Admin
-- Cloud Datastore Index Admin
-- Artifact Registry Writer
-- Cloud Build Editor
-
-Alternativa, se preferir isolar as permissões: criar um service account
-dedicado ao backend, gravá-lo num novo secret (ex.:
-`FIREBASE_SERVICE_ACCOUNT_DEPLOY_BACKEND`) e trocar a referência em
-`.github/workflows/firebase-hosting-merge.yml`.
+A credencial é o segredo `FIREBASE_SERVICE_ACCOUNT` do ambiente `testes` do
+GitHub. A conta de serviço precisa, em `funances2-testes`, dos papéis:
+Firebase Hosting Admin, Cloud Functions Admin, Service Account User, Firebase
+Rules Admin, Cloud Datastore Index Admin, Artifact Registry Writer, Cloud
+Build Editor e Secret Manager Viewer.
 
 Os secrets do Gemini usados via `defineSecret` continuam no Secret Manager do
 projeto — não são configurados no GitHub.

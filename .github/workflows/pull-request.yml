@@ -1,5 +1,5 @@
 # CI de pull request: roda todos os jobs de verificação e, se passarem,
-# publica um preview do Hosting no canal do PR.
+# publica um preview do Hosting no canal do PR, no projeto de testes.
 name: CI e preview do Hosting no PR
 
 'on': pull_request
@@ -16,6 +16,8 @@ permissions:
 jobs:
   verify:
     uses: ./.github/workflows/verify.yml
+    with:
+      ambiente: testes
 
   build_and_preview:
     name: Preview do Hosting
@@ -24,6 +26,7 @@ jobs:
     # (os jobs de verificação continuam rodando normalmente).
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    environment: testes
     steps:
       - uses: actions/checkout@v4
 
@@ -36,5 +39,5 @@ jobs:
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
-          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_FUNANCE_CEF1B }}'
-          projectId: funance-cef1b
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
+          projectId: funances2-testes

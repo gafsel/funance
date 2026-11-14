@@ -1,5 +1,7 @@
 {
   "projects": {
-    "default": "funance-cef1b"
+    "default": "funances2-testes",
+    "testes": "funances2-testes",
+    "legado": "funance-cef1b"
   }
 }

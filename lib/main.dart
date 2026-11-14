@@ -17,7 +17,7 @@ import 'package:funances/l10n/app_localizations.dart';
 
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_mode_provider.dart';
-import 'firebase_options.dart';
+import 'firebase_ambiente.dart';
 
 void main() {
   // runZonedGuarded captura os erros assíncronos que escapam das zonas do
@@ -31,7 +31,7 @@ void main() {
       configureUrlStrategy();
 
       await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
+        options: firebaseOptionsDoAmbiente(),
       );
       await CrashReporter.initialize();
       configureFirestorePersistence();

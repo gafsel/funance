@@ -1,7 +1,26 @@
 # Etapa 1: como o CI passa a publicar no projeto novo
 
-Proposta. Nada aqui foi aplicado: os workflows em `.github/workflows/` e o
-`.firebaserc` continuam como estavam.
+Estado em 14/11/2026: aplicado em parte. O projeto `funances2-testes` existe
+(Firestore em `southamerica-east1`, app web registrado), o `.firebaserc` e os
+workflows já apontam para ele e o build web escolhe o projeto por
+`--dart-define=AMBIENTE`. A seção "Como está hoje" descreve o estado anterior.
+
+Falta para o CI publicar de fato:
+
+- plano Blaze em `funances2-testes` (Functions exigem faturamento);
+- conta de serviço com os papéis listados abaixo e o segredo
+  `FIREBASE_SERVICE_ACCOUNT` no ambiente `testes` do GitHub;
+- `GEMINI_API_KEY` gravada em `funances2-testes`;
+- região das Functions: o código não define região (cai em `us-central1`) e o
+  Firestore novo está em `southamerica-east1`. Os gatilhos do Firestore
+  precisam estar na região do banco, então a região tem de ser definida no
+  servidor e no app antes do primeiro deploy do backend. Fica para a etapa 2,
+  junto com o motor novo;
+- projeto e workflow de produção (etapa 7).
+
+Diferença em relação à proposta: o padrão de `AMBIENTE` num build local é
+`legado`, e não `testes`, porque só o projeto antigo tem Android, iOS e macOS
+registrados. O CI sempre passa `testes`.
 
 ## Como está hoje
 

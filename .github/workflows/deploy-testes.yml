@@ -1,6 +1,10 @@
-# Deploy em push na main: só acontece depois que todos os jobs de
-# verificação (Flutter, Cloud Functions e security rules) ficam verdes.
-name: Deploy no Firebase ao integrar na main
+# Deploy em push na main, SEMPRE no projeto de testes (funances2-testes), e só
+# depois que todos os jobs de verificação (Flutter, Cloud Functions e security
+# rules) ficam verdes.
+#
+# O projeto antigo (funance-cef1b) é a cópia de segurança do app atual e não é
+# publicado pelo CI. Produção do Funances 2 terá um workflow próprio, manual.
+name: Deploy no ambiente de testes ao integrar na main
 
 'on':
   push:
@@ -8,7 +12,7 @@ name: Deploy no Firebase ao integrar na main
       - main
 
 concurrency:
-  group: deploy-main
+  group: deploy-testes
   cancel-in-progress: false
 
 permissions:
@@ -18,16 +22,20 @@ permissions:
 env:
   NODE_VERSION: '20'
   JAVA_VERSION: '17'
-  FIREBASE_PROJECT_ID: funance-cef1b
+  FIREBASE_PROJECT_ID: funances2-testes
 
 jobs:
   verify:
     uses: ./.github/workflows/verify.yml
+    with:
+      ambiente: testes
 
   deploy_hosting:
     name: Deploy do Hosting
     needs: verify
     runs-on: ubuntu-latest
+    # O segredo FIREBASE_SERVICE_ACCOUNT vive no ambiente `testes` do GitHub.
+    environment: testes
     steps:
       - uses: actions/checkout@v4
 
@@ -40,14 +48,16 @@ jobs:
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
-          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_FUNANCE_CEF1B }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
           channelId: live
-          projectId: funance-cef1b
+          projectId: funances2-testes
 
   deploy_backend:
     name: Deploy de Functions, rules (Firestore e Storage) e indexes
     needs: verify
     runs-on: ubuntu-latest
+    # O segredo FIREBASE_SERVICE_ACCOUNT vive no ambiente `testes` do GitHub.
+    environment: testes
     steps:
       - uses: actions/checkout@v4
 
@@ -61,21 +71,17 @@ jobs:
         working-directory: functions
         run: npm ci
 
-      # O mesmo service account usado pelo deploy do Hosting é reaproveitado
-      # aqui como credencial padrão do gcloud/Firebase CLI. Para que este job
-      # funcione, esse service account precisa ter, além dos papéis criados
-      # pelo `firebase init hosting:github` (Firebase Hosting Admin e API Keys
-      # Viewer), os papéis: Cloud Functions Admin, Service Account User,
-      # Firebase Rules Admin, Cloud Datastore Index Admin, Artifact Registry
-      # Writer e Cloud Build Editor. Se preferir isolar as permissões, crie um
-      # service account só para o backend, grave-o em um novo secret (ex.:
-      # FIREBASE_SERVICE_ACCOUNT_DEPLOY_BACKEND) e troque a referência abaixo.
+      # A conta de serviço do ambiente `testes` precisa, no projeto
+      # funances2-testes, dos papéis: Firebase Hosting Admin, Cloud Functions
+      # Admin, Service Account User, Firebase Rules Admin, Cloud Datastore
+      # Index Admin, Artifact Registry Writer, Cloud Build Editor e Secret
+      # Manager Viewer (o deploy confere que GEMINI_API_KEY existe).
       - name: Gravar credenciais do service account
         env:
-          SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FUNANCE_CEF1B }}
+          SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: |
           if [ -z "$SERVICE_ACCOUNT_JSON" ]; then
-            echo "::error::Secret FIREBASE_SERVICE_ACCOUNT_FUNANCE_CEF1B não configurado."
+            echo "::error::Secret FIREBASE_SERVICE_ACCOUNT não configurado no ambiente testes."
             exit 1
           fi
           printf '%s' "$SERVICE_ACCOUNT_JSON" > "${RUNNER_TEMP}/service-account.json"
