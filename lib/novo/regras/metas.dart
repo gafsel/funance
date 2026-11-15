@@ -63,14 +63,14 @@ ProgressoDaMeta progressoDaMeta(
       atual = conta == null ? 0 : -movimentoDesdeOInicio(conta.id);
     case 'quitar':
       // Dívida diminui quando o saldo (negativo) sobe.
-      atual = conta == null ? 0 : movimentoDesdeOInicio(conta.id).clamp(0, 1 << 52);
+      atual = conta == null ? 0 : movimentoDesdeOInicio(conta.id).clamp(0, 9007199254740991);
     default:
       // Juntar: com conta de investimento ligada, o progresso é o saldo
       // real dela. Em conta de uso, o que foi acumulado desde o início.
       if (conta != null) {
         atual = conta.tipo == 'investimento'
-            ? (saldos[conta.id] ?? 0).clamp(0, 1 << 52)
-            : movimentoDesdeOInicio(conta.id).clamp(0, 1 << 52);
+            ? (saldos[conta.id] ?? 0).clamp(0, 9007199254740991)
+            : movimentoDesdeOInicio(conta.id).clamp(0, 9007199254740991);
       }
   }
 

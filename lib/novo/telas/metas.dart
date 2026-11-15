@@ -363,7 +363,7 @@ class _FormularioDeMetaState extends ConsumerState<_FormularioDeMeta> {
     final saldos = ref.watch(saldosProvider);
     final meses = mesesAte(hoje, _prazo);
     final jaTem = _tipo == 'juntar' && conta?.tipo == 'investimento'
-        ? (saldos[conta!.id] ?? 0).clamp(0, 1 << 52)
+        ? (saldos[conta!.id] ?? 0).clamp(0, 9007199254740991)
         : 0;
     final sugerida = alvo == null || meses == 0
         ? null

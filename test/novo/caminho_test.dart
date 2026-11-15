@@ -97,6 +97,11 @@ void main() {
       expect(situacaoDaMeta(meta, p, hoje), contains('No ritmo'));
     });
 
+    test('saldo alto não é cortado (na web, deslocamento de bits tem 32 bits)', () {
+      final p = progressoDaMeta(meta, hoje: hoje, contas: const {'res': reserva}, saldos: const {'res': 900000000}, resumos: const []);
+      expect(p.atualCentavos, 900000000);
+    });
+
     test('parcela insuficiente é dita com o valor que resolveria', () {
       final p = progressoDaMeta(meta, hoje: hoje, contas: const {'res': reserva}, saldos: const {'res': 0}, resumos: const []);
       expect(p.parcelaNecessariaCentavos, 200000);
