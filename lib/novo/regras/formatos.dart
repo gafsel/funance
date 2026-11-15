@@ -11,8 +11,20 @@ String _milhar(int n) {
   return b.toString();
 }
 
+/// Com o "olho" fechado, os valores em reais aparecem como `R$ •••`. É um
+/// estado do aparelho, ligado e desligado por `telas/privacidade.dart`.
+bool valoresOcultos = false;
+
+/// O que aparece no lugar de um valor escondido.
+const valorOculto = r'R$ •••';
+
 /// `R$ 1.234,56`. Negativo com o sinal antes do símbolo.
-String reais(int centavos, {bool comSimbolo = true}) {
+///
+/// Com o olho fechado devolve `R$ •••`, a não ser que [sempre] seja
+/// verdadeiro (o valor que a pessoa está digitando ou confirmando) ou que o
+/// símbolo não seja pedido (texto que vai para dentro de um campo).
+String reais(int centavos, {bool comSimbolo = true, bool sempre = false}) {
+  if (valoresOcultos && comSimbolo && !sempre) return valorOculto;
   // Zero é sempre positivo (na web, o inteiro pode chegar como -0).
   if (centavos == 0) centavos = 0;
   final abs = centavos.abs();

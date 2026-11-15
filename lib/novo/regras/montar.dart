@@ -130,13 +130,13 @@ Montagem montar(
 
 /// A consequência de salvar, em uma frase, para mostrar antes de confirmar.
 String consequencia(Leitura l, {required Conta? conta, Conta? destino}) {
-  final valor = reais(l.valorCentavos);
+  final valor = reais(l.valorCentavos, sempre: true);
   final nome = conta?.nome ?? 'uma conta';
   if (l.tipo == 'transferencia') {
     return '$valor saem de $nome e entram em ${destino?.nome ?? 'outra conta'}. Não conta como gasto.';
   }
   if (l.parcelas != null) {
-    final parcela = reais(l.valorCentavos ~/ l.parcelas!);
+    final parcela = reais(l.valorCentavos ~/ l.parcelas!, sempre: true);
     return conta?.ehCartao == true
         ? '${l.parcelas} parcelas de $parcela, uma em cada fatura de $nome.'
         : '${l.parcelas} parcelas de $parcela em $nome, uma por mês.';

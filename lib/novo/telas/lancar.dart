@@ -194,14 +194,14 @@ class _LancarState extends ConsumerState<Lancar> {
               Text('Já existe um agendado parecido', style: t.titleLarge),
               const SizedBox(height: Espacos.p),
               Text(
-                '"${parecido.descricao}", ${reais(parecido.previstoCentavos ?? 0)}, vence ${diaPorExtenso(parecido.data, ctx.hoje)}. '
+                '"${parecido.descricao}", ${reais(parecido.previstoCentavos ?? 0, sempre: true)}, vence ${diaPorExtenso(parecido.data, ctx.hoje)}. '
                 'É o mesmo que você está lançando?',
                 style: t.bodyMedium,
               ),
               const SizedBox(height: Espacos.g),
               FilledButton(
                 onPressed: () => Navigator.pop(context, 'quitar'),
-                child: Text('Sim, marcar como pago por ${reais(leitura.valorCentavos)}'),
+                child: Text('Sim, marcar como pago por ${reais(leitura.valorCentavos, sempre: true)}'),
               ),
               const SizedBox(height: Espacos.p),
               OutlinedButton(onPressed: () => Navigator.pop(context, 'novo'), child: const Text('Não, lançar como novo')),
@@ -373,7 +373,7 @@ class _LancarState extends ConsumerState<Lancar> {
             child: Text(prontas.isEmpty
                 ? 'Salvar'
                 : prontas.length == 1
-                    ? (quitar.isEmpty ? 'Salvar ${reais(prontas.single.valorCentavos)}' : 'Marcar agendado como pago, ${reais(prontas.single.valorCentavos)}')
+                    ? (quitar.isEmpty ? 'Salvar ${reais(prontas.single.valorCentavos, sempre: true)}' : 'Marcar agendado como pago, ${reais(prontas.single.valorCentavos, sempre: true)}')
                     : (quitar.isEmpty
                         ? 'Salvar ${prontas.length} lançamentos'
                         : 'Salvar ${prontas.length} (${quitar.length} ${quitar.length == 1 ? 'paga agendado' : 'pagam agendados'})')),
@@ -433,7 +433,7 @@ class _CartaoDeLeitura extends StatelessWidget {
               Expanded(child: Text(l.descricao, style: texto.titleSmall, maxLines: 1, overflow: TextOverflow.ellipsis)),
               const SizedBox(width: 8),
               Text(
-                '${l.tipo == 'entrada' ? '+' : (l.tipo == 'saida' ? '-' : '')}${reais(l.valorCentavos)}',
+                '${l.tipo == 'entrada' ? '+' : (l.tipo == 'saida' ? '-' : '')}${reais(l.valorCentavos, sempre: true)}',
                 style: Textos.valor(context, tamanho: 15, cor: l.tipo == 'entrada' ? c.positivo : c.tinta),
               ),
             ],
@@ -471,7 +471,7 @@ class _CartaoDeLeitura extends StatelessWidget {
                   child: Text(
                     comoNovo
                         ? 'Vai criar um lançamento novo. O agendado "${agendado!.descricao}" continua pendente.'
-                        : 'Parece o agendado "${agendado!.descricao}" (${reais(agendado!.previstoCentavos ?? 0)}, vence ${diaPorExtenso(agendado!.data, hoje)}). '
+                        : 'Parece o agendado "${agendado!.descricao}" (${reais(agendado!.previstoCentavos ?? 0, sempre: true)}, vence ${diaPorExtenso(agendado!.data, hoje)}). '
                             'Ele será marcado como pago, sem criar outro.',
                     style: texto.bodySmall?.copyWith(color: c.tinta),
                   ),

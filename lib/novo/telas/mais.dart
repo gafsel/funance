@@ -13,6 +13,7 @@ import 'fatura.dart';
 import 'fechamento.dart';
 import 'formulario.dart';
 import 'pecas.dart';
+import 'privacidade.dart';
 import 'revisao.dart';
 
 /// Contas e cadastros: o que se configura de vez em quando. No celular é
@@ -117,6 +118,7 @@ class TelaMais extends ConsumerWidget {
             titulo: usuario?.displayName ?? membros.where((m) => m.uid == eu).firstOrNull?.nome ?? usuario?.email ?? 'Conta',
             detalhe: usuario?.email,
           ),
+          const ItemDaTrava(),
           Linha(titulo: 'Sair', direita: Icon(Icons.logout_rounded, size: 18, color: c.tinta3), aoTocar: sair),
         ]),
       ],

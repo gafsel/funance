@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'rotas.dart';
 import 'telas/casca.dart';
+import 'telas/privacidade.dart';
 import 'tema/tema_novo.dart';
 
 /// O app do Funances 2. Convive com o app antigo no mesmo código até a
@@ -33,6 +34,8 @@ class _AppNovoState extends ConsumerState<AppNovo> {
       onGenerateRoute: gerarRota,
       onGenerateInitialRoutes: rotasIniciais,
       navigatorObservers: [_observador],
+      // Em volta de todas as telas: o olho e a trava de biometria.
+      builder: (context, child) => Trava(child: child ?? const SizedBox.shrink()),
     );
   }
 }

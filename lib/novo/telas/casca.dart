@@ -16,6 +16,7 @@ import 'lancar.dart';
 import 'mais.dart';
 import 'metas.dart';
 import 'pecas.dart';
+import 'privacidade.dart';
 import 'relatorios.dart';
 
 /// Seção em exibição. Fica num provedor para que qualquer tela possa levar
@@ -218,6 +219,7 @@ class _BarraDoTopo extends ConsumerWidget {
             ),
           ),
           const SizedBox(width: 4),
+          const BotaoDoOlho(),
           const BotaoDeAvisos(),
         ],
       ),
