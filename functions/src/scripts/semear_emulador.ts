@@ -23,6 +23,7 @@ import { vencimentoNoMes } from "../features/nucleo/domain/services/series";
 
 export const EMAIL_DE_TESTE = "teste@funances.test";
 export const EMAIL_SEM_ESPACO = "nova@funances.test";
+export const EMAIL_DA_SEGUNDA_PESSOA = "barbara@funances.test";
 export const SENHA_DE_TESTE = "funances-teste";
 const PROJETO = "demo-funances";
 
@@ -57,24 +58,36 @@ async function main(): Promise<void> {
         const espaco = db.collection(RAIZ).doc(id);
         await db.recursiveDelete(espaco);
         await espaco.set({ nome, tipo, criadoEm: new Date() });
-        await espaco.collection("membros").doc(uid).set({ uid, papel: "dono", entrada: null });
+        await espaco.collection("membros").doc(uid).set({ uid, papel: "dono", entrada: null, nome: "Pessoa de Teste", foto: null });
     }
+
+    // Segunda pessoa na casa: o caso de duas pessoas com conta no mesmo banco.
+    let bia: string;
+    try {
+        bia = (await admin.auth().getUserByEmail(EMAIL_DA_SEGUNDA_PESSOA)).uid;
+    }
+    catch {
+        bia = (await admin.auth().createUser({ email: EMAIL_DA_SEGUNDA_PESSOA, password: SENHA_DE_TESTE, displayName: "Bárbara de Teste" })).uid;
+    }
+    await db.collection(RAIZ).doc("casa").collection("membros").doc(bia)
+        .set({ uid: bia, papel: "convidado", entrada: null, nome: "Bárbara de Teste", foto: null });
 
     const casa = db.collection(RAIZ).doc("casa");
     const conta = (id: string, dados: Record<string, unknown>) => casa.collection("contas").doc(id).set({
         icone: null, cor: null, banco: null, saldoInicialCentavos: 0, saldoInicialData: null, arquivada: false,
         limiteCentavos: null, diaFechamento: null, diaVencimento: null, taxaJuros: null, donos: [uid], ...dados,
     });
-    await conta("azul", { nome: "Banco Azul", tipo: "corrente", saldoInicialCentavos: 320000, saldoInicialData: shiftMonthKey(mes, -2) + "-01" });
-    await conta("roxo", { nome: "Cartão Roxo", tipo: "cartao", limiteCentavos: 500000, diaFechamento: 5, diaVencimento: 10 });
-    await conta("reserva", { nome: "Reserva", tipo: "investimento", saldoInicialCentavos: 800000, saldoInicialData: shiftMonthKey(mes, -2) + "-01" });
+    const inicio = shiftMonthKey(mes, -2) + "-01";
+    await conta("azul", { nome: "Nubank", tipo: "corrente", banco: "nubank", saldoInicialCentavos: 320000, saldoInicialData: inicio });
+    await conta("roxo", { nome: "Cartão Nubank", tipo: "cartao", banco: "nubank", limiteCentavos: 500000, diaFechamento: 5, diaVencimento: 10 });
+    await conta("nubia", { nome: "Nubank", tipo: "corrente", banco: "nubank", donos: [bia], saldoInicialCentavos: 150000, saldoInicialData: inicio });
+    await conta("cartaobia", { nome: "Cartão Nubank", tipo: "cartao", banco: "nubank", donos: [bia], limiteCentavos: 300000, diaFechamento: 5, diaVencimento: 10 });
+    await conta("itau", { nome: "Itaú conjunta", tipo: "corrente", banco: "itau", donos: [uid, bia], saldoInicialCentavos: 90000, saldoInicialData: inicio });
+    await conta("cartaoitau", { nome: "Cartão Itaú", tipo: "cartao", banco: "itau", limiteCentavos: 400000, diaFechamento: 20, diaVencimento: 27 });
+    await conta("reserva", { nome: "Reserva", tipo: "investimento", banco: "xp", donos: [uid, bia], saldoInicialCentavos: 800000, saldoInicialData: inicio });
 
-    const categorias: [string, string, string][] = [
-        ["salario", "Salário", "entrada"], ["mercado", "Mercado", "saida"], ["moradia", "Moradia", "saida"],
-        ["transporte", "Transporte", "saida"], ["lazer", "Lazer", "saida"], ["saude", "Saúde", "saida"],
-    ];
-    for (const [id, nome, tipo] of categorias) {
-        await casa.collection("categorias").doc(id).set({ nome, tipo, icone: null, cor: null, grupo: null, limiteMensalCentavos: null, arquivada: false });
+    for (const [id, nome, tipo, grupo, icone, cor] of CATEGORIAS_PADRAO.pessoal) {
+        await casa.collection("categorias").doc(id).set({ nome, tipo, icone, cor, grupo, limiteMensalCentavos: id === "lazer" ? 30000 : null, arquivada: false });
     }
 
     await casa.collection("metas").doc("reserva").set({
@@ -104,6 +117,14 @@ async function main(): Promise<void> {
         internet: agendado("Internet", 11990, shiftDateKey(hoje, -2), { categoriaId: "moradia" }),
         freela: agendado("Freela do site", 120000, shiftDateKey(hoje, 6), { tipo: "entrada", categoriaId: "salario" }),
         mesPassado: feito("Mercado", 41200, shiftMonthKey(mes, -1) + "-20", { categoriaId: "mercado", contaId: "roxo" }),
+        farmaciaBia: feito("Farmácia", 8900, dia(9), { categoriaId: "saude", contaId: "cartaobia" }),
+        restaurante: feito("Jantar", 14500, dia(10), { categoriaId: "restaurantes", contaId: "cartaoitau" }),
+        lazerPassado: feito("Show", 22000, shiftMonthKey(mes, -1) + "-12", { categoriaId: "lazer" }),
+        aluguelPassado: feito("Aluguel", 210000, shiftMonthKey(mes, -1) + "-06", { categoriaId: "moradia" }),
+        salarioPassado: feito("Salário", 650000, shiftMonthKey(mes, -1) + "-05", { tipo: "entrada", categoriaId: "salario" }),
+        mercadoRetrasado: feito("Mercado", 36000, shiftMonthKey(mes, -2) + "-18", { categoriaId: "mercado" }),
+        aluguelRetrasado: feito("Aluguel", 210000, shiftMonthKey(mes, -2) + "-06", { categoriaId: "moradia" }),
+        salarioRetrasado: feito("Salário", 650000, shiftMonthKey(mes, -2) + "-05", { tipo: "entrada", categoriaId: "salario" }),
     };
     for (const [id, l] of Object.entries(lancamentos)) {
         await casa.collection("lancamentos").doc(id).set(l);
@@ -120,8 +141,8 @@ async function main(): Promise<void> {
         saldoInicialData: shiftMonthKey(mes, -1) + "-01", arquivada: false, limiteCentavos: null, diaFechamento: null,
         diaVencimento: null, taxaJuros: null, donos: [uid],
     });
-    for (const [id, nome, tipo, grupo] of CATEGORIAS_PADRAO.empresa) {
-        await loja.collection("categorias").doc(id).set({ nome, tipo, icone: null, cor: null, grupo, limiteMensalCentavos: null, arquivada: false });
+    for (const [id, nome, tipo, grupo, icone, cor] of CATEGORIAS_PADRAO.empresa) {
+        await loja.collection("categorias").doc(id).set({ nome, tipo, icone, cor, grupo, limiteMensalCentavos: null, arquivada: false });
     }
     await loja.collection("contrapartes").doc("acme").set({ nome: "Acme", tipo: "cliente" });
     await loja.collection("contrapartes").doc("papelaria").set({ nome: "Papelaria Central", tipo: "fornecedor" });

@@ -40,6 +40,7 @@ import { commitInChunks, BatchOperation } from "../core/utils/batch.utils";
 import { isDateKey, toDateKey } from "../core/utils/date_key";
 import { stripUndefined } from "../core/utils/firestore.utils";
 import { RAIZ } from "../features/nucleo/domain/models/modelo";
+import { sincronizarMembros } from "../features/nucleo/domain/services/espaco.service";
 import { ReconstrucaoService } from "../features/nucleo/domain/services/reconstrucao.service";
 import { conferir, relatorio } from "../features/nucleo/migracao/conferir";
 import { lerWorkspace, listarWorkspaces } from "../features/nucleo/migracao/ler_antigo";
@@ -171,6 +172,7 @@ export async function migrarWorkspace(
             `${verificacao.divergencias.length} divergências, ${verificacao.ilegiveis.length} lançamentos ilegíveis`);
     }
 
+    await sincronizarMembros(destino, workspaceId);
     resumo.carregado = true;
     log(`[${workspaceId}] carregado em ${opcoes.destino}: ${ops.length} documentos, derivados reconstruídos e conferidos.`);
     return resumo;

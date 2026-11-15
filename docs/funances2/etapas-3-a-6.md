@@ -18,6 +18,36 @@ No servidor (`functions/src/features/nucleo/`): `interpretarFrase` (segunda
 camada da leitura, pela IA), `estenderSeries` (gera os previstos das séries
 recorrentes), `criarEspaco` e os dois gatilhos do motor.
 
+## Acabamento e usabilidade (15/11/2026)
+
+Depois do primeiro uso pelo dono:
+
+- **Visual refeito conforme o protótipo**: tokens, barra do topo, menu lateral
+  na web, barra inferior com o botão de lançar no centro, cartões e botões
+  compactos (`lib/novo/tema/`, `lib/novo/telas/pecas.dart`, `casca.dart`).
+- **Titularidade**: cada conta mostra o logo do banco com a foto (ou as
+  iniciais) do titular. O seletor de contas traz as usadas há pouco, depois
+  as de quem está lançando agrupadas por banco, depois as conjuntas e as dos
+  outros. Só membro do espaço pode ser titular; nome e foto ficam no vínculo
+  (`membros/{uid}`).
+- **Conta citada no texto** (`regras/contas_na_frase.dart`): entende "meu
+  nubank", "nubank da Bárbara", "cartão de crédito nubank", "na conjunta" e o
+  apelido da conta. O banco sozinho é a conta, não o cartão. Se não der para
+  decidir, a conta fica em aberto e a tela pergunta.
+- **Detalhe de conta** (`telas/conta.dart`): extrato com saldo corrido,
+  lançar e importar já na conta, itens da caixa de entrada daquela conta e o
+  ponto de conferência ("conferida até o dia X").
+- **Detalhe de meta** (`telas/meta.dart`) e **Relatórios**
+  (`telas/relatorios.dart`), que leem só os resumos mensais.
+- **Categorias com ícone e cor**, as mesmas nas listas e nos gráficos.
+- **Folhas** no lugar de diálogos; tela de entrada nova; terceira coluna em
+  telas largas.
+- **Leituras limitadas**: agendados até 60 dias à frente (antes, todos os
+  meses), últimos 150 lançamentos para o aprendizado (antes, o mês anterior
+  inteiro) e caixa de entrada com teto de 200. O mês exibido continua sendo
+  lido inteiro, porque o livre para gastar e os saldos dependem dele; a lista
+  só desenha 60 linhas por vez.
+
 ## Como foi verificado
 
 - Testes automatizados: regras do app novo (`test/novo/`), servidor

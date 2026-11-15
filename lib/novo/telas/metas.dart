@@ -10,6 +10,7 @@ import '../regras/formatos.dart';
 import '../regras/metas.dart';
 import '../tema/tema_novo.dart';
 import 'formulario.dart';
+import 'meta.dart';
 import 'pecas.dart';
 
 /// Caminho e metas: onde a pessoa está, o próximo passo e o que ela quer
@@ -99,7 +100,7 @@ class TelaMetas extends ConsumerWidget {
                     resumos: resumos,
                   );
                   return Cartao(
-                    onTap: () => editarMeta(context, ref, meta),
+                    onTap: () => abrirMeta(context, meta.id),
                     padding: const EdgeInsets.all(12),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -349,15 +350,6 @@ class _FormularioDeMetaState extends ConsumerState<_FormularioDeMeta> {
     final todas = (ref.watch(contasProvider).valueOrNull ?? const <Conta>[])
         .where((x) => !x.arquivada)
         .toList();
-    final contas =
-        todas
-            .where(
-              (x) => _tipo == 'quitar'
-                  ? x.tipo == 'divida' || x.ehCartao
-                  : x.tipo == 'investimento' || x.ehDeUso,
-            )
-            .toList()
-          ..sort((a, b) => a.nome.compareTo(b.nome));
     final conta = todas.where((x) => x.id == _contaId).firstOrNull;
     final alvo = lerCentavos(_alvo.text);
     final saldos = ref.watch(saldosProvider);
@@ -428,18 +420,14 @@ class _FormularioDeMetaState extends ConsumerState<_FormularioDeMeta> {
             InkWell(
               borderRadius: Raios.m,
               onTap: () async {
-                final escolhida = await escolher<Conta>(
-                  context,
-                  titulo: _tipo == 'quitar'
-                      ? 'Qual dívida?'
-                      : 'Onde o dinheiro fica?',
-                  itens: contas,
-                  rotulo: (x) => x.nome,
-                  detalhe: (x) =>
-                      '${rotulosDeConta[x.tipo]} · ${reais(saldos[x.id] ?? 0)}',
-                  atual: conta,
-                );
-                if (escolhida != null) setState(() => _contaId = escolhida.id);
+                final escolhida = await escolherConta(
+                      context,
+                      ref,
+                      titulo: _tipo == 'quitar' ? 'Qual dívida?' : 'Onde o dinheiro fica?',
+                      filtro: (x) => _tipo == 'quitar' ? x.tipo == 'divida' || x.ehCartao : x.tipo == 'investimento' || x.ehDeUso,
+                      atualId: _contaId,
+                    );
+                    if (escolhida != null) setState(() => _contaId = escolhida.id);
               },
               child: InputDecorator(
                 decoration: InputDecoration(

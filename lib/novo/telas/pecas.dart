@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/utils/icons_extension.dart';
+import '../dados/provedores.dart';
 import '../modelo/modelos.dart';
 import '../regras/formatos.dart';
 import '../tema/tema_novo.dart';
@@ -282,7 +285,7 @@ String quandoDoLancamento(Lancamento l, String hoje) {
   return l.data.compareTo(hoje) < 0 ? 'Venceu $dia' : 'Vence $dia';
 }
 
-class LinhaDeLancamento extends StatelessWidget {
+class LinhaDeLancamento extends ConsumerWidget {
   const LinhaDeLancamento({
     super.key,
     required this.lancamento,
@@ -303,18 +306,28 @@ class LinhaDeLancamento extends StatelessWidget {
   final Widget? acao;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l = lancamento;
     final c = Cores.de(context);
     final atrasado = l.previsto && l.data.compareTo(hoje) < 0;
+    final nomes = ref.watch(nomesDasContasProvider);
+    final origem = nomes[l.contaId] ?? conta?.nome ?? '?';
     final detalhes = [
       quandoDoLancamento(l, hoje),
-      if (l.ehTransferencia) '${conta?.nome ?? '?'} → ${destino?.nome ?? '?'}' else conta?.nome ?? '?',
+      if (l.ehTransferencia) '$origem → ${nomes[l.contaDestinoId] ?? destino?.nome ?? '?'}' else origem,
       if (categoria != null) categoria!.nome,
       if (l.parcelaNumero != null) '${l.parcelaNumero}/${l.parcelaTotal}',
     ].join(' · ');
 
     return Linha(
+      antes: l.ehTransferencia
+          ? Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(color: c.suave, shape: BoxShape.circle),
+              child: Icon(Icons.swap_horiz_rounded, size: 16, color: c.tinta2),
+            )
+          : SeloDaCategoria(categoria: categoria),
       titulo: l.descricao.isEmpty ? 'Sem descrição' : l.descricao,
       detalhe: detalhes,
       corDoDetalhe: atrasado ? c.atencao : null,
@@ -356,7 +369,7 @@ class Vazio extends StatelessWidget {
 /// Página com rolagem, margens da tela e largura máxima. Na mesa o conteúdo
 /// fica alinhado à esquerda, como numa ferramenta de trabalho.
 class Pagina extends StatelessWidget {
-  const Pagina({super.key, required this.filhos, this.larguraMaxima = 1040, this.centralizada = false});
+  const Pagina({super.key, required this.filhos, this.larguraMaxima = 1560, this.centralizada = false});
   final List<Widget> filhos;
   final double larguraMaxima;
   final bool centralizada;
@@ -434,3 +447,141 @@ class _MarcaPainter extends CustomPainter {
   @override
   bool shouldRepaint(_MarcaPainter antigo) => antigo.c != c;
 }
+
+/// Foto de um membro, ou as iniciais quando não há foto.
+class Avatar extends StatelessWidget {
+  const Avatar({super.key, required this.membro, this.tamanho = 20, this.contorno = true});
+  final Membro? membro;
+  final double tamanho;
+  final bool contorno;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = Cores.de(context);
+    final iniciais = Container(
+      color: c.primariaSuave,
+      alignment: Alignment.center,
+      child: Text(
+        membro?.iniciais ?? '?',
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(fontSize: tamanho * 0.42, color: c.tinta, height: 1),
+      ),
+    );
+    final foto = membro?.foto;
+    return Container(
+      width: tamanho,
+      height: tamanho,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: contorno ? Border.all(color: c.superficie, width: 1.5) : null,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: foto == null
+          ? iniciais
+          : Image.network(foto, fit: BoxFit.cover, errorBuilder: (_, _, _) => iniciais),
+    );
+  }
+}
+
+const _bancosComLogo = {
+  'amex', 'bb', 'bradesco', 'btg', 'c6', 'caixa', 'elo', 'inter', 'itau', 'mastercard', 'nubank', 'santander', 'visa', 'xp',
+};
+
+IconData iconeDoTipoDeConta(String tipo) => switch (tipo) {
+      'cartao' => Icons.credit_card_rounded,
+      'investimento' => Icons.savings_outlined,
+      'divida' => Icons.request_quote_outlined,
+      'dinheiro' => Icons.payments_outlined,
+      _ => Icons.account_balance_outlined,
+    };
+
+/// Identidade visual de uma conta: o logo do banco com a foto de quem é o
+/// titular no canto. É o que permite achar a conta certa sem ler o nome.
+class SeloDaConta extends StatelessWidget {
+  const SeloDaConta({super.key, required this.conta, required this.membros, this.tamanho = 36});
+  final Conta conta;
+  final List<Membro> membros;
+  final double tamanho;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = Cores.de(context);
+    final banco = conta.banco;
+    final titulares = [
+      for (final uid in conta.donos.take(2)) membros.where((m) => m.uid == uid).firstOrNull,
+    ].whereType<Membro>().toList();
+    final avatar = tamanho * 0.5;
+
+    final quadrado = Container(
+      width: tamanho,
+      height: tamanho,
+      decoration: BoxDecoration(color: c.suave, borderRadius: BorderRadius.all(Radius.circular(tamanho * 0.26))),
+      clipBehavior: Clip.antiAlias,
+      child: banco != null && _bancosComLogo.contains(banco)
+          ? Image.asset('assets/logos/$banco.png', fit: BoxFit.cover)
+          : Icon(iconeDoTipoDeConta(conta.tipo), size: tamanho * 0.55, color: c.tinta2),
+    );
+
+    return SizedBox(
+      width: tamanho + (titulares.isEmpty ? 0 : avatar * 0.35),
+      height: tamanho + (titulares.isEmpty ? 0 : avatar * 0.25),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          quadrado,
+          // Cartão com logo de banco: uma marquinha diz que é o cartão.
+          if (conta.ehCartao && banco != null && _bancosComLogo.contains(banco))
+            Positioned(
+              left: -3,
+              top: -3,
+              child: Container(
+                padding: const EdgeInsets.all(1.5),
+                decoration: BoxDecoration(color: c.superficie, shape: BoxShape.circle),
+                child: Icon(Icons.credit_card_rounded, size: tamanho * 0.3, color: c.tinta2),
+              ),
+            ),
+          for (var i = 0; i < titulares.length; i++)
+            Positioned(
+              right: i * avatar * 0.6,
+              bottom: 0,
+              child: Avatar(membro: titulares[i], tamanho: avatar),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Texto curto com os titulares: "Sua", "Bárbara", "Conjunta".
+String titularidade(Conta conta, List<Membro> membros, String? euId) {
+  if (conta.donos.isEmpty) return '';
+  if (conta.conjunta) return 'Conjunta';
+  if (conta.donos.single == euId) return 'Sua';
+  return membros.where((m) => m.uid == conta.donos.single).firstOrNull?.primeiroNome ?? '';
+}
+
+/// Identidade visual de uma categoria: círculo na cor dela, com o ícone.
+class SeloDaCategoria extends StatelessWidget {
+  const SeloDaCategoria({super.key, required this.categoria, this.tamanho = 28});
+  final Categoria? categoria;
+  final double tamanho;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = Cores.de(context);
+    final cat = categoria;
+    final cor = cat == null ? c.suave : (corDeHex(cat.cor) ?? corPadraoDaCategoria(cat.id));
+    return Container(
+      width: tamanho,
+      height: tamanho,
+      decoration: BoxDecoration(color: cor, shape: BoxShape.circle),
+      alignment: Alignment.center,
+      child: Icon(
+        cat == null ? Icons.help_outline_rounded : (cat.icone ?? '').asIcon(orElse: Icons.label_outline_rounded),
+        size: tamanho * 0.56,
+        color: cat == null ? c.tinta3 : sobreCor(cor),
+      ),
+    );
+  }
+}
+
+Color corDaCategoria(Categoria categoria) => corDeHex(categoria.cor) ?? corPadraoDaCategoria(categoria.id);

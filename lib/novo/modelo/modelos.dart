@@ -37,10 +37,27 @@ class Conta {
     this.diaFechamento,
     this.diaVencimento,
     this.banco,
+    this.donos = const [],
+    this.apelido,
+    this.conferidoAte,
+    this.conferidoSaldoCentavos,
   });
 
   final String id;
   final String nome;
+
+  /// Titulares: ids de membros do espaço. Vazio = sem titular definido.
+  final List<String> donos;
+
+  /// Como a pessoa chama a conta ao escrever ("nu bia"). Opcional.
+  final String? apelido;
+
+  /// Último ponto de conferência com o extrato: até este dia, o saldo do
+  /// app batia com o do banco.
+  final String? conferidoAte;
+  final int? conferidoSaldoCentavos;
+
+  bool get conjunta => donos.length > 1;
 
   /// `corrente`, `dinheiro`, `cartao`, `investimento` ou `divida`.
   final String tipo;
@@ -68,6 +85,37 @@ class Conta {
         diaFechamento: _inteiro(m['diaFechamento']),
         diaVencimento: _inteiro(m['diaVencimento']),
         banco: _texto(m['banco']),
+        donos: m['donos'] is List ? [for (final d in m['donos'] as List) if (d is String) d] : const [],
+        apelido: _texto(m['apelido']),
+        conferidoAte: _texto(m['conferidoAte']),
+        conferidoSaldoCentavos: _inteiro(m['conferidoSaldoCentavos']),
+      );
+}
+
+/// Quem participa do espaço, com o nome e a foto do login.
+class Membro {
+  const Membro({required this.uid, this.nome, this.foto, this.papel = 'convidado'});
+  final String uid;
+  final String? nome;
+  final String? foto;
+  final String papel;
+
+  /// Primeiro nome, para "da Bárbara".
+  String get primeiroNome => (nome ?? '').trim().split(RegExp(r'\s+')).first;
+
+  /// Iniciais para quando não há foto.
+  String get iniciais {
+    final partes = (nome ?? '').trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    if (partes.isEmpty) return '?';
+    final primeira = partes.first[0];
+    return (partes.length > 1 ? '$primeira${partes.last[0]}' : primeira).toUpperCase();
+  }
+
+  factory Membro.deMapa(String id, Mapa m) => Membro(
+        uid: id,
+        nome: _texto(m['nome']),
+        foto: _texto(m['foto']),
+        papel: _texto(m['papel']) ?? 'convidado',
       );
 }
 
@@ -78,6 +126,8 @@ class Categoria {
     required this.tipo,
     this.arquivada = false,
     this.limiteMensalCentavos,
+    this.icone,
+    this.cor,
   });
 
   final String id;
@@ -88,12 +138,18 @@ class Categoria {
   final bool arquivada;
   final int? limiteMensalCentavos;
 
+  /// Nome do ícone (um dos oferecidos na escolha) e cor em `#RRGGBB`.
+  final String? icone;
+  final String? cor;
+
   factory Categoria.deMapa(String id, Mapa m) => Categoria(
         id: id,
         nome: _texto(m['nome']) ?? 'Sem nome',
         tipo: m['tipo'] == 'entrada' ? 'entrada' : 'saida',
         arquivada: m['arquivada'] == true,
         limiteMensalCentavos: _inteiro(m['limiteMensalCentavos']),
+        icone: _texto(m['icone']),
+        cor: _texto(m['cor']),
       );
 }
 

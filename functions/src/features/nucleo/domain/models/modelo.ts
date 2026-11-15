@@ -58,6 +58,13 @@ export interface Membro {
     uid: string;
     papel: Papel;
     entrada: Date | null;
+    /**
+     * Nome e foto de quem participa, copiados do login. Ficam no vínculo para
+     * que os outros membros possam ver de quem é cada conta sem ler o perfil
+     * de ninguém.
+     */
+    nome?: string | null;
+    foto?: string | null;
 }
 
 export type TipoConta = "corrente" | "dinheiro" | "cartao" | "investimento" | "divida";
@@ -72,6 +79,8 @@ export interface Conta {
     saldoInicialCentavos: number;
     saldoInicialData: DiaChave | null;
     arquivada: boolean;
+    /** Como a pessoa chama a conta ao escrever ("nu bia"). Opcional. */
+    apelido?: string | null;
     /** Só cartão. */
     limiteCentavos: number | null;
     diaFechamento: number | null;

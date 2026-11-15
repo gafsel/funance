@@ -14,38 +14,19 @@ import 'pecas.dart';
 
 const _uuid = Uuid();
 
-/// Abre o lançar. No celular é uma folha; na mesa, um diálogo.
-Future<void> abrirLancar(BuildContext context, {String textoInicial = ''}) {
-  if (ehMesa(context)) {
-    return showDialog<void>(
-      context: context,
-      // Um clique fora não pode jogar fora o que já foi digitado.
-      barrierDismissible: false,
-      builder: (_) => Dialog(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 560, maxHeight: 640),
-          child: Lancar(textoInicial: textoInicial),
-        ),
-      ),
-    );
-  }
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    useSafeArea: true,
-    showDragHandle: true,
-    builder: (context) => Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-      child: FractionallySizedBox(heightFactor: 0.92, child: Lancar(textoInicial: textoInicial)),
-    ),
-  );
-}
+/// Abre o lançar, numa folha.
+Future<void> abrirLancar(BuildContext context, {String textoInicial = '', String? contaId}) =>
+    abrirFolha<void>(context, (_) => Lancar(textoInicial: textoInicial, contaId: contaId), largura: 600, alta: true);
 
 /// Lançar por texto: a pessoa escreve, o app mostra o que entendeu e a
 /// consequência, e só então salva. Uma linha por lançamento.
 class Lancar extends ConsumerStatefulWidget {
-  const Lancar({super.key, this.textoInicial = ''});
+  const Lancar({super.key, this.textoInicial = '', this.contaId});
   final String textoInicial;
+
+  /// Conta do contexto de onde o lançar foi aberto (detalhe de uma conta):
+  /// vale como padrão no lugar da conta mais usada.
+  final String? contaId;
 
   @override
   ConsumerState<Lancar> createState() => _LancarState();
@@ -182,7 +163,18 @@ class _LancarState extends ConsumerState<Lancar> {
 
   @override
   Widget build(BuildContext context) {
-    final ctx = ref.watch(contextoDeLeituraProvider);
+    final base = ref.watch(contextoDeLeituraProvider);
+    final ctx = widget.contaId == null
+        ? base
+        : ContextoDeLeitura(
+            hoje: base.hoje,
+            contas: base.contas,
+            categorias: base.categorias,
+            aprendido: base.aprendido,
+            contaPadraoId: widget.contaId,
+            membros: base.membros,
+            euId: base.euId,
+          );
     final texto = Theme.of(context).textTheme;
     final c = Cores.de(context);
     final itens = _itens(ctx);
@@ -190,6 +182,7 @@ class _LancarState extends ConsumerState<Lancar> {
     final semLeitura = [for (final (linha, l) in itens) if (l == null) linha];
     final contas = {for (final x in ctx.contas) x.id: x};
     final categorias = {for (final x in ctx.categorias) x.id: x};
+    final nomes = ref.watch(nomesDasContasProvider);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(Espacos.g, Espacos.p, Espacos.g, Espacos.g),
@@ -206,11 +199,6 @@ class _LancarState extends ConsumerState<Lancar> {
                 }),
                 icon: const Icon(Icons.tune_rounded, size: 16),
                 label: const Text('Modo avançado'),
-              ),
-              IconButton(
-                tooltip: 'Fechar',
-                onPressed: () => Navigator.of(context).maybePop(),
-                icon: const Icon(Icons.close_rounded),
               ),
             ],
           ),
@@ -254,6 +242,8 @@ class _LancarState extends ConsumerState<Lancar> {
                             conta: contas[l.contaId],
                             destino: contas[l.contaDestinoId],
                             categoria: categorias[l.categoriaId],
+                            nomeDaConta: nomes[l.contaId],
+                            nomeDoDestino: nomes[l.contaDestinoId],
                             aoTocar: () => _detalhar(linha, l, ctx),
                           ),
                   ),
@@ -297,7 +287,13 @@ class _CartaoDeLeitura extends StatelessWidget {
     this.conta,
     this.destino,
     this.categoria,
+    this.nomeDaConta,
+    this.nomeDoDestino,
   });
+
+  /// Nomes como aparecem nas listas (com o titular, se houver duas iguais).
+  final String? nomeDaConta;
+  final String? nomeDoDestino;
 
   final Leitura leitura;
   final String hoje;
@@ -333,9 +329,9 @@ class _CartaoDeLeitura extends StatelessWidget {
             runSpacing: 4,
             children: [
               Etiqueta(diaPorExtenso(l.data, hoje)),
-              Etiqueta(conta?.nome ?? 'sem conta', tom: conta == null ? Tom.atencao : Tom.neutro),
+              Etiqueta(nomeDaConta ?? conta?.nome ?? 'sem conta', tom: conta == null ? Tom.atencao : Tom.neutro),
               if (l.tipo == 'transferencia')
-                Etiqueta('→ ${destino?.nome ?? 'sem destino'}', tom: destino == null ? Tom.atencao : Tom.neutro)
+                Etiqueta('→ ${nomeDoDestino ?? destino?.nome ?? 'sem destino'}', tom: destino == null ? Tom.atencao : Tom.neutro)
               else
                 Etiqueta(categoria?.nome ?? 'sem categoria', tom: categoria == null ? Tom.neutro : Tom.primario),
               if (l.parcelas != null) Etiqueta('${l.parcelas}x', tom: Tom.calor),

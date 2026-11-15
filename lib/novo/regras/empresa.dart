@@ -8,7 +8,7 @@ const rotulosDePrazo = {
   Prazo.vencido: 'Vencido',
   Prazo.seteDias: 'Até 7 dias',
   Prazo.trintaDias: 'De 8 a 30 dias',
-  Prazo.depois: 'Depois de 30 dias',
+  Prazo.depois: 'De 31 a 60 dias',
 };
 
 Prazo prazoDe(String data, String hoje) {

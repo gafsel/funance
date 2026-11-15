@@ -55,7 +55,10 @@ final _propostasProvider = Provider<List<_Proposta>>((ref) {
 /// Caixa de entrada: o que veio de fora e espera confirmação. É um bloco,
 /// não uma tela: mora dentro de Lançamentos.
 class CaixaDeEntrada extends ConsumerWidget {
-  const CaixaDeEntrada({super.key});
+  const CaixaDeEntrada({super.key, this.contaId});
+
+  /// Mostra só os itens desta conta (dentro do detalhe da conta).
+  final String? contaId;
 
   Lancamento _novoLancamento(_Proposta p, String? autor) => Lancamento(
         id: _uuid.v4(),
@@ -116,20 +119,14 @@ class CaixaDeEntrada extends ConsumerWidget {
   }
 
   Future<void> _abrirItem(BuildContext context, WidgetRef ref, _Proposta p) async {
-    final resultado = await showModalBottomSheet<_Proposta>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (_) => _FolhaDoItem(proposta: p),
-    );
+    final resultado = await abrirFolha<_Proposta>(context, (_) => _FolhaDoItem(proposta: p), largura: 480);
     if (resultado != null && context.mounted) await _confirmar(context, ref, [resultado]);
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final hoje = ref.watch(hojeProvider);
-    final propostas = ref.watch(_propostasProvider);
-    final contas = {for (final c in ref.watch(contasProvider).valueOrNull ?? const <Conta>[]) c.id: c};
+    final propostas = ref.watch(_propostasProvider).where((p) => contaId == null || p.item.contaId == contaId).toList();
     final categorias = {for (final c in ref.watch(categoriasProvider).valueOrNull ?? const <Categoria>[]) c.id: c};
     final prontas = propostas.where((p) => p.pronta).toList();
     final texto = Theme.of(context).textTheme;
@@ -154,7 +151,7 @@ class CaixaDeEntrada extends ConsumerWidget {
             BotaoPequeno(
               'Importar extrato',
               icone: Icons.upload_file_rounded,
-              aoTocar: () => showDialog<void>(context: context, builder: (_) => const _Importar()),
+              aoTocar: () => abrirImportacao(context, contaId: contaId),
             ),
           ],
         ),
@@ -181,7 +178,7 @@ class CaixaDeEntrada extends ConsumerWidget {
                             const SizedBox(height: 4),
                             Wrap(spacing: 6, runSpacing: 4, children: [
                               Etiqueta(diaPorExtenso(p.item.data, hoje)),
-                              Etiqueta(contas[p.item.contaId]?.nome ?? 'sem conta'),
+                              Etiqueta(ref.watch(nomesDasContasProvider)[p.item.contaId] ?? 'sem conta'),
                               if (p.correspondente != null)
                                 Etiqueta(p.correspondente!.efetivado ? 'já lançado' : 'era agendado', tom: Tom.bom)
                               else
@@ -294,8 +291,7 @@ class _FolhaDoItemState extends ConsumerState<_FolhaDoItem> {
               InkWell(
                 borderRadius: Raios.m,
                 onTap: () async {
-                  final escolhida = await escolher<Categoria>(context,
-                      titulo: 'Categoria', itens: categorias, rotulo: (c) => c.nome, atual: categoria);
+                  final escolhida = await escolherCategoria(context, itens: categorias, atual: categoria);
                   if (escolhida != null) setState(() => _categoriaId = escolhida.id);
                 },
                 child: InputDecorator(
@@ -338,8 +334,14 @@ class _FolhaDoItemState extends ConsumerState<_FolhaDoItem> {
 
 /// Importar: escolher a conta, colar ou abrir o arquivo, conferir e mandar
 /// para a caixa de entrada.
+/// Abre a importação de extrato. Com `contaId`, a conta já vem escolhida
+/// (é o caso de quem abre de dentro do detalhe de uma conta).
+Future<void> abrirImportacao(BuildContext context, {String? contaId}) =>
+    abrirFolha<void>(context, (_) => _Importar(contaId: contaId), largura: 600);
+
 class _Importar extends ConsumerStatefulWidget {
-  const _Importar();
+  const _Importar({this.contaId});
+  final String? contaId;
 
   @override
   ConsumerState<_Importar> createState() => _ImportarState();
@@ -347,7 +349,7 @@ class _Importar extends ConsumerStatefulWidget {
 
 class _ImportarState extends ConsumerState<_Importar> {
   final _texto = TextEditingController();
-  String? _contaId;
+  late String? _contaId = widget.contaId;
   String? _arquivo;
   bool _enviando = false;
 
@@ -419,30 +421,37 @@ class _ImportarState extends ConsumerState<_Importar> {
     final repo = ref.watch(repositorioProvider);
     final lido = conta == null || _texto.text.trim().isEmpty ? null : lerExtrato(_texto.text, contaId: conta.id, hoje: hoje);
 
-    return Dialog(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 640),
+    return SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.all(Espacos.g),
+          padding: const EdgeInsets.fromLTRB(Espacos.g, 0, Espacos.g, Espacos.g),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Row(children: [
-                Expanded(child: Text('Importar extrato', style: texto.titleLarge)),
-                IconButton(tooltip: 'Fechar', onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close_rounded)),
-              ]),
-              const SizedBox(height: Espacos.p),
+              Text('Importar extrato', style: texto.titleLarge),
+              const SizedBox(height: Espacos.m),
               InkWell(
                 borderRadius: Raios.m,
                 onTap: () async {
-                  final escolhida = await escolher<Conta>(context,
-                      titulo: 'De qual conta é o extrato?', itens: contas, rotulo: (x) => x.nome, detalhe: (x) => rotulosDeConta[x.tipo], atual: conta);
+                  final escolhida = await escolherConta(context, ref, titulo: 'De qual conta é o extrato?', atualId: _contaId);
                   if (escolhida != null) setState(() => _contaId = escolhida.id);
                 },
                 child: InputDecorator(
-                  decoration: const InputDecoration(labelText: 'Conta', suffixIcon: Icon(Icons.expand_more_rounded)),
-                  child: Text(conta?.nome ?? 'Escolher', style: texto.bodyLarge),
+                  decoration: const InputDecoration(labelText: 'Conta', suffixIcon: Icon(Icons.expand_more_rounded, size: 20)),
+                  child: Row(children: [
+                    if (conta != null) ...[
+                      SeloDaConta(conta: conta, membros: ref.watch(membrosProvider).valueOrNull ?? const [], tamanho: 26),
+                      const SizedBox(width: 8),
+                    ],
+                    Expanded(
+                      child: Text(
+                        conta == null ? 'Escolher' : (ref.watch(nomesDasContasProvider)[conta.id] ?? conta.nome),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: texto.bodyMedium,
+                      ),
+                    ),
+                  ]),
                 ),
               ),
               const SizedBox(height: Espacos.m),
@@ -486,7 +495,6 @@ class _ImportarState extends ConsumerState<_Importar> {
             ],
           ),
         ),
-      ),
     );
   }
 }

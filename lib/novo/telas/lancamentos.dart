@@ -29,6 +29,10 @@ class TelaLancamentos extends ConsumerStatefulWidget {
 class _TelaLancamentosState extends ConsumerState<TelaLancamentos> {
   String _busca = '';
 
+  /// Quantas linhas estão à mostra; o resto aparece com "Mostrar mais".
+  int _visiveis = _passo;
+  static const _passo = 60;
+
   @override
   Widget build(BuildContext context) {
     final hoje = ref.watch(hojeProvider);
@@ -77,6 +81,8 @@ class _TelaLancamentosState extends ConsumerState<TelaLancamentos> {
 
     var entradas = 0;
     var saidas = 0;
+    final quantos = visiveis.length;
+    final naTela = visiveis.take(_visiveis).toList();
     for (final l in visiveis) {
       if (l.ehEntrada) entradas += l.valorCentavos;
       if (l.ehSaida) saidas += l.valorCentavos;
@@ -145,7 +151,7 @@ class _TelaLancamentosState extends ConsumerState<TelaLancamentos> {
       corpo = Cartao(
         padding: EdgeInsets.zero,
         child: _Grade(
-          lancamentos: visiveis,
+          lancamentos: naTela,
           contas: contas,
           categorias: categorias,
           hoje: hoje,
@@ -166,7 +172,7 @@ class _TelaLancamentosState extends ConsumerState<TelaLancamentos> {
       );
     } else {
       corpo = Lista(filhos: [
-        for (final l in visiveis)
+        for (final l in naTela)
           LinhaDeLancamento(
             lancamento: l,
             hoje: hoje,
@@ -197,6 +203,16 @@ class _TelaLancamentosState extends ConsumerState<TelaLancamentos> {
       totais,
       const SizedBox(height: Espacos.m),
       corpo,
+      if (quantos > naTela.length)
+        Padding(
+          padding: const EdgeInsets.only(top: Espacos.m),
+          child: Center(
+            child: OutlinedButton(
+              onPressed: () => setState(() => _visiveis += _passo),
+              child: Text('Mostrar mais ${(quantos - naTela.length).clamp(0, _passo)} de ${quantos - naTela.length}'),
+            ),
+          ),
+        ),
     ]);
   }
 }
@@ -283,16 +299,25 @@ class _Grade extends StatelessWidget {
                                 .where((x) => !x.arquivada && x.tipo == (l.ehEntrada ? 'entrada' : 'saida'))
                                 .toList()
                               ..sort((a, b) => a.nome.compareTo(b.nome));
-                            final escolhida = await escolher<Categoria>(context,
-                                titulo: 'Categoria', itens: opcoes, rotulo: (x) => x.nome, atual: categorias[l.categoriaId]);
+                            final escolhida = await escolherCategoria(context, itens: opcoes, atual: categorias[l.categoriaId]);
                             if (escolhida != null && escolhida.id != l.categoriaId) {
                               aoEditar(l, l.copiar(categoriaId: () => escolhida.id));
                             }
                           },
-                          child: Etiqueta(
-                            categorias[l.categoriaId]?.nome ?? 'sem categoria',
-                            tom: l.categoriaId == null ? Tom.atencao : Tom.neutro,
-                          ),
+                          child: categorias[l.categoriaId] == null
+                              ? const Etiqueta('sem categoria', tom: Tom.atencao)
+                              : Row(mainAxisSize: MainAxisSize.min, children: [
+                                  SeloDaCategoria(categoria: categorias[l.categoriaId], tamanho: 20),
+                                  const SizedBox(width: 6),
+                                  Flexible(
+                                    child: Text(
+                                      categorias[l.categoriaId]!.nome,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: t.bodyMedium?.copyWith(fontSize: 13.5),
+                                    ),
+                                  ),
+                                ]),
                         ),
                 ),
               ),

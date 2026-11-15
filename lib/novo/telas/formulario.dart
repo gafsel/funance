@@ -1,11 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../dados/provedores.dart';
 
 import '../modelo/modelos.dart';
 import '../regras/formatos.dart';
 import '../regras/leitura_frase.dart';
 import '../tema/tema_novo.dart';
 import 'pecas.dart';
+
+/// Abre uma folha inferior. É a única forma de abrir algo por cima da tela:
+/// no celular ocupa a largura; na mesa fica centralizada, com largura máxima.
+Future<T?> abrirFolha<T>(BuildContext context, WidgetBuilder builder, {double largura = 560, bool alta = false}) =>
+    showModalBottomSheet<T>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      constraints: BoxConstraints(maxWidth: largura),
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+        child: alta ? FractionallySizedBox(heightFactor: 0.92, child: builder(context)) : builder(context),
+      ),
+    );
 
 /// Escolha de um item numa lista, em folha.
 Future<T?> escolher<T>(
@@ -14,53 +32,154 @@ Future<T?> escolher<T>(
   required List<T> itens,
   required String Function(T) rotulo,
   String? Function(T)? detalhe,
+  Widget Function(T)? antes,
   T? atual,
   bool permiteNenhum = false,
 }) =>
-    showModalBottomSheet<T>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (context) => SafeArea(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.7),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(Espacos.g, 0, Espacos.g, Espacos.p),
-                child: Text(titulo, style: Theme.of(context).textTheme.titleMedium),
+    abrirFolha<T>(
+      context,
+      (context) => ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.7),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(Espacos.g, 0, Espacos.g, Espacos.p),
+              child: Text(titulo, style: Theme.of(context).textTheme.titleMedium),
+            ),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                padding: const EdgeInsets.only(bottom: Espacos.p),
+                children: [
+                  for (final item in itens)
+                    Linha(
+                      antes: antes?.call(item),
+                      titulo: rotulo(item),
+                      detalhe: detalhe?.call(item),
+                      direita: item == atual ? const Icon(Icons.check_rounded, size: 18) : null,
+                      aoTocar: () => Navigator.pop(context, item),
+                    ),
+                ],
               ),
-              Flexible(
-                child: ListView(
-                  shrinkWrap: true,
-                  children: [
-                    for (final item in itens)
-                      ListTile(
-                        title: Text(rotulo(item)),
-                        subtitle: detalhe?.call(item) == null ? null : Text(detalhe!(item)!),
-                        trailing: item == atual ? const Icon(Icons.check_rounded) : null,
-                        onTap: () => Navigator.pop(context, item),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
 
-Future<String?> escolherDia(BuildContext context, String atual) async {
-  final d = await showDatePicker(
-    context: context,
-    initialDate: diaDaChave(atual),
-    firstDate: DateTime(2000),
-    lastDate: DateTime(2100),
-  );
-  return d == null ? null : chaveDoDia(d);
+/// Escolha de categoria, com o ícone e a cor de cada uma.
+Future<Categoria?> escolherCategoria(BuildContext context, {required List<Categoria> itens, Categoria? atual}) =>
+    escolher<Categoria>(
+      context,
+      titulo: 'Categoria',
+      itens: itens,
+      rotulo: (x) => x.nome,
+      antes: (x) => SeloDaCategoria(categoria: x),
+      atual: atual,
+    );
+
+/// Escolha de conta. Com muitas contas, e várias no mesmo banco, a lista é
+/// organizada para achar sem ler: primeiro as usadas há pouco; depois as de
+/// quem está lançando, agrupadas por banco; depois as dos outros. Cada linha
+/// mostra o logo do banco com a foto do titular.
+Future<Conta?> escolherConta(
+  BuildContext context,
+  WidgetRef ref, {
+  String titulo = 'Conta',
+  bool Function(Conta)? filtro,
+  String? atualId,
+}) {
+  final membros = ref.read(membrosProvider).valueOrNull ?? const <Membro>[];
+  final eu = ref.read(authProvider).valueOrNull?.uid;
+  final saldos = ref.read(saldosProvider);
+  final uso = ref.read(usoDasContasProvider);
+  final contas = (ref.read(contasProvider).valueOrNull ?? const <Conta>[])
+      .where((c) => (!c.arquivada || c.id == atualId) && (filtro == null || filtro(c)))
+      .toList();
+
+  int grupoDoDono(Conta c) => c.donos.contains(eu) && !c.conjunta ? 0 : (c.donos.contains(eu) ? 1 : (c.donos.isEmpty ? 2 : 3));
+  int ordemDoTipo(Conta c) => const {'corrente': 0, 'dinheiro': 1, 'cartao': 2, 'investimento': 3, 'divida': 4}[c.tipo] ?? 5;
+  contas.sort((a, b) {
+    final dono = grupoDoDono(a).compareTo(grupoDoDono(b));
+    if (dono != 0) return dono;
+    final banco = (a.banco ?? 'zz').compareTo(b.banco ?? 'zz');
+    if (banco != 0) return banco;
+    final tipo = ordemDoTipo(a).compareTo(ordemDoTipo(b));
+    return tipo != 0 ? tipo : a.nome.compareTo(b.nome);
+  });
+  final recentes = (contas.where((c) => (uso[c.id] ?? 0) > 0).toList()
+        ..sort((a, b) => (uso[b.id] ?? 0).compareTo(uso[a.id] ?? 0)))
+      .take(3)
+      .toList();
+  const titulos = ['Suas', 'Conjuntas', 'Sem titular', 'De outras pessoas'];
+
+  return abrirFolha<Conta>(context, (context) {
+    final t = Theme.of(context).textTheme;
+    Widget linha(Conta c) => Linha(
+          antes: SeloDaConta(conta: c, membros: membros),
+          titulo: c.nome,
+          detalhe: [rotulosDeConta[c.tipo] ?? c.tipo, titularidade(c, membros, eu)].where((x) => x.isNotEmpty).join(' · '),
+          direita: Row(mainAxisSize: MainAxisSize.min, children: [
+            Text(reais(saldos[c.id] ?? 0), style: Textos.valor(context, tamanho: 13, cor: Cores.de(context).tinta2)),
+            if (c.id == atualId) ...[const SizedBox(width: 6), const Icon(Icons.check_rounded, size: 18)],
+          ]),
+          aoTocar: () => Navigator.pop(context, c),
+        );
+    Widget cabecalho(String texto) => Padding(
+          padding: const EdgeInsets.fromLTRB(Espacos.g, Espacos.m, Espacos.g, 2),
+          child: Text(texto.toUpperCase(), style: Textos.sobrancelha(context)),
+        );
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.8),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(Espacos.g, 0, Espacos.g, 0),
+            child: Text(titulo, style: t.titleMedium),
+          ),
+          Flexible(
+            child: ListView(
+              shrinkWrap: true,
+              padding: const EdgeInsets.only(bottom: Espacos.p),
+              children: [
+                if (contas.isEmpty) const Vazio('Nenhuma conta para escolher.'),
+                if (recentes.length > 1 && contas.length > 4) ...[
+                  cabecalho('Usadas há pouco'),
+                  for (final c in recentes) linha(c),
+                ],
+                for (var g = 0; g < 4; g++)
+                  if (contas.any((c) => grupoDoDono(c) == g)) ...[
+                    cabecalho(titulos[g]),
+                    for (final c in contas.where((c) => grupoDoDono(c) == g)) linha(c),
+                  ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  });
 }
+
+/// Escolha de dia, em folha, com o calendário à mostra.
+Future<String?> escolherDia(BuildContext context, String atual) => abrirFolha<String>(
+      context,
+      (context) => Padding(
+        padding: const EdgeInsets.fromLTRB(Espacos.p, 0, Espacos.p, Espacos.p),
+        child: CalendarDatePicker(
+          initialDate: diaDaChave(atual),
+          firstDate: DateTime(2000),
+          lastDate: DateTime(2100),
+          onDateChanged: (d) => Navigator.pop(context, chaveDoDia(d)),
+        ),
+      ),
+      largura: 380,
+    );
 
 const rotulosDeConta = {
   'corrente': 'Conta corrente',
@@ -72,7 +191,7 @@ const rotulosDeConta = {
 
 /// Modo avançado: todos os detalhes de um lançamento, campo a campo.
 /// Devolve a leitura ajustada, ou `null` se a pessoa desistir.
-class FormularioAvancado extends StatefulWidget {
+class FormularioAvancado extends ConsumerStatefulWidget {
   const FormularioAvancado({
     super.key,
     required this.inicial,
@@ -100,10 +219,10 @@ class FormularioAvancado extends StatefulWidget {
   final String rotuloDeSalvar;
 
   @override
-  State<FormularioAvancado> createState() => _FormularioAvancadoState();
+  ConsumerState<FormularioAvancado> createState() => _FormularioAvancadoState();
 }
 
-class _FormularioAvancadoState extends State<FormularioAvancado> {
+class _FormularioAvancadoState extends ConsumerState<FormularioAvancado> {
   late Leitura _l = widget.inicial;
   late final _valor = TextEditingController(
     text: _l.valorCentavos > 0 ? reais(_l.valorCentavos, comSimbolo: false) : '',
@@ -123,6 +242,14 @@ class _FormularioAvancadoState extends State<FormularioAvancado> {
 
   Conta? _conta(String? id) => widget.contas.where((c) => c.id == id).firstOrNull;
 
+  /// Nome da conta com o titular, para não confundir duas de mesmo nome.
+  String _nomeDaConta(String? id) {
+    final conta = _conta(id);
+    if (conta == null) return 'Escolher';
+    final de = titularidade(conta, ref.read(membrosProvider).valueOrNull ?? const [], ref.read(authProvider).valueOrNull?.uid);
+    return de.isEmpty ? conta.nome : '${conta.nome} · $de';
+  }
+
   /// Criadas nesta tela, para aparecerem antes de a lista do banco chegar.
   final _criadas = <Contraparte>[];
 
@@ -139,22 +266,29 @@ class _FormularioAvancadoState extends State<FormularioAvancado> {
     if (escolhida.id.isNotEmpty) return setState(() => _l = _l.copiar(contraparteId: () => escolhida.id));
 
     final nome = TextEditingController();
-    final digitado = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(tipo == 'cliente' ? 'Novo cliente' : 'Novo fornecedor'),
-        content: TextField(
-          controller: nome,
-          autofocus: true,
-          textCapitalization: TextCapitalization.words,
-          decoration: const InputDecoration(labelText: 'Nome'),
-          onSubmitted: (v) => Navigator.pop(context, v),
+    final digitado = await abrirFolha<String>(
+      context,
+      (context) => Padding(
+        padding: const EdgeInsets.fromLTRB(Espacos.g, 0, Espacos.g, Espacos.g),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(tipo == 'cliente' ? 'Novo cliente' : 'Novo fornecedor', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: Espacos.m),
+            TextField(
+              controller: nome,
+              autofocus: true,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(labelText: 'Nome'),
+              onSubmitted: (v) => Navigator.pop(context, v),
+            ),
+            const SizedBox(height: Espacos.g),
+            Acoes(filhos: [FilledButton(onPressed: () => Navigator.pop(context, nome.text), child: const Text('Criar'))]),
+          ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(context, nome.text), child: const Text('Criar')),
-        ],
       ),
+      largura: 420,
     );
     nome.dispose();
     if (digitado == null || digitado.trim().isEmpty) return;
@@ -195,18 +329,23 @@ class _FormularioAvancadoState extends State<FormularioAvancado> {
   Widget build(BuildContext context) {
     final texto = Theme.of(context).textTheme;
     final c = Cores.de(context);
-    final contas = widget.contas.where((x) => !x.arquivada || x.id == _l.contaId).toList();
     final categorias = widget.categorias
         .where((x) => (!x.arquivada || x.id == _l.categoriaId) && x.tipo == (_l.tipo == 'entrada' ? 'entrada' : 'saida'))
         .toList()
       ..sort((a, b) => a.nome.compareTo(b.nome));
 
-    Widget campo(String rotulo, String valor, VoidCallback aoTocar) => InkWell(
+    final membros = ref.watch(membrosProvider).valueOrNull ?? const <Membro>[];
+    final categoriaAtual = widget.categorias.where((x) => x.id == _l.categoriaId).firstOrNull;
+
+    Widget campo(String rotulo, String valor, VoidCallback aoTocar, {Widget? antes}) => InkWell(
           onTap: aoTocar,
           borderRadius: Raios.m,
           child: InputDecorator(
-            decoration: InputDecoration(labelText: rotulo, suffixIcon: const Icon(Icons.expand_more_rounded)),
-            child: Text(valor, maxLines: 1, overflow: TextOverflow.ellipsis, style: texto.bodyMedium),
+            decoration: InputDecoration(labelText: rotulo, suffixIcon: const Icon(Icons.expand_more_rounded, size: 20)),
+            child: Row(children: [
+              if (antes != null) ...[antes, const SizedBox(width: 8)],
+              Expanded(child: Text(valor, maxLines: 1, overflow: TextOverflow.ellipsis, style: texto.bodyMedium)),
+            ]),
           ),
         );
 
@@ -241,35 +380,28 @@ class _FormularioAvancadoState extends State<FormularioAvancado> {
                 if (dia != null) setState(() => _l = _l.copiar(data: dia));
               }),
               const SizedBox(height: Espacos.m),
-              campo(_l.tipo == 'transferencia' ? 'Sai de' : 'Conta', _conta(_l.contaId)?.nome ?? 'Escolher', () async {
-                final conta = await escolher<Conta>(context,
-                    titulo: 'Conta', itens: contas, rotulo: (x) => x.nome, detalhe: (x) => rotulosDeConta[x.tipo], atual: _conta(_l.contaId));
+              campo(_l.tipo == 'transferencia' ? 'Sai de' : 'Conta', _nomeDaConta(_l.contaId), () async {
+                final conta = await escolherConta(context, ref, atualId: _l.contaId);
                 if (conta != null) setState(() => _l = _l.copiar(contaId: () => conta.id));
-              }),
+              }, antes: _conta(_l.contaId) == null ? null : SeloDaConta(conta: _conta(_l.contaId)!, membros: membros, tamanho: 26)),
               if (_l.tipo == 'transferencia') ...[
                 const SizedBox(height: Espacos.m),
-                campo('Entra em', _conta(_l.contaDestinoId)?.nome ?? 'Escolher', () async {
-                  final conta = await escolher<Conta>(context,
-                      titulo: 'Conta de destino',
-                      itens: contas.where((x) => x.id != _l.contaId).toList(),
-                      rotulo: (x) => x.nome,
-                      detalhe: (x) => rotulosDeConta[x.tipo],
-                      atual: _conta(_l.contaDestinoId));
+                campo('Entra em', _nomeDaConta(_l.contaDestinoId), () async {
+                  final conta = await escolherConta(context, ref,
+                      titulo: 'Conta de destino', filtro: (x) => x.id != _l.contaId, atualId: _l.contaDestinoId);
                   if (conta != null) setState(() => _l = _l.copiar(contaDestinoId: () => conta.id));
-                }),
+                }, antes: _conta(_l.contaDestinoId) == null ? null : SeloDaConta(conta: _conta(_l.contaDestinoId)!, membros: membros, tamanho: 26)),
               ] else ...[
                 const SizedBox(height: Espacos.m),
                 campo(
                   'Categoria',
                   widget.categorias.where((x) => x.id == _l.categoriaId).firstOrNull?.nome ?? 'Sem categoria',
                   () async {
-                    final escolhida = await escolher<Categoria?>(context,
-                        titulo: 'Categoria',
-                        itens: [null, ...categorias],
-                        rotulo: (x) => x?.nome ?? 'Sem categoria',
-                        atual: categorias.where((x) => x.id == _l.categoriaId).firstOrNull);
-                    setState(() => _l = _l.copiar(categoriaId: () => escolhida?.id));
+                    final escolhida = await escolherCategoria(context,
+                        itens: categorias, atual: categorias.where((x) => x.id == _l.categoriaId).firstOrNull);
+                    if (escolhida != null) setState(() => _l = _l.copiar(categoriaId: () => escolhida.id));
                   },
+                  antes: categoriaAtual == null ? null : SeloDaCategoria(categoria: categoriaAtual, tamanho: 26),
                 ),
               ],
               if (widget.contrapartes != null && _l.tipo != 'transferencia') ...[

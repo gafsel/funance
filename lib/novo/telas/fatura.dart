@@ -6,7 +6,10 @@ import '../dados/provedores.dart';
 import '../modelo/modelos.dart';
 import '../regras/formatos.dart';
 import '../tema/tema_novo.dart';
+import 'conta.dart';
 import 'detalhe.dart';
+import 'entrada.dart';
+import 'lancar.dart';
 import 'formulario.dart';
 import 'pecas.dart';
 
@@ -40,6 +43,12 @@ class TelaCartao extends ConsumerWidget {
             style: texto.bodySmall,
           ),
           const SizedBox(height: Espacos.m),
+          Wrap(spacing: Espacos.p, runSpacing: Espacos.p, children: [
+            BotaoPequeno('Lançar neste cartão', icone: Icons.add_rounded, cheio: true, aoTocar: () => abrirLancar(context, contaId: cartao.id)),
+            BotaoPequeno('Importar fatura', icone: Icons.upload_file_rounded, aoTocar: () => abrirImportacao(context, contaId: cartao.id)),
+            BotaoPequeno('Extrato e titulares', aoTocar: () => abrirConta(context, cartao.id)),
+          ]),
+          const TituloDeSecao('Faturas'),
           if (faturas.isEmpty)
             const Cartao(padding: EdgeInsets.zero, child: Vazio('Nenhuma fatura neste cartão ainda.'))
           else
@@ -76,16 +85,8 @@ class TelaFatura extends ConsumerWidget {
     final repo = ref.read(repositorioProvider);
     if (repo == null) return;
     final hoje = ref.read(hojeProvider);
-    final contas = (ref.read(contasProvider).valueOrNull ?? const <Conta>[]).where((x) => x.ehDeUso && !x.arquivada).toList();
-    final saldos = ref.read(saldosProvider);
     final mensageiro = ScaffoldMessenger.of(context);
-    final origem = await escolher<Conta>(
-      context,
-      titulo: 'Pagar ${reais(f.abertoCentavos)} com',
-      itens: contas,
-      rotulo: (x) => x.nome,
-      detalhe: (x) => 'Saldo ${reais(saldos[x.id] ?? 0)}',
-    );
+    final origem = await escolherConta(context, ref, titulo: 'Pagar ${reais(f.abertoCentavos)} com', filtro: (x) => x.ehDeUso);
     if (origem == null) return;
     final pagamento = Lancamento(
       id: const Uuid().v4(),

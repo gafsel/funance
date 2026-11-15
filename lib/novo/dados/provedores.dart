@@ -74,9 +74,10 @@ final categoriasProvider = _colecao<Categoria>((r) => r.categorias());
 final metasProvider = _colecao<Meta>((r) => r.metas());
 final faturasProvider = _colecao<Fatura>((r) => r.faturas());
 final resumosProvider = _colecao<ResumoMes>((r) => r.resumos());
+final membrosProvider = _colecao<Membro>((r) => r.membros());
 final entradaProvider = _colecao<ItemEntrada>((r) => r.entradaPendente());
 final contrapartesProvider = _colecao<Contraparte>((r) => r.contrapartes());
-final previstosProvider = _colecao<Lancamento>((r) => r.previstos());
+
 final regrasProvider = _colecao<Regra>((r) => r.regras());
 final fechamentosProvider = _colecao<Fechamento>((r) => r.fechamentos());
 
@@ -96,19 +97,30 @@ final lancamentosDoMesProvider = StreamProvider.family<List<Lancamento>, String>
   return repo == null ? Stream.value(const []) : repo.lancamentosDoMes(mes);
 });
 
-final atrasadosProvider = StreamProvider<List<Lancamento>>((ref) {
+/// Agendados de hoje até 60 dias à frente, mais os que já venceram.
+final previstosProvider = StreamProvider<List<Lancamento>>((ref) {
   final repo = ref.watch(repositorioProvider);
-  return repo == null ? Stream.value(const []) : repo.atrasados(ref.watch(hojeProvider));
+  return repo == null ? Stream.value(const []) : repo.previstos(ate: somarDias(ref.watch(hojeProvider), 60));
 });
 
-/// Lançamentos do mês corrente e do anterior: base do Início e do que o
-/// leitor de frases "aprende".
+/// Os agendados que já venceram.
+final atrasadosProvider = Provider<AsyncValue<List<Lancamento>>>((ref) {
+  final hoje = ref.watch(hojeProvider);
+  return ref.watch(previstosProvider).whenData((todos) => [for (final l in todos) if (l.data.compareTo(hoje) < 0) l]);
+});
+
+final _ultimosFeitosProvider = _colecao<Lancamento>((r) => r.ultimosFeitos());
+
+/// Lançamentos recentes: o mês corrente inteiro e os últimos feitos antes
+/// dele. Base do que o leitor de frases "aprende" e do reconhecimento do que
+/// já foi lançado.
 final recentesProvider = Provider<List<Lancamento>>((ref) {
   final mes = ref.watch(hojeProvider).substring(0, 7);
-  return [
-    ...ref.watch(lancamentosDoMesProvider(mes)).valueOrNull ?? const <Lancamento>[],
-    ...ref.watch(lancamentosDoMesProvider(somarMeses(mes, -1))).valueOrNull ?? const <Lancamento>[],
-  ];
+  final porId = {
+    for (final l in ref.watch(_ultimosFeitosProvider).valueOrNull ?? const <Lancamento>[]) l.id: l,
+    for (final l in ref.watch(lancamentosDoMesProvider(mes)).valueOrNull ?? const <Lancamento>[]) l.id: l,
+  };
+  return porId.values.toList();
 });
 
 final marcasProvider = StreamProvider<Map<String, Mapa>>((ref) {
@@ -184,7 +196,11 @@ final saldosProvider = Provider<Map<String, int>>((ref) {
 /// recentemente, ou a primeira corrente.
 final contaPadraoProvider = Provider<String?>((ref) {
   final contas = (ref.watch(contasProvider).valueOrNull ?? const <Conta>[]).where((c) => !c.arquivada);
-  final deUso = contas.where((c) => c.ehDeUso).toList();
+  final eu = ref.watch(authProvider).valueOrNull?.uid;
+  final todasDeUso = contas.where((c) => c.ehDeUso).toList();
+  // Entre as contas de uso, as de quem está lançando vêm antes.
+  final minhas = todasDeUso.where((c) => c.donos.contains(eu)).toList();
+  final deUso = minhas.isEmpty ? todasDeUso : minhas;
   if (deUso.isEmpty) return contas.firstOrNull?.id;
   final uso = <String, int>{};
   for (final l in ref.watch(recentesProvider)) {
@@ -200,4 +216,40 @@ final contextoDeLeituraProvider = Provider<ContextoDeLeitura>((ref) => ContextoD
       categorias: ref.watch(categoriasProvider).valueOrNull ?? const [],
       aprendido: aprenderCategorias(ref.watch(recentesProvider)),
       contaPadraoId: ref.watch(contaPadraoProvider),
+      membros: ref.watch(membrosProvider).valueOrNull ?? const [],
+      euId: ref.watch(authProvider).valueOrNull?.uid,
     ));
+
+/// Nome de cada conta como aparece nas listas. Quando duas contas têm o
+/// mesmo nome (o Nubank de cada um), o titular vai junto.
+final nomesDasContasProvider = Provider<Map<String, String>>((ref) {
+  final contas = ref.watch(contasProvider).valueOrNull ?? const <Conta>[];
+  final membros = ref.watch(membrosProvider).valueOrNull ?? const <Membro>[];
+  final eu = ref.watch(authProvider).valueOrNull?.uid;
+  final vezes = <String, int>{};
+  for (final c in contas) {
+    if (!c.arquivada) vezes[normalizar(c.nome)] = (vezes[normalizar(c.nome)] ?? 0) + 1;
+  }
+  String dono(Conta c) {
+    if (c.donos.isEmpty) return '';
+    if (c.conjunta) return 'conjunta';
+    if (c.donos.single == eu) return 'sua';
+    return membros.where((m) => m.uid == c.donos.single).firstOrNull?.primeiroNome ?? '';
+  }
+
+  return {
+    for (final c in contas)
+      c.id: (vezes[normalizar(c.nome)] ?? 0) > 1 && dono(c).isNotEmpty ? '${c.nome} (${dono(c)})' : c.nome,
+  };
+});
+
+/// Quantas vezes cada conta foi usada nos lançamentos recentes.
+final usoDasContasProvider = Provider<Map<String, int>>((ref) {
+  final uso = <String, int>{};
+  for (final l in ref.watch(recentesProvider)) {
+    uso[l.contaId] = (uso[l.contaId] ?? 0) + 1;
+    final destino = l.contaDestinoId;
+    if (destino != null) uso[destino] = (uso[destino] ?? 0) + 1;
+  }
+  return uso;
+});

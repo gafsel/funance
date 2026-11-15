@@ -187,7 +187,7 @@ class TelaEmpresa extends ConsumerWidget {
           semTopo: mesa,
           acao: BotaoPequeno(
             'Pagar pró-labore',
-            aoTocar: () => showDialog<void>(context: context, builder: (_) => const _PagarProLabore()),
+            aoTocar: () => abrirFolha<void>(context, (_) => const _PagarProLabore(), largura: 520),
           ),
         ),
         Cartao(
@@ -430,24 +430,19 @@ class _PagarProLaboreState extends ConsumerState<_PagarProLabore> {
           onTap: aoTocar,
           child: InputDecorator(
             decoration: InputDecoration(labelText: rotulo, helperText: ajuda, helperMaxLines: 2, suffixIcon: const Icon(Icons.expand_more_rounded)),
-            child: Text(valor, style: texto.bodyLarge),
+            child: Text(valor, maxLines: 1, overflow: TextOverflow.ellipsis, style: texto.bodyMedium),
           ),
         );
 
-    return Dialog(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 520),
+    return SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.all(Espacos.g),
+          padding: const EdgeInsets.fromLTRB(Espacos.g, 0, Espacos.g, Espacos.g),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Row(children: [
-                Expanded(child: Text('Pagar pró-labore', style: texto.titleLarge)),
-                IconButton(tooltip: 'Fechar', onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close_rounded)),
-              ]),
-              const SizedBox(height: Espacos.p),
+              Text('Pagar pró-labore', style: texto.titleLarge),
+              const SizedBox(height: Espacos.m),
               TextField(
                 controller: _valor,
                 autofocus: true,
@@ -457,7 +452,7 @@ class _PagarProLaboreState extends ConsumerState<_PagarProLabore> {
               ),
               const SizedBox(height: Espacos.m),
               campo('Sai da conta da empresa', conta?.nome ?? 'Escolher', () async {
-                final escolhida = await escolher<Conta>(context, titulo: 'Conta da empresa', itens: contas, rotulo: (x) => x.nome, atual: conta);
+                final escolhida = await escolherConta(context, ref, titulo: 'Conta da empresa', filtro: (x) => x.ehDeUso, atualId: _contaId);
                 if (escolhida != null) setState(() => _contaId = escolhida.id);
               }),
               const SizedBox(height: Espacos.m),
@@ -492,7 +487,6 @@ class _PagarProLaboreState extends ConsumerState<_PagarProLabore> {
             ],
           ),
         ),
-      ),
     );
   }
 }

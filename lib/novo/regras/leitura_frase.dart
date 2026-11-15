@@ -1,4 +1,5 @@
 import '../modelo/modelos.dart';
+import 'contas_na_frase.dart';
 import 'formatos.dart';
 
 /// O que foi entendido de uma frase. É o mesmo formato que a IA devolve
@@ -93,7 +94,14 @@ class ContextoDeLeitura {
     required this.categorias,
     this.aprendido = const {},
     this.contaPadraoId,
+    this.membros = const [],
+    this.euId,
   });
+
+  /// Membros do espaço e quem está lançando: é o que permite entender
+  /// "meu nubank" e "nubank da bárbara".
+  final List<Membro> membros;
+  final String? euId;
 
   final String hoje;
   final List<Conta> contas;
@@ -226,46 +234,14 @@ Leitura? lerLinha(String linha, ContextoDeLeitura ctx) {
   final recorrente = tem(_palavrasDeRecorrencia);
   final efetivado = !(tem(_palavrasDeFuturo) || (dataDita && data.compareTo(ctx.hoje) > 0));
 
-  // Contas citadas, na ordem em que aparecem. O nome mais longo ganha
-  // ("cartao nubank" antes de "nubank").
-  final citadas = <(int, Conta)>[];
-  final ativas = ctx.contas.where((c) => !c.arquivada).toList()
-    ..sort((a, b) => b.nome.length.compareTo(a.nome.length));
-  for (final conta in ativas) {
-    final nome = normalizar(conta.nome).trim();
-    if (nome.length < 2) continue;
-    final i = resto.indexOf(nome);
-    if (i >= 0) {
-      citadas.add((i, conta));
-      resto = resto.replaceRange(i, i + nome.length, ' ' * nome.length);
-    }
-  }
-  // Sem o nome inteiro, vale uma palavra dele que só essa conta tem
-  // ("nubank" para "Cartão Nubank").
-  const genericas = {'cartao', 'conta', 'banco', 'credito', 'debito', 'corrente'};
-  for (final conta in ativas) {
-    if (citadas.any((c) => c.$2.id == conta.id)) continue;
-    for (final palavra in normalizar(conta.nome).split(RegExp(r'[^a-z0-9]+'))) {
-      if (palavra.length < 3 || genericas.contains(palavra)) continue;
-      final outras = ativas.where((o) => o.id != conta.id && normalizar(o.nome).contains(palavra));
-      final i = resto.indexOf(' $palavra ');
-      if (i >= 0 && outras.isEmpty) {
-        citadas.add((i, conta));
-        resto = resto.replaceRange(i + 1, i + 1 + palavra.length, ' ' * palavra.length);
-        break;
-      }
-    }
-  }
-  citadas.sort((a, b) => a.$1.compareTo(b.$1));
+  // Contas citadas, na ordem em que aparecem.
+  final achadas = acharContas(resto, ctx);
+  final citadas = achadas.citadas;
+  resto = achadas.resto;
 
-  // "no cartão", "no crédito": o cartão, se a pessoa só tem um.
-  if (citadas.isEmpty && (resto.contains(' cartao ') || resto.contains(' credito '))) {
-    final cartoes = ativas.where((c) => c.ehCartao).toList();
-    if (cartoes.length == 1) citadas.add((0, cartoes.single));
-    resto = resto.replaceAll(' cartao ', ' ').replaceAll(' credito ', ' ');
-  }
-
-  String? contaId = citadas.isNotEmpty ? citadas.first.$2.id : ctx.contaPadraoId;
+  // Citou uma conta que não deu para decidir qual é: melhor perguntar do
+  // que cair na conta padrão em silêncio.
+  String? contaId = citadas.isNotEmpty ? citadas.first.$2.id : (achadas.ambigua ? null : ctx.contaPadraoId);
   String? destinoId;
   if (tipo == 'transferencia') {
     if (citadas.length >= 2) {

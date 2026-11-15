@@ -26,10 +26,10 @@ Future<void> abrirLancamento(BuildContext context, WidgetRef ref, Lancamento l) 
       action: SnackBarAction(label: 'Desfazer', onPressed: desfazer),
     ));
 
-  final acao = await showModalBottomSheet<String>(
-    context: context,
-    showDragHandle: true,
-    builder: (context) => SafeArea(
+  final acao = await abrirFolha<String>(
+    context,
+    largura: 440,
+    (context) => SafeArea(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

@@ -8,9 +8,11 @@ import '../regras/formatos.dart';
 import '../regras/metas.dart';
 import '../tema/tema_novo.dart';
 import 'casca.dart';
+import 'conta.dart';
 import 'detalhe.dart';
 import 'fatura.dart';
 import 'lancar.dart';
+import 'meta.dart';
 import 'pecas.dart';
 import 'revisao.dart';
 
@@ -29,6 +31,25 @@ class TelaInicio extends ConsumerWidget {
     final esquerda = <Widget>[const _Heroi(), espaco, const _CampoRapido(), const _AVencer()];
     final direita = <Widget>[const _Passo(), const _Avisos(), const _MetasResumo(), const _Contas()];
     const ultimos = _Ultimos();
+
+    // Tela larga: três colunas. O que se faz agora, o que orienta, e as contas.
+    if (ehTelaLarga(context)) {
+      return Pagina(filhos: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(flex: 5, child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [...esquerda, ultimos])),
+            const SizedBox(width: Espacos.xg),
+            const Expanded(
+              flex: 4,
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [_Passo(), _Avisos(), _MetasResumo()]),
+            ),
+            const SizedBox(width: Espacos.xg),
+            const Expanded(flex: 4, child: _Contas(semTopo: true)),
+          ],
+        ),
+      ]);
+    }
 
     if (mesa) {
       return Pagina(filhos: [
@@ -163,6 +184,7 @@ class _AVencer extends ConsumerWidget {
     final hoje = ref.watch(hojeProvider);
     final mes = hoje.substring(0, 7);
     final contas = {for (final x in ref.watch(contasProvider).valueOrNull ?? const <Conta>[]) x.id: x};
+    final categorias = {for (final x in ref.watch(categoriasProvider).valueOrNull ?? const <Categoria>[]) x.id: x};
     final doMes = ref.watch(lancamentosDoMesProvider(mes)).valueOrNull ?? const <Lancamento>[];
     final atrasados = ref.watch(atrasadosProvider).valueOrNull ?? const <Lancamento>[];
     final limite = somarDias(hoje, 7);
@@ -187,6 +209,7 @@ class _AVencer extends ConsumerWidget {
                 hoje: hoje,
                 conta: contas[l.contaId],
                 destino: contas[l.contaDestinoId],
+                categoria: categorias[l.categoriaId],
                 onTap: () => abrirLancamento(context, ref, l),
                 acao: BotaoPequeno(
                   l.ehEntrada ? 'Recebi' : 'Paguei',
@@ -353,7 +376,7 @@ class _MetasResumo extends ConsumerWidget {
             Builder(builder: (context) {
               final p = progressoDaMeta(meta, hoje: hoje, contas: contas, saldos: saldos, resumos: resumos);
               return InkWell(
-                onTap: () => ref.read(secaoProvider.notifier).state = Secao.metas,
+                onTap: () => abrirMeta(context, meta.id),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   child: Column(
@@ -362,13 +385,15 @@ class _MetasResumo extends ConsumerWidget {
                       Row(children: [
                         Expanded(child: Text(meta.nome, maxLines: 1, overflow: TextOverflow.ellipsis, style: t.titleSmall)),
                         const SizedBox(width: 8),
-                        Text('${reais(p.atualCentavos)} de ${reais(p.alvoCentavos)}', style: Textos.valor(context, tamanho: 13)),
+                        Text('${(p.fracao * 100).round()}%', style: Textos.valor(context, tamanho: 13)),
                       ]),
                       const SizedBox(height: 6),
                       Barra(p.fracao, cor: p.menorEhMelhor && !p.atingida ? c.atencao : null),
                       const SizedBox(height: 4),
                       Text(
-                        '${(meta.parcelaMensalCentavos ?? 0) > 0 ? '${reais(meta.parcelaMensalCentavos!)} por mês · ' : ''}até ${diaPorExtenso(meta.prazo, hoje)}',
+                        '${reais(p.atualCentavos)} de ${reais(p.alvoCentavos)} · até ${diaPorExtenso(meta.prazo, hoje)}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: t.bodySmall,
                       ),
                     ],
@@ -383,7 +408,10 @@ class _MetasResumo extends ConsumerWidget {
 }
 
 class _Contas extends ConsumerWidget {
-  const _Contas();
+  const _Contas({this.semTopo = false});
+
+  /// Primeira coisa da coluna: o título não precisa de respiro em cima.
+  final bool semTopo;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -394,6 +422,17 @@ class _Contas extends ConsumerWidget {
       ..sort((a, b) => a.nome.compareTo(b.nome));
     final saldos = ref.watch(saldosProvider);
     final faturas = ref.watch(faturasProvider).valueOrNull ?? const <Fatura>[];
+    final membros = ref.watch(membrosProvider).valueOrNull ?? const <Membro>[];
+    final eu = ref.watch(authProvider).valueOrNull?.uid;
+    // As de quem está usando vêm primeiro; depois por banco.
+    int ordem(Conta x) => x.donos.contains(eu) && !x.conjunta ? 0 : (x.donos.contains(eu) ? 1 : 2);
+    contas.sort((a, b) {
+      final o = ordem(a).compareTo(ordem(b));
+      if (o != 0) return o;
+      final banco = (a.banco ?? 'zz').compareTo(b.banco ?? 'zz');
+      return banco != 0 ? banco : a.nome.compareTo(b.nome);
+    });
+    String detalhe(Conta x, String tipo) => [tipo, titularidade(x, membros, eu)].where((p) => p.isNotEmpty).join(' · ');
     final outras = contas.where((x) => !x.ehCartao).toList();
     final cartoes = contas.where((x) => x.ehCartao).toList();
     const tipos = {'corrente': 'Conta corrente', 'dinheiro': 'Dinheiro', 'investimento': 'Investimento', 'divida': 'Dívida'};
@@ -410,15 +449,17 @@ class _Contas extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const TituloDeSecao('Contas'),
+        TituloDeSecao('Contas', semTopo: semTopo),
         if (outras.isEmpty)
           const Cartao(padding: EdgeInsets.zero, child: Vazio('Nenhuma conta cadastrada.'))
         else
           Lista(filhos: [
             for (final x in outras)
               Linha(
+                antes: SeloDaConta(conta: x, membros: membros),
                 titulo: x.nome,
-                detalhe: tipos[x.tipo],
+                detalhe: detalhe(x, tipos[x.tipo] ?? ''),
+                aoTocar: () => abrirConta(context, x.id),
                 direita: Text(
                   reais(saldos[x.id] ?? 0),
                   style: Textos.valor(context, cor: (saldos[x.id] ?? 0) < 0 && x.tipo != 'divida' ? c.problema : null),
@@ -433,10 +474,12 @@ class _Contas extends ConsumerWidget {
                 final f = faturaAtual(x);
                 final venceu = f != null && f.vencimento.compareTo(hoje) < 0;
                 return Linha(
+                  antes: SeloDaConta(conta: x, membros: membros),
                   titulo: x.nome,
-                  detalhe: f == null
-                      ? 'Sem fatura em aberto'
-                      : 'Fatura ${venceu ? 'venceu' : 'vence'} ${diaPorExtenso(f.vencimento, hoje)}',
+                  detalhe: detalhe(
+                    x,
+                    f == null ? 'Sem fatura em aberto' : 'Fatura ${venceu ? 'venceu' : 'vence'} ${diaPorExtenso(f.vencimento, hoje)}',
+                  ),
                   corDoDetalhe: venceu ? c.atencao : null,
                   direita: Text(reais(f?.abertoCentavos ?? 0), style: Textos.valor(context)),
                   aoTocar: () => abrirCartao(context, x),

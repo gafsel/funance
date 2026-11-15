@@ -7,11 +7,13 @@ import '../regras/formatos.dart';
 import '../tema/tema_novo.dart';
 import 'casca.dart';
 import 'categorias.dart';
+import 'conta.dart';
 import 'empresa.dart';
 import 'fatura.dart';
 import 'fechamento.dart';
 import 'formulario.dart';
 import 'pecas.dart';
+import 'relatorios.dart';
 import 'revisao.dart';
 
 /// Contas e cadastros: o que se configura de vez em quando. No celular é
@@ -27,7 +29,16 @@ class TelaMais extends ConsumerWidget {
     final atual = ref.watch(espacoAtualProvider);
     final c = Cores.de(context);
     final mesa = ehMesa(context);
-    final ativas = contas.where((x) => !x.arquivada).toList()..sort((a, b) => a.nome.compareTo(b.nome));
+    final membros = ref.watch(membrosProvider).valueOrNull ?? const <Membro>[];
+    final eu = usuario?.uid;
+    int ordem(Conta x) => x.donos.contains(eu) && !x.conjunta ? 0 : (x.donos.contains(eu) ? 1 : 2);
+    final ativas = contas.where((x) => !x.arquivada).toList()
+      ..sort((a, b) {
+        final o = ordem(a).compareTo(ordem(b));
+        if (o != 0) return o;
+        final banco = (a.banco ?? 'zz').compareTo(b.banco ?? 'zz');
+        return banco != 0 ? banco : a.nome.compareTo(b.nome);
+      });
     final empresa = atual?.ehEmpresa ?? false;
     final seta = Icon(Icons.chevron_right_rounded, size: 18, color: c.tinta3);
 
@@ -41,13 +52,15 @@ class TelaMais extends ConsumerWidget {
           Lista(filhos: [
             for (final x in ativas)
               Linha(
+                antes: SeloDaConta(conta: x, membros: membros),
                 titulo: x.nome,
-                detalhe: rotulosDeConta[x.tipo] ?? x.tipo,
+                detalhe: [rotulosDeConta[x.tipo] ?? x.tipo, titularidade(x, membros, eu)].where((p) => p.isNotEmpty).join(' · '),
                 direita: Row(mainAxisSize: MainAxisSize.min, children: [
                   Text(reais(saldos[x.id] ?? 0), style: Textos.valor(context)),
-                  if (x.ehCartao) ...[const SizedBox(width: 4), seta],
+                  const SizedBox(width: 4),
+                  seta,
                 ]),
-                aoTocar: x.ehCartao ? () => abrirCartao(context, x) : null,
+                aoTocar: () => x.ehCartao ? abrirCartao(context, x) : abrirConta(context, x.id),
               ),
           ]),
       ],
@@ -66,6 +79,14 @@ class TelaMais extends ConsumerWidget {
               aoTocar: () => Navigator.of(context).push(MaterialPageRoute<void>(
                 builder: (_) => Scaffold(appBar: AppBar(title: const Text('Empresa')), body: const TelaEmpresa()),
               )),
+            ),
+          if (!mesa)
+            Linha(
+              titulo: 'Relatórios',
+              detalhe: 'Para onde o dinheiro foi, mês a mês',
+              direita: seta,
+              aoTocar: () => Navigator.of(context)
+                  .push(MaterialPageRoute<void>(builder: (_) => const TelaRelatorios(embutida: false))),
             ),
           if (!mesa)
             Linha(

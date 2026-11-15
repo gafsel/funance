@@ -20,6 +20,7 @@ class Repositorio {
       consulta.snapshots().map((s) => [for (final d in s.docs) de(d.id, d.data())]);
 
   Stream<List<Conta>> contas() => _lista(_col('contas'), Conta.deMapa);
+  Stream<List<Membro>> membros() => _lista(_col('membros'), Membro.deMapa);
   Stream<List<Categoria>> categorias() => _lista(_col('categorias'), Categoria.deMapa);
   Stream<List<Meta>> metas() => _lista(_col('metas'), Meta.deMapa);
   Stream<List<Fatura>> faturas() => _lista(_col('faturas'), Fatura.deMapa);
@@ -44,9 +45,11 @@ class Repositorio {
   Stream<List<Lancamento>> lancamentosDoMes(String mes) =>
       lancamentosEntre('$mes-01', diaNoMes(mes, 31));
 
-  /// Previstos vencidos e ainda não pagos, de qualquer mês anterior.
-  Stream<List<Lancamento>> atrasados(String hoje) => _lista(
-        _col('lancamentos').where('situacao', isEqualTo: 'previsto').where('data', isLessThan: hoje),
+  /// Os últimos lançamentos feitos, de qualquer mês. É de onde o leitor de
+  /// frases aprende categorias e de onde sai a ordem das contas mais usadas.
+  /// Tem limite: não cresce com o histórico.
+  Stream<List<Lancamento>> ultimosFeitos({int limite = 150}) => _lista(
+        _col('lancamentos').orderBy('dataEfetiva', descending: true).limit(limite),
         Lancamento.deMapa,
       );
 
@@ -129,7 +132,7 @@ class Repositorio {
   // ---- Caixa de entrada, regras e fechamento ------------------------------
 
   Stream<List<ItemEntrada>> entradaPendente() =>
-      _lista(_col('entrada').where('situacao', isEqualTo: 'pendente'), ItemEntrada.deMapa);
+      _lista(_col('entrada').where('situacao', isEqualTo: 'pendente').limit(200), ItemEntrada.deMapa);
 
   Stream<List<Regra>> regras() => _lista(_col('regras'), Regra.deMapa);
   Stream<List<Fechamento>> fechamentos() => _lista(_col('fechamentos'), Fechamento.deMapa);
@@ -234,7 +237,11 @@ class Repositorio {
   Future<void> gravarContraparte(String id, {required String nome, required String tipo}) =>
       _col('contrapartes').doc(id).set({'nome': nome, 'tipo': tipo});
 
-  /// Tudo o que está agendado e ainda não aconteceu, de qualquer mês.
-  Stream<List<Lancamento>> previstos() =>
-      _lista(_col('lancamentos').where('situacao', isEqualTo: 'previsto'), Lancamento.deMapa);
+  /// O que está agendado e ainda não aconteceu, do passado até `ate`. O
+  /// limite existe porque as séries recorrentes geram doze meses à frente:
+  /// sem ele, esta consulta cresceria com o número de contas fixas.
+  Stream<List<Lancamento>> previstos({required String ate, int limite = 400}) => _lista(
+        _col('lancamentos').where('situacao', isEqualTo: 'previsto').where('data', isLessThanOrEqualTo: ate).orderBy('data').limit(limite),
+        Lancamento.deMapa,
+      );
 }

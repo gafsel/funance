@@ -81,7 +81,8 @@ export const criarEspaco = onCall(async (request) => {
         throw new HttpsError("invalid-argument", error instanceof Error ? error.message : "Pedido inválido.");
     }
     try {
-        return { espacoId: await criarEspacoNoBanco(admin.firestore(), request.auth.uid, pedido) };
+        const perfil = { nome: request.auth.token.name ?? request.auth.token.email ?? null, foto: request.auth.token.picture ?? null };
+        return { espacoId: await criarEspacoNoBanco(admin.firestore(), request.auth.uid, pedido, perfil) };
     }
     catch (error) {
         throw new HttpsError("failed-precondition", error instanceof Error ? error.message : "Não foi possível criar o espaço.");

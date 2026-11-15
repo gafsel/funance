@@ -130,6 +130,9 @@ const double larguraDeMesa = 860;
 bool ehMesa(BuildContext context) =>
     MediaQuery.sizeOf(context).width >= larguraDeMesa;
 
+/// Tela larga o bastante para uma terceira coluna de conteúdo.
+bool ehTelaLarga(BuildContext context) => MediaQuery.sizeOf(context).width >= 1360;
+
 /// Margem lateral do conteúdo: 14 no celular, 24 na mesa.
 double margemDaTela(BuildContext context) => ehMesa(context) ? 24 : Espacos.g;
 
@@ -321,4 +324,42 @@ ThemeData temaNovo(Brightness brilho) {
     ),
     datePickerTheme: DatePickerThemeData(backgroundColor: c.fundo, surfaceTintColor: c.fundo),
   );
+}
+
+/// Cor a partir de `#RRGGBB` (como as categorias e contas guardam). `null`
+/// para texto que não é uma cor.
+Color? corDeHex(String? hex) {
+  if (hex == null) return null;
+  final limpo = hex.replaceFirst('#', '');
+  if (limpo.length != 6) return null;
+  final valor = int.tryParse(limpo, radix: 16);
+  return valor == null ? null : Color(0xFF000000 | valor);
+}
+
+/// Cores oferecidas na escolha de cor de uma categoria. São as mesmas que
+/// os gráficos usam, então a categoria tem sempre a mesma cor em todo lugar.
+const paletaDeCategorias = [
+  '#EF5350', '#EC407A', '#AB47BC', '#7E57C2', '#5C6BC0', '#42A5F5',
+  '#29B6F6', '#00BCD4', '#26A69A', '#23804A', '#9CCC65', '#FFB300',
+  '#FF9800', '#FF7043', '#8D6E63', '#78909C',
+];
+
+/// Cor de uma categoria sem cor definida: estável para o mesmo id.
+Color corPadraoDaCategoria(String id) {
+  var soma = 0;
+  for (final u in id.codeUnits) {
+    soma = (soma * 31 + u) & 0xFFFF;
+  }
+  return corDeHex(paletaDeCategorias[soma % paletaDeCategorias.length])!;
+}
+
+/// Texto legível sobre uma cor de fundo qualquer.
+Color sobreCor(Color fundo) => fundo.computeLuminance() > 0.55 ? const Color(0xFF0E3440) : const Color(0xFFFFFFFF);
+
+/// As quatro cores da marca do Google, para o botão de entrar.
+abstract final class CoresDoGoogle {
+  static const azul = Color(0xFF4285F4);
+  static const vermelho = Color(0xFFEA4335);
+  static const amarelo = Color(0xFFFBBC05);
+  static const verde = Color(0xFF34A853);
 }

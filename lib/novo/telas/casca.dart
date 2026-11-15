@@ -7,16 +7,18 @@ import '../tema/tema_novo.dart';
 import 'comeco.dart';
 import 'empresa.dart';
 import 'fechamento.dart';
+import 'formulario.dart';
 import 'inicio.dart';
 import 'lancamentos.dart';
 import 'lancar.dart';
 import 'mais.dart';
 import 'metas.dart';
 import 'pecas.dart';
+import 'relatorios.dart';
 
 /// Seção em exibição. Fica num provedor para que qualquer tela possa levar
 /// a pessoa a outra ("Ver o caminho inteiro").
-enum Secao { inicio, lancamentos, empresa, metas, fechamento, mais }
+enum Secao { inicio, lancamentos, empresa, metas, relatorios, fechamento, mais }
 
 final secaoProvider = StateProvider<Secao>((ref) => Secao.inicio);
 
@@ -25,6 +27,7 @@ const _rotulos = {
   Secao.lancamentos: 'Lançamentos',
   Secao.empresa: 'Empresa',
   Secao.metas: 'Metas e caminho',
+  Secao.relatorios: 'Relatórios',
   Secao.fechamento: 'Fechamento',
   Secao.mais: 'Contas e cadastros',
 };
@@ -54,6 +57,7 @@ class _CascaState extends ConsumerState<Casca> {
         Secao.lancamentos => const TelaLancamentos(),
         Secao.empresa => const TelaEmpresa(),
         Secao.metas => const TelaMetas(),
+        Secao.relatorios => const TelaRelatorios(),
         Secao.fechamento => const TelaFechamento(embutida: true),
         Secao.mais => const TelaMais(),
       };
@@ -88,7 +92,7 @@ class _CascaState extends ConsumerState<Casca> {
     if (secao == Secao.empresa && !espaco.ehEmpresa) secao = Secao.inicio;
     // No celular, Fechamento e Empresa moram dentro de "Mais".
     final secaoDoCelular = switch (secao) {
-      Secao.fechamento || Secao.empresa => Secao.mais,
+      Secao.fechamento || Secao.empresa || Secao.relatorios => Secao.mais,
       _ => secao,
     };
     void ir(Secao s) => ref.read(secaoProvider.notifier).state = s;
@@ -101,6 +105,7 @@ class _CascaState extends ConsumerState<Casca> {
         Secao.lancamentos,
         if (espaco.ehEmpresa) Secao.empresa,
         Secao.metas,
+        Secao.relatorios,
         Secao.fechamento,
         Secao.mais,
       ];
@@ -212,10 +217,10 @@ class _BarraDoTopo extends ConsumerWidget {
 
   Future<void> _trocarEspaco(BuildContext context, WidgetRef ref) async {
     final espacos = ref.read(espacosProvider).valueOrNull ?? const <Espaco>[];
-    final escolha = await showModalBottomSheet<String>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
+    final escolha = await abrirFolha<String>(
+      context,
+      largura: 440,
+      (context) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
