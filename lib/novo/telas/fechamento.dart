@@ -59,8 +59,17 @@ class _TelaFechamentoState extends ConsumerState<TelaFechamento> {
     final c = Cores.de(context);
     final contas = (ref.watch(contasProvider).valueOrNull ?? const <Conta>[])
         .where((x) => !x.arquivada && !x.ehCartao)
-        .toList()
-      ..sort((a, b) => a.nome.compareTo(b.nome));
+        .toList();
+    final membros = ref.watch(membrosProvider).valueOrNull ?? const <Membro>[];
+    final eu = ref.watch(authProvider).valueOrNull?.uid;
+    // As de quem está fechando primeiro; depois por banco, como no seletor.
+    int ordem(Conta x) => x.donos.contains(eu) && !x.conjunta ? 0 : (x.donos.contains(eu) ? 1 : 2);
+    contas.sort((a, b) {
+      final o = ordem(a).compareTo(ordem(b));
+      if (o != 0) return o;
+      final banco = (a.banco ?? 'zz').compareTo(b.banco ?? 'zz');
+      return banco != 0 ? banco : a.nome.compareTo(b.nome);
+    });
     final saldos = ref.watch(saldosNoFimDoMesProvider(mes));
     final fechamento = (ref.watch(fechamentosProvider).valueOrNull ?? const <Fechamento>[]).where((f) => f.mes == mes && f.situacao != 'historico').firstOrNull;
     final pendentesNaCaixa = (ref.watch(entradaProvider).valueOrNull ?? const <ItemEntrada>[]).where((i) => i.data.startsWith(mes)).length;
@@ -162,15 +171,22 @@ class _TelaFechamentoState extends ConsumerState<TelaFechamento> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(children: [
+                      SeloDaConta(conta: conta, membros: membros),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                           Text(conta.nome, maxLines: 1, overflow: TextOverflow.ellipsis, style: texto.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
-                          Text('No app: ${reais(calculado)}', style: texto.bodySmall),
+                          Text(
+                            [titularidade(conta, membros, eu), 'No app: ${reais(calculado)}'].where((p) => p.isNotEmpty).join(' · '),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: texto.bodySmall,
+                          ),
                         ]),
                       ),
                       const SizedBox(width: 10),
                       SizedBox(
-                        width: 150,
+                        width: 132,
                         child: TextField(
                           controller: _campo(conta.id),
                           enabled: !fechado,

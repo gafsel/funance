@@ -110,7 +110,17 @@ class TelaMais extends ConsumerWidget {
         ]),
         const TituloDeSecao('Você'),
         Lista(filhos: [
-          Linha(titulo: usuario?.displayName ?? usuario?.email ?? 'Conta', detalhe: usuario?.displayName != null ? usuario?.email : null),
+          Linha(
+            antes: Avatar(
+              // A foto e o nome vêm do vínculo com o espaço; o login completa.
+              membro: membros.where((m) => m.uid == eu).firstOrNull ??
+                  Membro(uid: eu ?? '', nome: usuario?.displayName ?? usuario?.email, foto: usuario?.photoURL),
+              tamanho: 36,
+              contorno: false,
+            ),
+            titulo: usuario?.displayName ?? membros.where((m) => m.uid == eu).firstOrNull?.nome ?? usuario?.email ?? 'Conta',
+            detalhe: usuario?.email,
+          ),
           Linha(titulo: 'Sair', direita: Icon(Icons.logout_rounded, size: 18, color: c.tinta3), aoTocar: sair),
         ]),
       ],

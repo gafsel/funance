@@ -126,6 +126,20 @@ async function main(): Promise<void> {
         aluguelRetrasado: feito("Aluguel", 210000, shiftMonthKey(mes, -2) + "-06", { categoriaId: "moradia" }),
         salarioRetrasado: feito("Salário", 650000, shiftMonthKey(mes, -2) + "-05", { tipo: "entrada", categoriaId: "salario" }),
     };
+    // Um mês cheio na conta principal, para ver as listas com volume real.
+    const variados: [string, string, number][] = [
+        ["Padaria", "mercado", 1850], ["Uber", "transporte", 2390], ["Farmácia", "saude", 4720], ["Almoço", "restaurantes", 3900],
+        ["Feira", "mercado", 8640], ["Streaming", "assinaturas", 3990], ["Estacionamento", "transporte", 1500],
+    ];
+    const diaDeHoje = Number(hoje.slice(8, 10));
+    for (let i = 0; i < 48; i++) {
+        const [descricao, categoriaId, centavos] = variados[i % variados.length];
+        lancamentos[`cheio${i}`] = feito(descricao, centavos + i * 37, dia(1 + (i % diaDeHoje)), { categoriaId });
+    }
+    for (let i = 0; i < 9; i++) {
+        lancamentos[`agendado${i}`] = agendado(`Parcela ${i + 1}`, 12000 + i * 500, shiftDateKey(hoje, 2 + i), { categoriaId: "compras" });
+    }
+
     for (const [id, l] of Object.entries(lancamentos)) {
         await casa.collection("lancamentos").doc(id).set(l);
     }

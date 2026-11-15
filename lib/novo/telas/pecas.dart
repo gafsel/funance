@@ -231,9 +231,21 @@ class BotaoPequeno extends StatelessWidget {
 
 /// Linha de lista: título e detalhe à esquerda; à direita, o que vier.
 class Linha extends StatelessWidget {
-  const Linha({super.key, required this.titulo, this.detalhe, this.direita, this.aoTocar, this.corDoDetalhe, this.antes});
+  const Linha({
+    super.key,
+    required this.titulo,
+    this.detalhe,
+    this.direita,
+    this.aoTocar,
+    this.corDoDetalhe,
+    this.antes,
+    this.antesDoDetalhe,
+  });
   final String titulo;
   final String? detalhe;
+
+  /// Algo pequeno no começo da segunda linha (os selos das contas).
+  final Widget? antesDoDetalhe;
   final Widget? direita;
   final Widget? antes;
   final VoidCallback? aoTocar;
@@ -253,8 +265,16 @@ class Linha extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(titulo, maxLines: 1, overflow: TextOverflow.ellipsis, style: t.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
-                if (detalhe != null)
-                  Text(detalhe!, maxLines: 1, overflow: TextOverflow.ellipsis, style: t.bodySmall?.copyWith(color: corDoDetalhe)),
+                if (detalhe != null || antesDoDetalhe != null)
+                  Padding(
+                    padding: EdgeInsets.only(top: antesDoDetalhe == null ? 0 : 3),
+                    child: Row(children: [
+                      if (antesDoDetalhe != null) ...[antesDoDetalhe!, const SizedBox(width: 6)],
+                      Expanded(
+                        child: Text(detalhe ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: t.bodySmall?.copyWith(color: corDoDetalhe)),
+                      ),
+                    ]),
+                  ),
               ],
             ),
           ),
@@ -310,11 +330,14 @@ class LinhaDeLancamento extends ConsumerWidget {
     final l = lancamento;
     final c = Cores.de(context);
     final atrasado = l.previsto && l.data.compareTo(hoje) < 0;
-    final nomes = ref.watch(nomesDasContasProvider);
-    final origem = nomes[l.contaId] ?? conta?.nome ?? '?';
+    // As contas aparecem pelo selo (logo do banco e foto do titular), não
+    // pelo nome: "Nubank → Nubank" não diz de quem para quem.
+    final contas = {for (final x in ref.watch(contasProvider).valueOrNull ?? const <Conta>[]) x.id: x};
+    final membros = ref.watch(membrosProvider).valueOrNull ?? const <Membro>[];
+    final origem = contas[l.contaId] ?? conta;
+    final paraOnde = contas[l.contaDestinoId] ?? destino;
     final detalhes = [
       quandoDoLancamento(l, hoje),
-      if (l.ehTransferencia) '$origem → ${nomes[l.contaDestinoId] ?? destino?.nome ?? '?'}' else origem,
       if (categoria != null) categoria!.nome,
       if (l.parcelaNumero != null) '${l.parcelaNumero}/${l.parcelaTotal}',
     ].join(' · ');
@@ -330,6 +353,7 @@ class LinhaDeLancamento extends ConsumerWidget {
           : SeloDaCategoria(categoria: categoria),
       titulo: l.descricao.isEmpty ? 'Sem descrição' : l.descricao,
       detalhe: detalhes,
+      antesDoDetalhe: SelosDoLancamento(origem: origem, destino: l.ehTransferencia ? paraOnde : null, membros: membros),
       corDoDetalhe: atrasado ? c.atencao : null,
       aoTocar: onTap,
       direita: Row(
@@ -585,3 +609,38 @@ class SeloDaCategoria extends StatelessWidget {
 }
 
 Color corDaCategoria(Categoria categoria) => corDeHex(categoria.cor) ?? corPadraoDaCategoria(categoria.id);
+
+/// As contas de um lançamento, em selos pequenos: uma só, ou origem → destino
+/// numa transferência. Passar o mouse (ou tocar e segurar) mostra o nome.
+class SelosDoLancamento extends ConsumerWidget {
+  const SelosDoLancamento({super.key, required this.origem, required this.membros, this.destino, this.tamanho = 22});
+  final Conta? origem;
+  final Conta? destino;
+  final List<Membro> membros;
+  final double tamanho;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = Cores.de(context);
+    final nomes = ref.watch(nomesDasContasProvider);
+    Widget selo(Conta? conta) => conta == null
+        ? Icon(Icons.help_outline_rounded, size: tamanho * 0.8, color: c.tinta3)
+        : Tooltip(
+            message: nomes[conta.id] ?? conta.nome,
+            child: SeloDaConta(conta: conta, membros: membros, tamanho: tamanho),
+          );
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        selo(origem),
+        if (destino != null) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 3),
+            child: Icon(Icons.arrow_forward_rounded, size: 13, color: c.tinta3),
+          ),
+          selo(destino),
+        ],
+      ],
+    );
+  }
+}

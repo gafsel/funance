@@ -38,6 +38,11 @@ class TelaConta extends ConsumerStatefulWidget {
 
 class _TelaContaState extends ConsumerState<TelaConta> {
   String? _mes;
+  String _aba = 'extrato';
+
+  /// Linhas do extrato à mostra; o resto vem com "Mostrar mais".
+  int _visiveis = _passo;
+  static const _passo = 40;
 
   @override
   Widget build(BuildContext context) {
@@ -49,6 +54,7 @@ class _TelaContaState extends ConsumerState<TelaConta> {
     if (conta == null) {
       return Scaffold(appBar: AppBar(), body: const Vazio('Esta conta não existe mais.'));
     }
+    final contasPorId = {for (final x in ref.watch(contasProvider).valueOrNull ?? const <Conta>[]) x.id: x};
     final membros = ref.watch(membrosProvider).valueOrNull ?? const <Membro>[];
     final eu = ref.watch(authProvider).valueOrNull?.uid;
     final categorias = {for (final x in ref.watch(categoriasProvider).valueOrNull ?? const <Categoria>[]) x.id: x};
@@ -72,6 +78,107 @@ class _TelaContaState extends ConsumerState<TelaConta> {
     final conferido = conta.conferidoAte;
     final desdeAConferencia = conferido == null ? null : feitos.where((l) => l.dia.compareTo(conferido) > 0).length;
 
+    final mesa = ehMesa(context);
+    final navegacaoDoMes = Row(mainAxisSize: MainAxisSize.min, children: [
+      IconButton(
+        tooltip: 'Mês anterior',
+        visualDensity: VisualDensity.compact,
+        onPressed: () => setState(() {
+          _mes = somarMeses(mes, -1);
+          _visiveis = _passo;
+        }),
+        icon: const Icon(Icons.chevron_left_rounded),
+      ),
+      Text(nomeDoMes(mes), style: t.labelLarge),
+      IconButton(
+        tooltip: 'Mês seguinte',
+        visualDensity: VisualDensity.compact,
+        onPressed: () => setState(() {
+          _mes = somarMeses(mes, 1);
+          _visiveis = _passo;
+        }),
+        icon: const Icon(Icons.chevron_right_rounded),
+      ),
+    ]);
+
+    final recentesPrimeiro = linhas.reversed.toList();
+    final extrato = linhas.isEmpty
+        ? Cartao(padding: EdgeInsets.zero, child: Vazio('Nenhum movimento em ${nomeDoMes(mes)}.'))
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Lista(filhos: [
+                Linha(
+                  titulo: 'Saldo no fim de ${nomeDoMes(mes)}',
+                  detalhe: 'Começou o mês com ${reais(saldoAntes)} · ${linhas.length} ${linhas.length == 1 ? 'movimento' : 'movimentos'}',
+                  direita: Text(reais(corrido), style: Textos.valor(context)),
+                ),
+                for (final (l, saldo) in recentesPrimeiro.take(_visiveis))
+                  Linha(
+                    antes: l.ehTransferencia
+                        ? Container(
+                            width: 28,
+                            height: 28,
+                            decoration: BoxDecoration(color: c.suave, shape: BoxShape.circle),
+                            child: Icon(Icons.swap_horiz_rounded, size: 16, color: c.tinta2),
+                          )
+                        : SeloDaCategoria(categoria: categorias[l.categoriaId]),
+                    titulo: l.descricao.isEmpty ? 'Sem descrição' : l.descricao,
+                    // Numa transferência, o selo mostra a OUTRA conta.
+                    antesDoDetalhe: l.ehTransferencia
+                        ? SelosDoLancamento(
+                            origem: contasPorId[l.contaId == conta.id ? l.contaDestinoId : l.contaId],
+                            membros: membros,
+                            tamanho: 20,
+                          )
+                        : null,
+                    detalhe: [
+                      if (l.ehTransferencia) (l.contaId == conta.id ? 'foi para' : 'veio de'),
+                      diaPorExtenso(l.dia, hoje),
+                      if (categorias[l.categoriaId] != null) categorias[l.categoriaId]!.nome,
+                      if (l.parcelaNumero != null) '${l.parcelaNumero}/${l.parcelaTotal}',
+                      if (conferido != null && l.dia.compareTo(conferido) <= 0) 'conferido',
+                    ].join(' · '),
+                    aoTocar: () => abrirLancamento(context, ref, l),
+                    direita: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Builder(builder: (context) {
+                          final m = movimentoNaConta(l, conta.id);
+                          return Text('${m > 0 ? '+' : ''}${reais(m)}', style: Textos.valor(context, cor: m > 0 ? c.positivo : c.tinta));
+                        }),
+                        Text(reais(saldo), style: t.bodySmall),
+                      ],
+                    ),
+                  ),
+              ]),
+              if (recentesPrimeiro.length > _visiveis)
+                Padding(
+                  padding: const EdgeInsets.only(top: Espacos.m),
+                  child: Center(
+                    child: OutlinedButton(
+                      onPressed: () => setState(() => _visiveis += _passo),
+                      child: Text('Mostrar mais ${(recentesPrimeiro.length - _visiveis).clamp(0, _passo)} de ${recentesPrimeiro.length - _visiveis}'),
+                    ),
+                  ),
+                ),
+            ],
+          );
+
+    final listaDeAgendados = agendados.isEmpty
+        ? Cartao(padding: EdgeInsets.zero, child: Vazio('Nada agendado nesta conta em ${nomeDoMes(mes)}.'))
+        : Lista(filhos: [
+            for (final l in agendados)
+              LinhaDeLancamento(
+                lancamento: l,
+                hoje: hoje,
+                conta: conta,
+                categoria: categorias[l.categoriaId],
+                onTap: () => abrirLancamento(context, ref, l),
+              ),
+          ]);
+
     return Scaffold(
       appBar: AppBar(
         title: Text(conta.nome),
@@ -80,7 +187,7 @@ class _TelaContaState extends ConsumerState<TelaConta> {
         ],
       ),
       body: Pagina(
-        larguraMaxima: 760,
+        larguraMaxima: 1100,
         centralizada: true,
         filhos: [
           Row(
@@ -140,77 +247,47 @@ class _TelaContaState extends ConsumerState<TelaConta> {
             const SizedBox(height: Espacos.xg),
             CaixaDeEntrada(contaId: conta.id),
           ],
-          TituloDeSecao(
-            'Extrato',
-            acao: Row(mainAxisSize: MainAxisSize.min, children: [
-              IconButton(
-                tooltip: 'Mês anterior',
-                visualDensity: VisualDensity.compact,
-                onPressed: () => setState(() => _mes = somarMeses(mes, -1)),
-                icon: const Icon(Icons.chevron_left_rounded),
-              ),
-              Text(nomeDoMes(mes), style: t.labelLarge),
-              IconButton(
-                tooltip: 'Mês seguinte',
-                visualDensity: VisualDensity.compact,
-                onPressed: () => setState(() => _mes = somarMeses(mes, 1)),
-                icon: const Icon(Icons.chevron_right_rounded),
-              ),
-            ]),
-          ),
-          if (linhas.isEmpty)
-            Cartao(padding: EdgeInsets.zero, child: Vazio('Nenhum movimento em ${nomeDoMes(mes)}.'))
-          else
-            Lista(filhos: [
-              Linha(
-                titulo: 'Saldo no fim de ${nomeDoMes(mes)}',
-                detalhe: 'Começou o mês com ${reais(saldoAntes)}',
-                direita: Text(reais(corrido), style: Textos.valor(context)),
-              ),
-              for (final (l, saldo) in linhas.reversed)
-                Linha(
-                  antes: l.ehTransferencia
-                      ? Container(
-                          width: 28,
-                          height: 28,
-                          decoration: BoxDecoration(color: c.suave, shape: BoxShape.circle),
-                          child: Icon(Icons.swap_horiz_rounded, size: 16, color: c.tinta2),
-                        )
-                      : SeloDaCategoria(categoria: categorias[l.categoriaId]),
-                  titulo: l.descricao.isEmpty ? 'Sem descrição' : l.descricao,
-                  detalhe: [
-                    diaPorExtenso(l.dia, hoje),
-                    if (categorias[l.categoriaId] != null) categorias[l.categoriaId]!.nome,
-                    if (l.parcelaNumero != null) '${l.parcelaNumero}/${l.parcelaTotal}',
-                    if (conferido != null && l.dia.compareTo(conferido) <= 0) 'conferido',
-                  ].join(' · '),
-                  aoTocar: () => abrirLancamento(context, ref, l),
-                  direita: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    mainAxisSize: MainAxisSize.min,
+          const SizedBox(height: Espacos.xg),
+          // Extrato e agendados em abas: com um mês cheio, os agendados não
+          // podem ficar no fim de uma lista comprida. Na mesa, lado a lado.
+          Row(children: [
+            if (!mesa)
+              Expanded(
+                child: Segmentos<String>(
+                  opcoes: [('extrato', 'Extrato (${linhas.length})'), ('agendados', 'Agendados (${agendados.length})')],
+                  valor: _aba,
+                  aoMudar: (v) => setState(() => _aba = v),
+                ),
+              )
+            else
+              Expanded(child: Text('Extrato', style: t.titleMedium)),
+            if (mesa) navegacaoDoMes,
+          ]),
+          if (!mesa) Align(alignment: Alignment.centerLeft, child: navegacaoDoMes),
+          const SizedBox(height: Espacos.p),
+          if (mesa)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(flex: 3, child: extrato),
+                const SizedBox(width: Espacos.xg),
+                Expanded(
+                  flex: 2,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Builder(builder: (context) {
-                        final m = movimentoNaConta(l, conta.id);
-                        return Text('${m > 0 ? '+' : ''}${reais(m)}', style: Textos.valor(context, cor: m > 0 ? c.positivo : c.tinta));
-                      }),
-                      Text(reais(saldo), style: t.bodySmall),
+                      Text('Agendados (${agendados.length})', style: t.titleMedium),
+                      const SizedBox(height: Espacos.p),
+                      listaDeAgendados,
                     ],
                   ),
                 ),
-            ]),
-          if (agendados.isNotEmpty) ...[
-            const TituloDeSecao('Agendados nesta conta'),
-            Lista(filhos: [
-              for (final l in agendados)
-                LinhaDeLancamento(
-                  lancamento: l,
-                  hoje: hoje,
-                  conta: conta,
-                  categoria: categorias[l.categoriaId],
-                  onTap: () => abrirLancamento(context, ref, l),
-                ),
-            ]),
-          ],
+              ],
+            )
+          else if (_aba == 'extrato')
+            extrato
+          else
+            listaDeAgendados,
         ],
       ),
     );

@@ -155,6 +155,7 @@ class _TelaLancamentosState extends ConsumerState<TelaLancamentos> {
           contas: contas,
           categorias: categorias,
           hoje: hoje,
+          membros: ref.watch(membrosProvider).valueOrNull ?? const [],
           aoTocar: (l) => abrirLancamento(context, ref, l),
           aoEditar: (antes, depois) async {
             final repo = ref.read(repositorioProvider);
@@ -227,7 +228,10 @@ class _Grade extends StatelessWidget {
     required this.hoje,
     required this.aoTocar,
     required this.aoEditar,
+    required this.membros,
   });
+
+  final List<Membro> membros;
 
   /// Edição feita direto numa célula: (como era, como ficou).
   final void Function(Lancamento, Lancamento) aoEditar;
@@ -322,11 +326,29 @@ class _Grade extends StatelessWidget {
                 ),
               ),
             ),
-            celula(
-              l.ehTransferencia
-                  ? '${contas[l.contaId]?.nome ?? '?'} → ${contas[l.contaDestinoId]?.nome ?? '?'}'
-                  : (contas[l.contaId]?.nome ?? '?'),
+            Expanded(
               flex: 3,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 10),
+                child: Row(children: [
+                  SelosDoLancamento(
+                    origem: contas[l.contaId],
+                    destino: l.ehTransferencia ? contas[l.contaDestinoId] : null,
+                    membros: membros,
+                  ),
+                  if (!l.ehTransferencia) ...[
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        contas[l.contaId]?.nome ?? '?',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: t.bodyMedium?.copyWith(fontSize: 13.5),
+                      ),
+                    ),
+                  ],
+                ]),
+              ),
             ),
             celula(
               l.previsto ? (l.data.compareTo(hoje) < 0 ? 'Atrasado' : 'Agendado') : 'Feito',
