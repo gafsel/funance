@@ -10,6 +10,7 @@ import '../regras/metas.dart';
 import '../tema/tema_novo.dart';
 import 'casca.dart';
 import 'cenario.dart';
+import 'conferencia.dart';
 import 'conta.dart';
 import 'detalhe.dart';
 import 'fatura.dart';
@@ -43,7 +44,7 @@ class TelaInicio extends ConsumerWidget {
       const _Contas(mostrarContas: false),
       const BlocoDasPendencias(),
     ];
-    final direita = <Widget>[const _Passo(), const _Avisos(), const _MetasResumo(), const _Contas(mostrarCartoes: false)];
+    final direita = <Widget>[const ConviteParaConferir(), const _Passo(), const _Avisos(), const _MetasResumo(), const _Contas(mostrarCartoes: false)];
     const ultimos = _Ultimos();
 
     // Tela larga: três colunas. O que se faz agora, o que orienta, e as contas.
@@ -56,7 +57,7 @@ class TelaInicio extends ConsumerWidget {
             const SizedBox(width: Espacos.xg),
             const Expanded(
               flex: 4,
-              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [_Passo(), _Avisos(), _MetasResumo()]),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [ConviteParaConferir(), _Passo(), _Avisos(), _MetasResumo()]),
             ),
             const SizedBox(width: Espacos.xg),
             const Expanded(flex: 4, child: _Contas(semTopo: true, mostrarCartoes: false)),

@@ -99,6 +99,12 @@ class TelaMais extends ConsumerWidget {
             aoTocar: () => abrirCategorias(context),
           ),
           Linha(
+            titulo: 'Conferência',
+            detalhe: 'Conta por conta e cartão por cartão, na ordem dos bancos',
+            direita: seta,
+            aoTocar: () => Navigator.of(context).pushNamed(caminhoDaConferencia),
+          ),
+          Linha(
             titulo: 'Organização financeira',
             detalhe: 'Renda, gastos fixos e um limite saudável por categoria',
             direita: seta,

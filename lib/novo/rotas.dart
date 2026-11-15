@@ -8,6 +8,7 @@ import 'dados/provedores.dart';
 import 'modelo/modelos.dart';
 import 'telas/casca.dart';
 import 'telas/categorias.dart';
+import 'telas/conferencia.dart';
 import 'telas/conta.dart';
 import 'telas/distribuicao.dart';
 import 'telas/empresa.dart';
@@ -79,6 +80,7 @@ Widget? telaDoCaminho(String caminho) {
     ['distribuicao'] => const TelaDistribuicao(),
     ['revisao'] => const TelaRevisao(),
     ['organizar'] => const TelaOrganizacao(),
+    ['conferencia'] => const TelaConferencia(),
     ['mais', 'empresa'] => Scaffold(appBar: AppBar(title: const Text('Empresa')), body: const TelaEmpresa()),
     ['mais', 'relatorios'] => const TelaRelatorios(embutida: false),
     _ => null,

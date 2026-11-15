@@ -196,136 +196,8 @@ class _TelaFaturaState extends ConsumerState<TelaFatura> {
 
   Conta get cartao => widget.cartao;
 
-  /// Pagar a fatura: valor (pode ser parcial), data e conta de onde sai.
-  Future<void> _pagar(Fatura f, {required int base, required bool aberta}) async {
-    final repo = ref.read(repositorioProvider);
-    if (repo == null) return;
-    final hoje = ref.read(hojeProvider);
-    final mensageiro = ScaffoldMessenger.of(context);
-    final campo = TextEditingController(text: reais(base, comSimbolo: false));
-    // Já vem selecionado: digitar substitui o valor sugerido em vez de emendar nele.
-    campo.selection = TextSelection(baseOffset: 0, extentOffset: campo.text.length);
-    var dia = hoje;
-    Conta? origem = (ref.read(contasProvider).valueOrNull ?? const <Conta>[])
-        .where((x) => x.id == ref.read(contaPadraoProvider) && x.ehDeUso)
-        .firstOrNull;
-    String? erro;
-
-    final ok = await abrirFolha<bool>(
-      context,
-      (context) => StatefulBuilder(builder: (context, definir) {
-        final t = Theme.of(context).textTheme;
-        final c = Cores.de(context);
-        final membros = ref.read(membrosProvider).valueOrNull ?? const <Membro>[];
-        final valor = lerCentavos(campo.text);
-        Widget seletor(String rotulo, Widget filho, VoidCallback aoTocar) => InkWell(
-              borderRadius: Raios.m,
-              onTap: aoTocar,
-              child: InputDecorator(
-                decoration: InputDecoration(labelText: rotulo, suffixIcon: const Icon(Icons.expand_more_rounded, size: 20)),
-                child: filho,
-              ),
-            );
-        return SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(Espacos.g, 0, Espacos.g, Espacos.g),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('Pagar fatura', style: t.titleLarge),
-              Text('${cartao.nome} · a pagar ${reais(base)}', style: t.bodyMedium?.copyWith(fontSize: 13, color: c.tinta2)),
-              const SizedBox(height: Espacos.m),
-              TextField(
-                controller: campo,
-                autofocus: true,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [const MascaraDeValor()],
-                onChanged: (_) => definir(() => erro = null),
-                decoration: InputDecoration(
-                  labelText: 'Valor pago',
-                  prefixText: r'R$ ',
-                  helperMaxLines: 3,
-                  helperText: valor == null || aberta || valor == base
-                      ? null
-                      : valor < base
-                          ? 'Pagamento parcial: os ${reais(base - valor)} que faltam vão para a próxima fatura e pagam os juros do rotativo.'
-                          : 'Os ${reais(valor - base)} a mais viram crédito na próxima fatura.',
-                ),
-              ),
-              const SizedBox(height: Espacos.m),
-              seletor('Data', Text(diaPorExtenso(dia, hoje), style: t.bodyMedium), () async {
-                final escolhido = await escolherDia(context, dia);
-                if (escolhido != null) definir(() => dia = escolhido);
-              }),
-              const SizedBox(height: Espacos.m),
-              seletor(
-                'Saiu de',
-                Row(children: [
-                  if (origem != null) ...[SeloDaConta(conta: origem!, membros: membros, tamanho: 26), const SizedBox(width: 8)],
-                  Expanded(
-                    child: Text(
-                      origem == null ? 'Escolher' : (ref.read(nomesDasContasProvider)[origem!.id] ?? origem!.nome),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: t.bodyMedium,
-                    ),
-                  ),
-                ]),
-                () async {
-                  final escolhida = await escolherConta(context, ref, titulo: 'Pagar com qual conta?', filtro: (x) => x.ehDeUso, atualId: origem?.id);
-                  if (escolhida != null) definir(() => origem = escolhida);
-                },
-              ),
-              const SizedBox(height: 6),
-              Text('Pagar a fatura não conta como gasto: as compras já contaram.', style: t.bodySmall),
-              if (erro != null) ...[
-                const SizedBox(height: Espacos.m),
-                Text(erro!, style: t.bodyMedium?.copyWith(fontSize: 13, color: c.problema)),
-              ],
-              const SizedBox(height: Espacos.g),
-              FilledButton(
-                style: FilledButton.styleFrom(minimumSize: const Size(0, 46)),
-                onPressed: () {
-                  if (lerCentavos(campo.text) == null) return definir(() => erro = 'Informe o valor.');
-                  if (origem == null) return definir(() => erro = 'Escolha a conta de onde saiu.');
-                  Navigator.pop(context, true);
-                },
-                child: const Text('Confirmar pagamento'),
-              ),
-            ],
-          ),
-        );
-      }),
-      largura: 440,
-    );
-    final valor = lerCentavos(campo.text);
-    campo.dispose();
-    if (ok != true || valor == null || origem == null) return;
-
-    final pagamento = Lancamento(
-      id: const Uuid().v4(),
-      tipo: 'transferencia',
-      descricao: 'Fatura ${cartao.nome}',
-      realizadoCentavos: valor,
-      data: f.vencimento,
-      dataEfetiva: dia,
-      situacao: 'efetivado',
-      contaId: origem!.id,
-      contaDestinoId: cartao.id,
-      // Fatura ainda aberta não tem o que pagar: o dinheiro abate o ciclo
-      // (ou paga uma pendente mais antiga, se houver).
-      pagaFaturaId: aberta ? null : f.id,
-      autorId: ref.read(authProvider).valueOrNull?.uid,
-    );
-    await repo.gravar(pagamento);
-    mensageiro
-      ..clearSnackBars()
-      ..showSnackBar(SnackBar(
-        duration: const Duration(seconds: 8),
-        content: Text('${reais(valor)} pagos com ${origem!.nome}.'),
-        action: SnackBarAction(label: 'Desfazer', onPressed: () => repo.apagar(pagamento.id)),
-      ));
-  }
+  Future<void> _pagar(Fatura f, {required int base, required bool aberta}) =>
+      pagarFatura(context, ref, cartao, f, base: base, aberta: aberta);
 
   /// Conferência: o total que o banco mostra na fatura contra o do app.
   Future<void> _conferir(Fatura f) async {
@@ -782,4 +654,135 @@ class _TelaFaturaState extends ConsumerState<TelaFatura> {
       ),
     );
   }
+}
+
+/// Pagar a fatura: valor (pode ser parcial), data e conta de onde sai.
+Future<void> pagarFatura(BuildContext context, WidgetRef ref, Conta cartao, Fatura f, {required int base, required bool aberta}) async {
+  final repo = ref.read(repositorioProvider);
+  if (repo == null) return;
+  final hoje = ref.read(hojeProvider);
+  final mensageiro = ScaffoldMessenger.of(context);
+  final campo = TextEditingController(text: reais(base, comSimbolo: false));
+  // Já vem selecionado: digitar substitui o valor sugerido em vez de emendar nele.
+  campo.selection = TextSelection(baseOffset: 0, extentOffset: campo.text.length);
+  var dia = hoje;
+  Conta? origem = (ref.read(contasProvider).valueOrNull ?? const <Conta>[])
+      .where((x) => x.id == ref.read(contaPadraoProvider) && x.ehDeUso)
+      .firstOrNull;
+  String? erro;
+
+  final ok = await abrirFolha<bool>(
+    context,
+    (context) => StatefulBuilder(builder: (context, definir) {
+      final t = Theme.of(context).textTheme;
+      final c = Cores.de(context);
+      final membros = ref.read(membrosProvider).valueOrNull ?? const <Membro>[];
+      final valor = lerCentavos(campo.text);
+      Widget seletor(String rotulo, Widget filho, VoidCallback aoTocar) => InkWell(
+            borderRadius: Raios.m,
+            onTap: aoTocar,
+            child: InputDecorator(
+              decoration: InputDecoration(labelText: rotulo, suffixIcon: const Icon(Icons.expand_more_rounded, size: 20)),
+              child: filho,
+            ),
+          );
+      return SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(Espacos.g, 0, Espacos.g, Espacos.g),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Pagar fatura', style: t.titleLarge),
+            Text('${cartao.nome} · a pagar ${reais(base)}', style: t.bodyMedium?.copyWith(fontSize: 13, color: c.tinta2)),
+            const SizedBox(height: Espacos.m),
+            TextField(
+              controller: campo,
+              autofocus: true,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [const MascaraDeValor()],
+              onChanged: (_) => definir(() => erro = null),
+              decoration: InputDecoration(
+                labelText: 'Valor pago',
+                prefixText: r'R$ ',
+                helperMaxLines: 3,
+                helperText: valor == null || aberta || valor == base
+                    ? null
+                    : valor < base
+                        ? 'Pagamento parcial: os ${reais(base - valor)} que faltam vão para a próxima fatura e pagam os juros do rotativo.'
+                        : 'Os ${reais(valor - base)} a mais viram crédito na próxima fatura.',
+              ),
+            ),
+            const SizedBox(height: Espacos.m),
+            seletor('Data', Text(diaPorExtenso(dia, hoje), style: t.bodyMedium), () async {
+              final escolhido = await escolherDia(context, dia);
+              if (escolhido != null) definir(() => dia = escolhido);
+            }),
+            const SizedBox(height: Espacos.m),
+            seletor(
+              'Saiu de',
+              Row(children: [
+                if (origem != null) ...[SeloDaConta(conta: origem!, membros: membros, tamanho: 26), const SizedBox(width: 8)],
+                Expanded(
+                  child: Text(
+                    origem == null ? 'Escolher' : (ref.read(nomesDasContasProvider)[origem!.id] ?? origem!.nome),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: t.bodyMedium,
+                  ),
+                ),
+              ]),
+              () async {
+                final escolhida = await escolherConta(context, ref, titulo: 'Pagar com qual conta?', filtro: (x) => x.ehDeUso, atualId: origem?.id);
+                if (escolhida != null) definir(() => origem = escolhida);
+              },
+            ),
+            const SizedBox(height: 6),
+            Text('Pagar a fatura não conta como gasto: as compras já contaram.', style: t.bodySmall),
+            if (erro != null) ...[
+              const SizedBox(height: Espacos.m),
+              Text(erro!, style: t.bodyMedium?.copyWith(fontSize: 13, color: c.problema)),
+            ],
+            const SizedBox(height: Espacos.g),
+            FilledButton(
+              style: FilledButton.styleFrom(minimumSize: const Size(0, 46)),
+              onPressed: () {
+                if (lerCentavos(campo.text) == null) return definir(() => erro = 'Informe o valor.');
+                if (origem == null) return definir(() => erro = 'Escolha a conta de onde saiu.');
+                Navigator.pop(context, true);
+              },
+              child: const Text('Confirmar pagamento'),
+            ),
+          ],
+        ),
+      );
+    }),
+    largura: 440,
+  );
+  final valor = lerCentavos(campo.text);
+  campo.dispose();
+  if (ok != true || valor == null || origem == null) return;
+
+  final pagamento = Lancamento(
+    id: const Uuid().v4(),
+    tipo: 'transferencia',
+    descricao: 'Fatura ${cartao.nome}',
+    realizadoCentavos: valor,
+    data: f.vencimento,
+    dataEfetiva: dia,
+    situacao: 'efetivado',
+    contaId: origem!.id,
+    contaDestinoId: cartao.id,
+    // Fatura ainda aberta não tem o que pagar: o dinheiro abate o ciclo
+    // (ou paga uma pendente mais antiga, se houver).
+    pagaFaturaId: aberta ? null : f.id,
+    autorId: ref.read(authProvider).valueOrNull?.uid,
+  );
+  await repo.gravar(pagamento);
+  mensageiro
+    ..clearSnackBars()
+    ..showSnackBar(SnackBar(
+      duration: const Duration(seconds: 8),
+      content: Text('${reais(valor)} pagos com ${origem!.nome}.'),
+      action: SnackBarAction(label: 'Desfazer', onPressed: () => repo.apagar(pagamento.id)),
+    ));
 }
