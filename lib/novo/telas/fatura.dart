@@ -244,6 +244,7 @@ class _TelaFaturaState extends ConsumerState<TelaFatura> {
                     final diferenca = informado - f.totalCentavos;
                     if (diferenca == 0) {
                       await ref.read(repositorioProvider)?.gravarConta(cartao.id, {
+                        'conferidoAte': ref.read(hojeProvider),
                         'faturasConferidas': {f.id: informado},
                       });
                       definir(() {
@@ -555,6 +556,8 @@ class _TelaFaturaState extends ConsumerState<TelaFatura> {
                 conferida == f.totalCentavos ? 'Conferida' : 'Mudou depois da conferência',
                 tom: conferida == f.totalCentavos ? Tom.bom : Tom.atencao,
               ),
+            // Até quando o cartão foi conferido: é dali em diante que se olha no banco.
+            if (conta.conferidoAte != null) Etiqueta('Cartão conferido até ${diaPorExtenso(conta.conferidoAte!, hoje)}'),
           ]),
           const SizedBox(height: Espacos.g),
           Wrap(spacing: Espacos.p, runSpacing: Espacos.p, children: [

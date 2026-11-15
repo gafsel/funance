@@ -119,8 +119,7 @@ class _TelaConferenciaState extends ConsumerState<TelaConferencia> {
             switch (diasSemConferir(x, hoje)) {
               null => 'nunca conferida',
               0 => 'conferida hoje',
-              1 => 'conferida ontem',
-              final n => 'conferida há $n dias',
+              _ => 'conferida até ${diaPorExtenso(x.conferidoAte!, hoje)}',
             },
           ].where((p) => p.isNotEmpty).join(' · '),
           corDoDetalhe: (diasSemConferir(x, hoje) ?? 999) >= 7 ? c.atencao : null,
@@ -198,6 +197,53 @@ class _Cabecalho extends ConsumerWidget {
       const SizedBox(height: Espacos.m),
       Wrap(spacing: Espacos.p, runSpacing: Espacos.p, children: acoes),
     ]);
+  }
+}
+
+/// Até quando a conta foi conferida, em destaque: é a partir desse dia que
+/// a pessoa precisa olhar no app do banco.
+class _UltimaConferencia extends StatelessWidget {
+  const _UltimaConferencia({required this.conta, required this.hoje, this.complemento});
+  final Conta conta;
+  final String hoje;
+
+  /// O que ficou registrado naquela conferência (o saldo, o total da fatura).
+  final String? complemento;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = Cores.de(context);
+    final t = Theme.of(context).textTheme;
+    final ate = conta.conferidoAte;
+    final dias = diasSemConferir(conta, hoje);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(color: c.suave, borderRadius: Raios.m),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Icon(Icons.event_available_rounded, size: 18, color: c.tinta2),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(
+              ate == null
+                  ? 'Nunca conferida'
+                  : 'Última conferência: ${diaPorExtenso(ate, hoje)}'
+                      '${dias == null || dias < 2 ? '' : ' (há $dias dias)'}',
+              style: t.titleSmall,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              ate == null
+                  ? 'Confira no banco desde o começo do que está lançado aqui.'
+                  : dias == 0
+                      ? 'Já conferida hoje.${complemento == null ? '' : ' $complemento'}'
+                      : 'No banco, olhe a partir de ${diaPorExtenso(somarDias(ate, 1), hoje)}.${complemento == null ? '' : ' $complemento'}',
+              style: t.bodySmall,
+            ),
+          ]),
+        ),
+      ]),
+    );
   }
 }
 
@@ -293,7 +339,14 @@ class _PassoDoCartaoState extends ConsumerState<_PassoDoCartao> {
     final compras = (ref.watch(_comprasDaFaturaProvider(f)).valueOrNull ?? const <Lancamento>[]).toList()
       ..sort((a, b) => b.dia.compareTo(a.dia));
     final desde = cartao.conferidoAte;
-    final novas = desde == null ? compras : compras.where((l) => l.dia.compareTo(desde) > 0).toList();
+    // Desde a última conferência vale o cartão inteiro, não só esta fatura:
+    // a compra nova pode já estar na fatura seguinte.
+    final novas = desde == null
+        ? compras
+        : ((ref.watch(_feitosDesdeProvider(somarDias(desde, 1))).valueOrNull ?? const <Lancamento>[])
+            .where((l) => l.efetivado && l.contaId == cartao.id && !l.ehTransferencia)
+            .toList()
+          ..sort((a, b) => b.dia.compareTo(a.dia)));
     final informado = _lerSaldo(_total.text);
     final bate = informado != null && informado == f.totalCentavos;
 
@@ -309,6 +362,14 @@ class _PassoDoCartaoState extends ConsumerState<_PassoDoCartao> {
               BotaoPequeno('Importar fatura', icone: Icons.upload_file_rounded, aoTocar: () => abrirImportacao(context, contaId: cartao.id)),
               BotaoPequeno('Abrir a fatura', aoTocar: () => abrirFatura(context, cartao, f.id)),
             ],
+          ),
+          const SizedBox(height: Espacos.m),
+          _UltimaConferencia(
+            conta: cartao,
+            hoje: hoje,
+            complemento: cartao.faturasConferidas[f.id] == null
+                ? null
+                : 'Esta fatura foi conferida em ${reais(cartao.faturasConferidas[f.id]!)}.',
           ),
           if (s.transportadoCentavos != 0) ...[
             const SizedBox(height: Espacos.p),
@@ -615,15 +676,19 @@ class _PassoDaContaState extends ConsumerState<_PassoDaConta> {
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           _Cabecalho(
             conta: conta,
-            rotulo: conta.conferidoAte == null
-                ? 'Saldo no app hoje · nunca conferida'
-                : 'Saldo no app hoje · conferida até ${diaPorExtenso(conta.conferidoAte!, hoje)}',
+            rotulo: 'Saldo no app hoje',
             valor: saldoHoje,
             acoes: [
               BotaoPequeno('Lançar nesta conta', icone: Icons.add_rounded, cheio: true, aoTocar: () => abrirLancar(context, contaId: conta.id)),
               BotaoPequeno('Importar extrato', icone: Icons.upload_file_rounded, aoTocar: () => abrirImportacao(context, contaId: conta.id)),
               BotaoPequeno('Abrir o extrato', aoTocar: () => abrirConta(context, conta.id)),
             ],
+          ),
+          const SizedBox(height: Espacos.m),
+          _UltimaConferencia(
+            conta: conta,
+            hoje: hoje,
+            complemento: conta.conferidoSaldoCentavos == null ? null : 'O saldo era ${reais(conta.conferidoSaldoCentavos!)}.',
           ),
           const SizedBox(height: Espacos.g),
           _CampoDoBanco(
