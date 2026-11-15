@@ -35,6 +35,8 @@ export const COLECOES = {
     regras: "regras",
     fechamentos: "fechamentos",
     resumos: "resumos",
+    /** Notificações do espaço: o servidor grava, o app lista. */
+    avisos: "avisos",
     /** Só do servidor: o que o motor já aplicou de cada lançamento. */
     aplicados: "aplicados",
     /** Subcoleção de `contas/{id}`: movimento do dia. */

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../dados/provedores.dart';
 import '../modelo/modelos.dart';
 import '../tema/tema_novo.dart';
+import 'avisos.dart';
 import 'comeco.dart';
 import 'empresa.dart';
 import 'fechamento.dart';
@@ -210,6 +211,8 @@ class _BarraDoTopo extends ConsumerWidget {
             ),
             ),
           ),
+          const SizedBox(width: 4),
+          const BotaoDeAvisos(),
         ],
       ),
     );

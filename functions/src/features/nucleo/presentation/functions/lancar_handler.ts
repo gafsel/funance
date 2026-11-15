@@ -12,6 +12,7 @@ import { BatchOperation, commitInChunks } from "../../../../core/utils/batch.uti
 import { isDateKey, toDateKey } from "../../../../core/utils/date_key";
 import { shiftMonthKey } from "../../../../core/utils/month_key";
 import { COLECOES, RAIZ, Serie } from "../../domain/models/modelo";
+import { AvisosService, enviarPorFcm } from "../../domain/services/avisos.service";
 import { DocumentoService, LIMITE_DO_PDF } from "../../domain/services/documento.service";
 import { criarEspaco as criarEspacoNoBanco, validarPedido } from "../../domain/services/espaco.service";
 import { ContextoDaFrase, FraseService, LIMITE_DE_CARACTERES } from "../../domain/services/frase.service";
@@ -172,4 +173,37 @@ export const estenderSeries = onSchedule(
             }
         }
     }
+);
+
+/** Roda `tarefa` em cada espaço; a falha de um não derruba os outros. */
+async function emCadaEspaco(nome: string, tarefa: (espacoId: string) => Promise<unknown>): Promise<void> {
+    const espacos = await admin.firestore().collection(RAIZ).select().get();
+    for (const espaco of espacos.docs) {
+        try {
+            await tarefa(espaco.id);
+        }
+        catch (error) {
+            console.error(`[${nome}] ${espaco.id}`, error instanceof Error ? error.message : error);
+        }
+    }
+}
+
+/** Todo dia às 8h: tempo sem lançar e o que vence hoje. */
+export const avisosDaManha = onSchedule(
+    { ...AI_SCHEDULE_OPTIONS, schedule: "0 8 * * *", timeZone: "America/Sao_Paulo" },
+    async () => {
+        const servico = new AvisosService(admin.firestore(), enviarPorFcm);
+        const hoje = toDateKey(new Date());
+        await emCadaEspaco("avisosDaManha", (id) => servico.manha(id, hoje));
+    },
+);
+
+/** Sexta às 17h: limites do estilo de vida antes do fim de semana. */
+export const avisosDoFimDeSemana = onSchedule(
+    { ...AI_SCHEDULE_OPTIONS, schedule: "0 17 * * 5", timeZone: "America/Sao_Paulo" },
+    async () => {
+        const servico = new AvisosService(admin.firestore(), enviarPorFcm);
+        const hoje = toDateKey(new Date());
+        await emCadaEspaco("avisosDoFimDeSemana", (id) => servico.fimDeSemana(id, hoje));
+    },
 );

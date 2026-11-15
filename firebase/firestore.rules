@@ -704,7 +704,7 @@ service cloud.firestore {
       match /{colecao}/{id} {
         allow read, write: if ehMembro(espacoId)
           && colecao in ['series', 'categorias', 'metas', 'caminho', 'contrapartes', 'entrada', 'lotes', 'regras', 'fechamentos'];
-        allow read: if ehMembro(espacoId) && colecao in ['faturas', 'resumos'];
+        allow read: if ehMembro(espacoId) && colecao in ['faturas', 'resumos', 'avisos'];
       }
     }
 

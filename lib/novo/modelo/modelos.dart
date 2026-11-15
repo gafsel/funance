@@ -597,3 +597,38 @@ class Contraparte {
         tipo: m['tipo'] == 'fornecedor' ? 'fornecedor' : 'cliente',
       );
 }
+
+/// Uma notificação do espaço, gravada pelo servidor.
+class Aviso {
+  const Aviso({required this.id, required this.tipo, required this.titulo, required this.texto, required this.dia, this.criadoEm});
+  final String id;
+
+  /// `semLancar`, `vencimentos` ou `fimDeSemana`.
+  final String tipo;
+  final String titulo;
+  final String texto;
+  final String dia;
+  final DateTime? criadoEm;
+
+  factory Aviso.deMapa(String id, Mapa m) => Aviso(
+        id: id,
+        tipo: _texto(m['tipo']) ?? '',
+        titulo: _texto(m['titulo']) ?? '',
+        texto: _texto(m['texto']) ?? '',
+        dia: _texto(m['dia']) ?? '',
+        criadoEm: instanteDe(m['criadoEm']),
+      );
+}
+
+/// Instante vindo do banco (`Timestamp`) ou já convertido. O modelo não
+/// importa o Firestore, daí a conversão por nome do método.
+DateTime? instanteDe(Object? valor) {
+  if (valor is DateTime) return valor;
+  if (valor == null) return null;
+  try {
+    final convertido = (valor as dynamic).toDate();
+    return convertido is DateTime ? convertido : null;
+  } catch (_) {
+    return null;
+  }
+}

@@ -13,6 +13,7 @@
  * Login de teste: e-mail e senha abaixo (existem só no emulador).
  */
 
+import { AvisosService } from "../features/nucleo/domain/services/avisos.service";
 import * as admin from "firebase-admin";
 import { shiftDateKey, toDateKey } from "../core/utils/date_key";
 import { shiftMonthKey } from "../core/utils/month_key";
@@ -116,6 +117,7 @@ async function main(): Promise<void> {
         luz: agendado("Conta de luz", 18900, shiftDateKey(hoje, 3), { categoriaId: "moradia" }),
         internet: agendado("Internet", 11990, shiftDateKey(hoje, -2), { categoriaId: "moradia" }),
         assinatura: agendado("Assinatura de música", 2190, shiftDateKey(hoje, 4), { categoriaId: "assinaturas", contaId: "roxo" }),
+        condominio: agendado("Condomínio", 4500, hoje, { categoriaId: "moradia" }),
         freela: agendado("Freela do site", 120000, shiftDateKey(hoje, 6), { tipo: "entrada", categoriaId: "salario" }),
         mesPassado: feito("Mercado", 41200, shiftMonthKey(mes, -1) + "-20", { categoriaId: "mercado", contaId: "roxo" }),
         farmaciaBia: feito("Farmácia", 8900, dia(9), { categoriaId: "saude", contaId: "cartaobia" }),
@@ -177,6 +179,11 @@ async function main(): Promise<void> {
 
     await new ReconstrucaoService(db).reconstruir("casa", { aplicar: true });
     await new ReconstrucaoService(db).reconstruir("loja", { aplicar: true });
+
+    // Os avisos de hoje, pelo mesmo caminho do agendador (sem enviar nada).
+    const avisos = new AvisosService(db, async () => []);
+    await avisos.manha("casa", hoje);
+    await avisos.fimDeSemana("casa", hoje);
     console.log(`Emulador semeado. Usuário de teste: ${EMAIL_DE_TESTE}`);
 }
 
