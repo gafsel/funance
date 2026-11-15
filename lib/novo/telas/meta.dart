@@ -1,3 +1,4 @@
+import '../caminhos.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,7 +19,7 @@ import 'pecas.dart';
 const _abreviados = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 
 void abrirMeta(BuildContext context, String metaId) =>
-    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => TelaMeta(metaId: metaId)));
+    Navigator.of(context).pushNamed(caminhoDaMeta(metaId));
 
 /// Detalhe de uma meta: quanto falta, se o ritmo dá, o que entrou mês a mês
 /// na conta ligada e os lançamentos que a moveram. O botão de guardar já

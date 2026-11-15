@@ -1,3 +1,4 @@
+import '../caminhos.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,7 +15,7 @@ import 'lancar.dart';
 import 'pecas.dart';
 
 void abrirConta(BuildContext context, String contaId) =>
-    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => TelaConta(contaId: contaId)));
+    Navigator.of(context).pushNamed(caminhoDaConta(contaId));
 
 /// Movimento de uma conta num lançamento: positivo entra, negativo sai.
 int movimentoNaConta(Lancamento l, String contaId) {

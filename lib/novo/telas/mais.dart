@@ -1,3 +1,4 @@
+import '../caminhos.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -8,12 +9,10 @@ import '../tema/tema_novo.dart';
 import 'casca.dart';
 import 'categorias.dart';
 import 'conta.dart';
-import 'empresa.dart';
 import 'fatura.dart';
 import 'fechamento.dart';
 import 'formulario.dart';
 import 'pecas.dart';
-import 'relatorios.dart';
 import 'revisao.dart';
 
 /// Contas e cadastros: o que se configura de vez em quando. No celular é
@@ -76,17 +75,14 @@ class TelaMais extends ConsumerWidget {
               titulo: 'Empresa',
               detalhe: 'Caixa previsto, clientes e resultado',
               direita: seta,
-              aoTocar: () => Navigator.of(context).push(MaterialPageRoute<void>(
-                builder: (_) => Scaffold(appBar: AppBar(title: const Text('Empresa')), body: const TelaEmpresa()),
-              )),
+              aoTocar: () => Navigator.of(context).pushNamed(caminhoDaEmpresaNoCelular),
             ),
           if (!mesa)
             Linha(
               titulo: 'Relatórios',
               detalhe: 'Para onde o dinheiro foi, mês a mês',
               direita: seta,
-              aoTocar: () => Navigator.of(context)
-                  .push(MaterialPageRoute<void>(builder: (_) => const TelaRelatorios(embutida: false))),
+              aoTocar: () => Navigator.of(context).pushNamed(caminhoDosRelatoriosNoCelular),
             ),
           if (!mesa)
             Linha(

@@ -1,3 +1,4 @@
+import '../caminhos.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -55,7 +56,7 @@ class CartaoDaDistribuicao extends ConsumerWidget {
     final d = ref.watch(diagnosticoProvider);
     final t = Theme.of(context).textTheme;
     final c = Cores.de(context);
-    void abrir() => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const TelaDistribuicao()));
+    void abrir() => Navigator.of(context).pushNamed(caminhoDaDistribuicao);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

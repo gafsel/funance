@@ -1,3 +1,4 @@
+import '../caminhos.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,7 +10,7 @@ import '../tema/tema_novo.dart';
 import 'pecas.dart';
 
 void abrirFechamento(BuildContext context, [String? mes]) =>
-    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => TelaFechamento(mes: mes)));
+    Navigator.of(context).pushNamed(mes == null ? '/fechamento' : caminhoDoFechamento(mes));
 
 /// Fechamento do mês: conferir cada conta com o extrato e travar o mês.
 ///

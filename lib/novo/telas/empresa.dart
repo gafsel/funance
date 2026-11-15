@@ -1,3 +1,4 @@
+import '../caminhos.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -171,8 +172,7 @@ class TelaEmpresa extends ConsumerWidget {
                           '${vencidos > 0 ? ' · $vencidos ${vencidos == 1 ? 'vencido' : 'vencidos'}' : ''}',
                   corDoDetalhe: vencidos > 0 ? c.atencao : null,
                   direita: Text(reais(total), style: Textos.valor(context)),
-                  aoTocar: () => Navigator.of(context)
-                      .push(MaterialPageRoute<void>(builder: (_) => TelaContraparte(contraparte: x))),
+                  aoTocar: () => Navigator.of(context).pushNamed(caminhoDoContato(x.id)),
                 );
               }),
           ]),

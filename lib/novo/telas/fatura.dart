@@ -1,3 +1,4 @@
+import '../caminhos.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,10 +17,10 @@ import 'formulario.dart';
 import 'pecas.dart';
 
 void abrirCartao(BuildContext context, Conta cartao) =>
-    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => TelaCartao(cartao: cartao)));
+    Navigator.of(context).pushNamed(caminhoDoCartao(cartao.id));
 
-void abrirFatura(BuildContext context, Conta cartao, String faturaId) => Navigator.of(context)
-    .push(MaterialPageRoute<void>(builder: (_) => TelaFatura(cartao: cartao, faturaId: faturaId)));
+void abrirFatura(BuildContext context, Conta cartao, String faturaId) =>
+    Navigator.of(context).pushNamed(caminhoDaFatura(cartao.id, faturaId));
 
 /// Faturas de um cartão: a em aberto em destaque, as outras em lista.
 class TelaCartao extends ConsumerWidget {

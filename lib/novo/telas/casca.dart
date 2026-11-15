@@ -1,3 +1,4 @@
+import '../rotas.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -21,7 +22,9 @@ import 'relatorios.dart';
 /// a pessoa a outra ("Ver o caminho inteiro").
 enum Secao { inicio, lancamentos, empresa, metas, relatorios, fechamento, mais }
 
-final secaoProvider = StateProvider<Secao>((ref) => Secao.inicio);
+/// A seção aberta. Começa pela do endereço em que o app foi aberto, para que
+/// recarregar a página volte à mesma seção.
+final secaoProvider = StateProvider<Secao>((ref) => secaoDoCaminho(caminhoDeAbertura) ?? Secao.inicio);
 
 const _rotulos = {
   Secao.inicio: 'Início',
@@ -86,6 +89,9 @@ class _CascaState extends ConsumerState<Casca> {
         ),
       );
     }
+
+    // A seção aberta aparece no endereço.
+    ref.listen<Secao>(secaoProvider, (_, nova) => publicarCaminho(caminhoDaSecao(nova)));
 
     final mesa = ehMesa(context);
     final pendentes = ref.watch(entradaProvider).valueOrNull?.length ?? 0;

@@ -1,3 +1,4 @@
+import '../caminhos.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -50,7 +51,7 @@ ResumoDaSemana resumirSemana(Iterable<Lancamento> lancamentos, String hoje) {
 }
 
 void abrirRevisao(BuildContext context) =>
-    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const TelaRevisao()));
+    Navigator.of(context).pushNamed(caminhoDaRevisao);
 
 class TelaRevisao extends ConsumerWidget {
   const TelaRevisao({super.key});

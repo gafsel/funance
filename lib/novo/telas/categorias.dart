@@ -1,3 +1,4 @@
+import '../caminhos.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,7 +14,7 @@ import 'formulario.dart';
 import 'pecas.dart';
 
 void abrirCategorias(BuildContext context) =>
-    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const TelaCategorias()));
+    Navigator.of(context).pushNamed(caminhoDasCategorias);
 
 /// Categorias (ou centros de custo, na empresa) e o limite mensal de cada
 /// uma. O limite é opcional: sem ele, a categoria só organiza.
