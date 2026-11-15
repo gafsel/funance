@@ -15,8 +15,7 @@ import 'pecas.dart';
 /// Os blocos da "foto do mês" que abre o app. Cada um responde uma pergunta
 /// com um número e um estado; tocar abre o detalhe.
 
-final _comprometimentoProvider = Provider<Comprometimento>((ref) {
-  final mes = ref.watch(hojeProvider).substring(0, 7);
+final _comprometimentoProvider = Provider.family<Comprometimento, String>((ref, mes) {
   return calcularComprometimento(
     mes: mes,
     lancamentos: ref.watch(lancamentosDoMesProvider(mes)).valueOrNull ?? const <Lancamento>[],
@@ -40,29 +39,8 @@ final _pendenciasProvider = Provider<Pendencias>((ref) => calcularPendencias(
       ref.watch(hojeProvider),
     ));
 
-/// A situação em uma frase. Só aparece quando há algo a dizer.
-class FraseDoCenario extends ConsumerWidget {
-  const FraseDoCenario({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final c = Cores.de(context);
-    final categorias = {for (final x in ref.watch(categoriasProvider).valueOrNull ?? const <Categoria>[]) x.id: x};
-    final (restos, estilo) = ref.watch(_restosProvider);
-    final frase = fraseDaSituacao(restos, estilo, ref.watch(_comprometimentoProvider), (id) => categorias[id]?.nome ?? 'Uma categoria');
-    if (frase == null) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(top: Espacos.m),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(color: c.atencaoSuave, borderRadius: Raios.m),
-        child: Text(frase, style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13, color: c.atencao)),
-      ),
-    );
-  }
-}
-
-/// Do que entra no mês, quanto já tem destino: contas e faturas.
+/// Do que entra em cada mês, quanto já tem destino: contas e faturas.
+/// Mostra o mês corrente e o seguinte, que é onde as faturas de agora caem.
 class BlocoDoComprometimento extends ConsumerWidget {
   const BlocoDoComprometimento({super.key});
 
@@ -70,54 +48,63 @@ class BlocoDoComprometimento extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final c = Cores.de(context);
     final t = Theme.of(context).textTheme;
-    final k = ref.watch(_comprometimentoProvider);
-    final hoje = ref.watch(hojeProvider);
-    final pct = k.percentual;
-    final base = k.entraCentavos > k.comprometidoCentavos ? k.entraCentavos : k.comprometidoCentavos;
+    final mes = ref.watch(hojeProvider).substring(0, 7);
+    final meses = [mes, somarMeses(mes, 1)];
+
+    Widget linha(String m) {
+      final k = ref.watch(_comprometimentoProvider(m));
+      final pct = k.percentual;
+      final base = k.entraCentavos > k.comprometidoCentavos ? k.entraCentavos : k.comprometidoCentavos;
+      final nome = nomeDoMes(m).split(' ').first;
+      return InkWell(
+        onTap: () => abrirFolha<void>(context, (_) => _DetalheDoComprometimento(k: k, mes: m), largura: 460),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Row(children: [
+              Expanded(child: Text(nome, style: t.titleSmall)),
+              Text(
+                pct == null ? (k.comprometidoCentavos > 0 ? 'sem entrada lançada' : 'nada lançado') : '$pct% do que entra',
+                style: t.bodySmall?.copyWith(color: pct != null && pct > 100 ? c.atencao : null),
+              ),
+            ]),
+            if (base > 0) ...[
+              const SizedBox(height: 6),
+              ClipRRect(
+                borderRadius: Raios.pilula,
+                child: SizedBox(
+                  height: 10,
+                  child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                    if (k.contasCentavos > 0) Expanded(flex: k.contasCentavos, child: ColoredBox(color: c.primaria)),
+                    if (k.faturasCentavos > 0) Expanded(flex: k.faturasCentavos, child: ColoredBox(color: c.calor)),
+                    if (k.sobraCentavos > 0) Expanded(flex: k.sobraCentavos, child: ColoredBox(color: c.suave)),
+                  ]),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Wrap(spacing: Espacos.g, runSpacing: 2, children: [
+                _Legenda(cor: c.primaria, texto: 'Contas ${reais(k.contasCentavos)}'),
+                _Legenda(cor: c.calor, texto: 'Faturas ${reais(k.faturasCentavos)}'),
+                _Legenda(cor: c.tinta3, texto: 'Entra ${reais(k.entraCentavos)}'),
+              ]),
+              const SizedBox(height: 4),
+              Text(
+                k.sobraCentavos >= 0
+                    ? 'Sobram ${reais(k.sobraCentavos)} depois do que já tem destino.'
+                    : 'Faltam ${reais(-k.sobraCentavos)} para cobrir o que já tem destino.',
+                style: t.bodySmall?.copyWith(color: k.sobraCentavos < 0 ? c.atencao : null),
+              ),
+            ],
+          ]),
+        ),
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        TituloDeSecao(
-          'Comprometimento do mês',
-          detalhe: pct == null ? null : '$pct% do que entra',
-        ),
-        Cartao(
-          onTap: () => abrirFolha<void>(context, (_) => _DetalheDoComprometimento(k: k, mes: hoje.substring(0, 7)), largura: 460),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (base <= 0)
-                Text('Lance o que entra e o que sai no mês para ver quanto já tem destino.', style: t.bodySmall)
-              else ...[
-                ClipRRect(
-                  borderRadius: Raios.pilula,
-                  child: SizedBox(
-                    height: 12,
-                    child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                      if (k.contasCentavos > 0) Expanded(flex: k.contasCentavos, child: ColoredBox(color: c.primaria)),
-                      if (k.faturasCentavos > 0) Expanded(flex: k.faturasCentavos, child: ColoredBox(color: c.calor)),
-                      if (k.sobraCentavos > 0) Expanded(flex: k.sobraCentavos, child: ColoredBox(color: c.suave)),
-                    ]),
-                  ),
-                ),
-                const SizedBox(height: Espacos.p),
-                Wrap(spacing: Espacos.g, runSpacing: 4, children: [
-                  _Legenda(cor: c.primaria, texto: 'Contas ${reais(k.contasCentavos)}'),
-                  _Legenda(cor: c.calor, texto: 'Faturas ${reais(k.faturasCentavos)}'),
-                  _Legenda(cor: c.tinta3, texto: 'Entra ${reais(k.entraCentavos)}'),
-                ]),
-                const SizedBox(height: Espacos.p),
-                Text(
-                  k.sobraCentavos >= 0
-                      ? 'Sobram ${reais(k.sobraCentavos)} depois do que já tem destino.'
-                      : 'Faltam ${reais(-k.sobraCentavos)} para cobrir o que já tem destino.',
-                  style: t.bodySmall?.copyWith(color: k.sobraCentavos < 0 ? c.atencao : null),
-                ),
-              ],
-            ],
-          ),
-        ),
+        const TituloDeSecao('Comprometimento', detalhe: 'este mês e o próximo'),
+        Lista(filhos: [for (final m in meses) linha(m)]),
       ],
     );
   }
@@ -177,18 +164,37 @@ class _DetalheDoComprometimento extends StatelessWidget {
 }
 
 /// Quanto ainda dá em cada categoria com limite e no resto do estilo de vida.
-class BlocoDoQuantoAindaDa extends ConsumerWidget {
+///
+/// Quem já atingiu ou passou do limite sai da lista e vai para uma caixa de
+/// alerta só, com o selo de cada categoria: barra cheia não diz nada, e o
+/// mesmo aviso repetido em três lugares também não.
+class BlocoDoQuantoAindaDa extends ConsumerStatefulWidget {
   const BlocoDoQuantoAindaDa({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<BlocoDoQuantoAindaDa> createState() => _BlocoDoQuantoAindaDaState();
+}
+
+class _BlocoDoQuantoAindaDaState extends ConsumerState<BlocoDoQuantoAindaDa> {
+  /// Quantas categorias aparecem antes de "ver todas".
+  static const _resumidas = 5;
+  bool _todas = false;
+
+  @override
+  Widget build(BuildContext context) {
     final c = Cores.de(context);
     final t = Theme.of(context).textTheme;
     final categorias = {for (final x in ref.watch(categoriasProvider).valueOrNull ?? const <Categoria>[]) x.id: x};
     final (restos, estilo) = ref.watch(_restosProvider);
+    String nomeDe(Resto r) => r.categoriaId == null ? 'Estilo de vida, o resto' : (categorias[r.categoriaId]?.nome ?? 'Categoria');
 
-    Widget linha(Resto r, String nome, {Widget? antes}) {
-      final cor = r.passou ? c.problema : (r.perto ? c.atencao : c.primaria);
+    final estouradas = [...restos.where((r) => r.passou), if (estilo != null && estilo.passou) estilo];
+    final dentro = restos.where((r) => !r.passou).toList();
+    final estiloDentro = estilo != null && !estilo.passou ? estilo : null;
+    final visiveis = _todas ? dentro : dentro.take(_resumidas).toList();
+
+    Widget linha(Resto r, {Widget? antes}) {
+      final cor = r.perto ? c.atencao : c.primaria;
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
         child: Row(children: [
@@ -196,11 +202,8 @@ class BlocoDoQuantoAindaDa extends ConsumerWidget {
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               Row(children: [
-                Expanded(child: Text(nome, maxLines: 1, overflow: TextOverflow.ellipsis, style: t.titleSmall)),
-                Text(
-                  r.passou ? 'passou ${reais(-r.restaCentavos)}' : 'restam ${reais(r.restaCentavos)}',
-                  style: Textos.valor(context, tamanho: 13, cor: r.passou ? c.problema : (r.perto ? c.atencao : c.tinta)),
-                ),
+                Expanded(child: Text(nomeDe(r), maxLines: 1, overflow: TextOverflow.ellipsis, style: t.titleSmall)),
+                Text('restam ${reais(r.restaCentavos)}', style: Textos.valor(context, tamanho: 13, cor: r.perto ? c.atencao : c.tinta)),
               ]),
               const SizedBox(height: 5),
               Barra(r.fracao, cor: cor),
@@ -216,15 +219,59 @@ class BlocoDoQuantoAindaDa extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const TituloDeSecao('Quanto ainda dá'),
-        if (restos.isEmpty && estilo == null)
-          const Cartao(
-            padding: EdgeInsets.zero,
-            child: Vazio('Nenhuma categoria com limite ainda. A organização financeira sugere os limites para você.'),
-          )
+        if (estouradas.isNotEmpty) ...[
+          Cartao(
+            cor: c.problemaSuave,
+            semBorda: true,
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Text(
+                estouradas.length == 1 ? 'Já atingiu o limite do mês' : '${estouradas.length} já atingiram o limite do mês',
+                style: t.titleSmall?.copyWith(color: c.problema),
+              ),
+              const SizedBox(height: Espacos.p),
+              for (final r in estouradas)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(children: [
+                    if (r.categoriaId != null) ...[
+                      SeloDaCategoria(categoria: categorias[r.categoriaId], tamanho: 26),
+                      const SizedBox(width: 10),
+                    ],
+                    Expanded(child: Text(nomeDe(r), maxLines: 1, overflow: TextOverflow.ellipsis, style: t.titleSmall)),
+                    Text(
+                      r.restaCentavos == 0 ? 'no limite de ${reais(r.limiteCentavos)}' : 'passou ${reais(-r.restaCentavos)} de ${reais(r.limiteCentavos)}',
+                      style: t.bodySmall?.copyWith(color: c.problema),
+                    ),
+                  ]),
+                ),
+            ]),
+          ),
+          const SizedBox(height: Espacos.p),
+        ],
+        if (dentro.isEmpty && estiloDentro == null)
+          if (estouradas.isEmpty)
+            const Cartao(
+              padding: EdgeInsets.zero,
+              child: Vazio('Nenhuma categoria com limite ainda. A organização financeira sugere os limites para você.'),
+            )
+          else
+            const SizedBox.shrink()
         else
           Lista(filhos: [
-            for (final r in restos) linha(r, categorias[r.categoriaId]?.nome ?? 'Categoria', antes: SeloDaCategoria(categoria: categorias[r.categoriaId])),
-            if (estilo != null) linha(estilo, restos.isEmpty ? 'Estilo de vida' : 'Estilo de vida, o resto'),
+            for (final r in visiveis) linha(r, antes: SeloDaCategoria(categoria: categorias[r.categoriaId])),
+            // O resto do estilo de vida (50-30-20) fica sempre à vista.
+            if (estiloDentro != null) linha(estiloDentro),
+            if (dentro.length > _resumidas)
+              InkWell(
+                onTap: () => setState(() => _todas = !_todas),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  child: Text(
+                    _todas ? 'Mostrar só as $_resumidas mais apertadas' : 'Ver todas as ${dentro.length} categorias',
+                    style: t.labelLarge?.copyWith(color: c.primaria),
+                  ),
+                ),
+              ),
           ]),
       ],
     );

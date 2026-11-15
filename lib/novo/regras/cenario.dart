@@ -66,7 +66,8 @@ class Resto {
   final int gastoCentavos;
 
   int get restaCentavos => limiteCentavos - gastoCentavos;
-  bool get passou => gastoCentavos > limiteCentavos;
+  /// Atingiu ou ultrapassou o limite.
+  bool get passou => gastoCentavos > 0 && gastoCentavos >= limiteCentavos;
   bool get perto => !passou && limiteCentavos > 0 && gastoCentavos * 5 >= limiteCentavos * 4;
   double get fracao => limiteCentavos <= 0 ? 1 : (gastoCentavos / limiteCentavos).clamp(0.0, 1.0);
 }
@@ -102,24 +103,6 @@ Resto? restoDoEstiloDeVida(ResumoMes? resumo, Iterable<Categoria> categorias, in
     limiteCentavos: limite < 0 ? 0 : limite,
     gastoCentavos: semLimite.fold<int>(0, (s, c) => s + (resumo?.categorias[c.id]?.$2 ?? 0)),
   );
-}
-
-/// A situação em uma frase, só quando há algo a dizer: quem passou do
-/// limite, quem está perto, ou o mês comprometido além do que entra.
-String? fraseDaSituacao(List<Resto> restos, Resto? estilo, Comprometimento comprometimento, String Function(String) nomeDe) {
-  String lista(Iterable<Resto> rs) => rs.map((r) => r.categoriaId == null ? 'O resto do estilo de vida' : nomeDe(r.categoriaId!)).join(', ');
-  final todos = [...restos, ?estilo];
-  final passaram = todos.where((r) => r.passou).toList();
-  final perto = todos.where((r) => r.perto).toList();
-  if (comprometimento.entraCentavos > 0 && comprometimento.sobraCentavos < 0) {
-    return 'O mês já tem ${reais(-comprometimento.sobraCentavos)} a mais de destino do que entra.';
-  }
-  if (passaram.isNotEmpty) {
-    return '${lista(passaram)} ${passaram.length == 1 ? 'passou' : 'passaram'} do limite.'
-        '${perto.isEmpty ? '' : ' ${lista(perto)} ${perto.length == 1 ? 'está' : 'estão'} perto.'}';
-  }
-  if (perto.isNotEmpty) return '${lista(perto)} ${perto.length == 1 ? 'está' : 'estão'} perto do limite.';
-  return null;
 }
 
 /// O que está atrasado e o que vence nos próximos sete dias.

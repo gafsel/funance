@@ -91,15 +91,10 @@ void main() {
       expect(restoDoEstiloDeVida(gasto, [cat('lazer', limite: 30000)], 150000), isNull);
     });
 
-    test('a frase aparece só quando há o que dizer', () {
-      const folgado = Comprometimento(entraCentavos: 100, contasCentavos: 10, faturasCentavos: 10);
-      String nome(String id) => id;
-      expect(fraseDaSituacao(restosPorCategoria(gasto, categorias), null, folgado, nome), 'restaurantes passou do limite. lazer está perto.');
-      expect(fraseDaSituacao(restosPorCategoria(resumo({'lazer': 100}), categorias), null, folgado, nome), isNull);
-      expect(
-        fraseDaSituacao(const [], null, const Comprometimento(entraCentavos: 100000, contasCentavos: 90000, faturasCentavos: 30000), nome),
-        contains('a mais de destino do que entra'),
-      );
+    test('atingir o limite já conta como estourado', () {
+      expect(const Resto(categoriaId: 'x', limiteCentavos: 30000, gastoCentavos: 30000).passou, isTrue);
+      expect(const Resto(categoriaId: 'x', limiteCentavos: 30000, gastoCentavos: 29999).passou, isFalse);
+      expect(const Resto(categoriaId: null, limiteCentavos: 0, gastoCentavos: 0).passou, isFalse);
     });
   });
 

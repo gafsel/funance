@@ -12,7 +12,6 @@ import 'casca.dart';
 import 'cenario.dart';
 import 'conferencia.dart';
 import 'conta.dart';
-import 'detalhe.dart';
 import 'fatura.dart';
 import 'lancar.dart';
 import 'meta.dart';
@@ -35,7 +34,6 @@ class TelaInicio extends ConsumerWidget {
     // apertado, os cartões e o que vence. O resto é expansão.
     final esquerda = <Widget>[
       const _Heroi(),
-      const FraseDoCenario(),
       espaco,
       const _CampoRapido(),
       const ConviteParaOrganizar(),
@@ -45,7 +43,6 @@ class TelaInicio extends ConsumerWidget {
       const BlocoDasPendencias(),
     ];
     final direita = <Widget>[const ConviteParaConferir(), const _Passo(), const _Avisos(), const _MetasResumo(), const _Contas(mostrarCartoes: false)];
-    const ultimos = _Ultimos();
 
     // Tela larga: três colunas. O que se faz agora, o que orienta, e as contas.
     if (ehTelaLarga(context)) {
@@ -53,7 +50,7 @@ class TelaInicio extends ConsumerWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(flex: 5, child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [...esquerda, ultimos])),
+            Expanded(flex: 5, child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: esquerda)),
             const SizedBox(width: Espacos.xg),
             const Expanded(
               flex: 4,
@@ -71,14 +68,14 @@ class TelaInicio extends ConsumerWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [...esquerda, ultimos])),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: esquerda)),
             const SizedBox(width: Espacos.xg),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: direita)),
           ],
         ),
       ]);
     }
-    return Pagina(filhos: [...esquerda, espaco, ...direita, ultimos]);
+    return Pagina(filhos: [...esquerda, espaco, ...direita]);
   }
 }
 
@@ -246,11 +243,6 @@ class _Avisos extends ConsumerWidget {
     final pausadas = ref.watch(metasPausadasProvider);
     final repo = ref.watch(repositorioProvider);
     final revisada = ref.watch(marcasProvider).valueOrNull?.containsKey(marcaDaSemana(hoje)) ?? false;
-    final resumo = (ref.watch(resumosProvider).valueOrNull ?? const <ResumoMes>[]).where((r) => r.mes == mes).firstOrNull;
-    final estourando = [
-      for (final x in ref.watch(categoriasProvider).valueOrNull ?? const <Categoria>[])
-        if (!x.arquivada && (x.limiteMensalCentavos ?? 0) > 0 && (resumo?.categorias[x.id]?.$2 ?? 0) * 10 >= x.limiteMensalCentavos! * 8) x,
-    ];
 
     Widget aviso({required Color ponto, required String texto, Color? fundo, String? acao, VoidCallback? aoTocar}) => Padding(
           padding: const EdgeInsets.only(top: Espacos.m),
@@ -289,13 +281,6 @@ class _Avisos extends ConsumerWidget {
             texto: 'As metas estão pausadas neste mês.',
             acao: 'Retomar',
             aoTocar: () => repo?.desmarcar('pausa-$mes'),
-          ),
-        for (final x in estourando)
-          aviso(
-            ponto: c.atencao,
-            fundo: c.atencaoSuave,
-            texto: '${x.nome}: ${reais(resumo?.categorias[x.id]?.$2 ?? 0)} de ${reais(x.limiteMensalCentavos!)}. '
-                '${(resumo?.categorias[x.id]?.$2 ?? 0) > x.limiteMensalCentavos! ? 'Passou do limite do mês.' : 'Passou de 80% do limite.'}',
           ),
       ],
     );
@@ -464,49 +449,6 @@ class _Contas extends ConsumerWidget {
               child: Text('${reais(reservado)} do saldo das contas já estão reservados para as faturas.', style: t.bodySmall),
             ),
         ],
-      ],
-    );
-  }
-}
-
-class _Ultimos extends ConsumerWidget {
-  const _Ultimos();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final hoje = ref.watch(hojeProvider);
-    final contas = {for (final x in ref.watch(contasProvider).valueOrNull ?? const <Conta>[]) x.id: x};
-    final categorias = {for (final x in ref.watch(categoriasProvider).valueOrNull ?? const <Categoria>[]) x.id: x};
-    final doMes = ref.watch(lancamentosDoMesProvider(hoje.substring(0, 7))).valueOrNull ?? const <Lancamento>[];
-    final ultimos = doMes.where((l) => l.efetivado && l.dia.compareTo(hoje) <= 0).toList()
-      ..sort((a, b) => b.dia.compareTo(a.dia));
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        TituloDeSecao(
-          'Últimos lançamentos',
-          acao: ultimos.isEmpty
-              ? null
-              : InkWell(
-                  onTap: () => ref.read(secaoProvider.notifier).state = Secao.lancamentos,
-                  child: Text('Ver todos', style: Theme.of(context).textTheme.labelLarge?.copyWith(color: Cores.de(context).primaria)),
-                ),
-        ),
-        if (ultimos.isEmpty)
-          const Cartao(padding: EdgeInsets.zero, child: Vazio('Nenhum lançamento neste mês ainda.'))
-        else
-          Lista(filhos: [
-            for (final l in ultimos.take(6))
-              LinhaDeLancamento(
-                lancamento: l,
-                hoje: hoje,
-                conta: contas[l.contaId],
-                destino: contas[l.contaDestinoId],
-                categoria: categorias[l.categoriaId],
-                onTap: () => abrirLancamento(context, ref, l),
-              ),
-          ]),
       ],
     );
   }
