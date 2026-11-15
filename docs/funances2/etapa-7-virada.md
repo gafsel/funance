@@ -1,4 +1,30 @@
-# Etapa 7: virada (preparada, não executada)
+# Etapa 7: virada
+
+## O que aconteceu (2026-11-15)
+
+O dono decidiu a virada na v2.0.0. O roteiro abaixo previa um projeto novo
+(`funances2`), mas a conta do Google não tinha cota para criar projeto, e um
+projeto apagado continua contando na cota por 30 dias. A produção ficou então
+no projeto que já existia:
+
+- **Projeto:** `funances2-testes` (o ID não muda), com nome de exibição
+  "Funances".
+- **Endereço:** https://funances.web.app. O endereço antigo,
+  https://funances2-testes.web.app, recebe a mesma publicação.
+- **Login:** Google e e-mail/senha ligados; `funances.web.app` autorizado.
+- **Publicação:** `.github/workflows/deploy-testes.yml` deixou de publicar a
+  cada push; publica quando uma versão é marcada (`git tag v2.0.1 && git push
+  origin v2.0.1`) ou por disparo manual.
+- **Dados:** os dois espaços em uso tinham sido migrados em 2026-11-14 e já
+  vinham sendo usados no app novo. A simulação de 2026-11-15 mostrou o app
+  antigo sem mudança desde a migração.
+- **Não há mais ambiente de testes publicado.** O que for novo é conferido nos
+  emuladores locais (`scripts/emuladores.sh`) antes de marcar a versão.
+
+O projeto antigo (`funance-cef1b`) não foi alterado e segue como cópia de
+segurança.
+
+## Roteiro original (projeto novo), para referência
 
 Nada desta etapa foi feito. Ela muda onde os seus dados de verdade passam a
 viver, e o plano condiciona a virada a dois critérios que só você cumpre: a

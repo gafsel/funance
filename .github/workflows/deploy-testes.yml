@@ -1,15 +1,23 @@
-# Deploy em push na main, SEMPRE no projeto de testes (funances2-testes), e só
-# depois que todos os jobs de verificação (Flutter, Cloud Functions e security
-# rules) ficam verdes.
+# Publicação da PRODUÇÃO do Funances 2.
 #
-# O projeto antigo (funance-cef1b) é a cópia de segurança do app atual e não é
-# publicado pelo CI. Produção do Funances 2 terá um workflow próprio, manual.
-name: Deploy no ambiente de testes ao integrar na main
+# O projeto do Firebase se chama `funances2-testes` por história: nasceu como
+# ambiente de testes e virou a produção em 2026-11-15 (a conta não tinha cota
+# para um projeto novo). O ID de um projeto não muda; o nome de exibição é
+# "Funances" e o endereço é https://funances.web.app.
+#
+# Por ser produção, não publica mais a cada push: só quando uma versão é
+# marcada (tag `v*`) ou quando alguém dispara à mão, e só depois que todos os
+# jobs de verificação (Flutter, Cloud Functions e security rules) ficam verdes.
+#
+# O projeto antigo (funance-cef1b) é a cópia de segurança do app antigo e não
+# é publicado pelo CI.
+name: Publicar a produção ao marcar uma versão
 
 'on':
   push:
-    branches:
-      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
 
 concurrency:
   group: deploy-testes
