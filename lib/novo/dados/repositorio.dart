@@ -226,4 +226,15 @@ class Repositorio {
   Future<void> marcar(String id, Mapa dados) => _col('caminho').doc(id).set(dados, SetOptions(merge: true));
 
   Future<void> desmarcar(String id) => _col('caminho').doc(id).delete();
+
+  // ---- Empresa -------------------------------------------------------------
+
+  Stream<List<Contraparte>> contrapartes() => _lista(_col('contrapartes'), Contraparte.deMapa);
+
+  Future<void> gravarContraparte(String id, {required String nome, required String tipo}) =>
+      _col('contrapartes').doc(id).set({'nome': nome, 'tipo': tipo});
+
+  /// Tudo o que está agendado e ainda não aconteceu, de qualquer mês.
+  Stream<List<Lancamento>> previstos() =>
+      _lista(_col('lancamentos').where('situacao', isEqualTo: 'previsto'), Lancamento.deMapa);
 }

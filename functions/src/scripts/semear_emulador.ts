@@ -17,6 +17,7 @@ import * as admin from "firebase-admin";
 import { shiftDateKey, toDateKey } from "../core/utils/date_key";
 import { shiftMonthKey } from "../core/utils/month_key";
 import { Lancamento, RAIZ } from "../features/nucleo/domain/models/modelo";
+import { CATEGORIAS_PADRAO } from "../features/nucleo/domain/services/espaco.service";
 import { ReconstrucaoService } from "../features/nucleo/domain/services/reconstrucao.service";
 import { vencimentoNoMes } from "../features/nucleo/domain/services/series";
 
@@ -112,7 +113,34 @@ async function main(): Promise<void> {
         diaVencimento: 6, inicioMes: mes, geradoAte: dia(6), contaId: "azul", contaDestinoId: null, categoriaId: "moradia", ativa: true,
     });
 
+    // ---- Empresa de exemplo --------------------------------------------------
+    const loja = db.collection(RAIZ).doc("loja");
+    await loja.collection("contas").doc("caixa").set({
+        nome: "Conta PJ", tipo: "corrente", icone: null, cor: null, banco: null, saldoInicialCentavos: 1200000,
+        saldoInicialData: shiftMonthKey(mes, -1) + "-01", arquivada: false, limiteCentavos: null, diaFechamento: null,
+        diaVencimento: null, taxaJuros: null, donos: [uid],
+    });
+    for (const [id, nome, tipo, grupo] of CATEGORIAS_PADRAO.empresa) {
+        await loja.collection("categorias").doc(id).set({ nome, tipo, icone: null, cor: null, grupo, limiteMensalCentavos: null, arquivada: false });
+    }
+    await loja.collection("contrapartes").doc("acme").set({ nome: "Acme", tipo: "cliente" });
+    await loja.collection("contrapartes").doc("papelaria").set({ nome: "Papelaria Central", tipo: "fornecedor" });
+    const daLoja: Record<string, Lancamento> = {
+        venda1: feito("Projeto de site", 900000, dia(3), { tipo: "entrada", categoriaId: "servicos", contaId: "caixa", contraparteId: "acme" }),
+        fornecedor1: feito("Material de escritório", 85000, dia(4), { categoriaId: "fornecedores", contaId: "caixa", contraparteId: "papelaria" }),
+        sistema: feito("Sistema de notas", 19900, dia(6), { categoriaId: "ferramentas", contaId: "caixa" }),
+        prolabore: feito("Pró-labore", 400000, dia(5), { categoriaId: "pro-labore", contaId: "caixa" }),
+        receberVencido: agendado("Suporte de outubro", 150000, shiftDateKey(hoje, -9), { tipo: "entrada", categoriaId: "servicos", contaId: "caixa", contraparteId: "acme" }),
+        receber: agendado("Manutenção mensal", 250000, shiftDateKey(hoje, 12), { tipo: "entrada", categoriaId: "servicos", contaId: "caixa", contraparteId: "acme" }),
+        pagar: agendado("Reposição de estoque", 320000, shiftDateKey(hoje, 5), { categoriaId: "fornecedores", contaId: "caixa", contraparteId: "papelaria" }),
+        aluguel: agendado("Aluguel da sala", 280000, shiftDateKey(hoje, 16), { categoriaId: "aluguel-e-estrutura", contaId: "caixa" }),
+    };
+    for (const [id, l] of Object.entries(daLoja)) {
+        await loja.collection("lancamentos").doc(id).set(l);
+    }
+
     await new ReconstrucaoService(db).reconstruir("casa", { aplicar: true });
+    await new ReconstrucaoService(db).reconstruir("loja", { aplicar: true });
     console.log(`Emulador semeado. Usuário de teste: ${EMAIL_DE_TESTE}`);
 }
 

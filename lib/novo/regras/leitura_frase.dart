@@ -16,6 +16,7 @@ class Leitura {
     this.recorrente = false,
     this.efetivado = true,
     this.original = '',
+    this.contraparteId,
   });
 
   final String tipo;
@@ -31,6 +32,9 @@ class Leitura {
 
   /// A linha como a pessoa escreveu.
   final String original;
+
+  /// Cliente ou fornecedor (só em espaço de empresa).
+  final String? contraparteId;
 
   /// Dá para salvar sem perguntar mais nada?
   bool get completa =>
@@ -49,6 +53,7 @@ class Leitura {
     int? Function()? parcelas,
     bool? recorrente,
     bool? efetivado,
+    String? Function()? contraparteId,
   }) =>
       Leitura(
         tipo: tipo ?? this.tipo,
@@ -62,6 +67,7 @@ class Leitura {
         recorrente: recorrente ?? this.recorrente,
         efetivado: efetivado ?? this.efetivado,
         original: original,
+        contraparteId: contraparteId != null ? contraparteId() : this.contraparteId,
       );
 
   factory Leitura.deMapa(Map<Object?, Object?> m, String original) => Leitura(

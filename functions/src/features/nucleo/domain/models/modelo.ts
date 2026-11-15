@@ -110,6 +110,11 @@ export interface Lancamento {
     origem: Origem;
     loteId: string | null;
     autorId: string | null;
+    /**
+     * Liga os dois lados de um pró-labore: a saída na empresa e a entrada no
+     * espaço pessoal têm o mesmo vínculo e o mesmo id de documento.
+     */
+    vinculoId?: string | null;
 }
 
 export interface Serie {

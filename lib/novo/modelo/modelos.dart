@@ -118,6 +118,7 @@ class Lancamento {
     this.origem = 'manual',
     this.loteId,
     this.autorId,
+    this.vinculoId,
   });
 
   final String id;
@@ -145,6 +146,10 @@ class Lancamento {
   final String origem;
   final String? loteId;
   final String? autorId;
+
+  /// Liga os dois lados de um pró-labore: a saída na empresa e a entrada no
+  /// espaço pessoal têm o mesmo vínculo e são desfeitas juntas.
+  final String? vinculoId;
 
   bool get efetivado => situacao == 'efetivado';
   bool get previsto => situacao == 'previsto';
@@ -180,6 +185,7 @@ class Lancamento {
       origem: _texto(m['origem']) ?? 'manual',
       loteId: _texto(m['loteId']),
       autorId: _texto(m['autorId']),
+      vinculoId: _texto(m['vinculoId']),
     );
   }
 
@@ -203,6 +209,7 @@ class Lancamento {
         'origem': origem,
         'loteId': loteId,
         'autorId': autorId,
+        'vinculoId': vinculoId,
       };
 
   Lancamento copiar({
@@ -224,6 +231,7 @@ class Lancamento {
     String? origem,
     String? Function()? loteId,
     String? autorId,
+    String? Function()? contraparteId,
   }) =>
       Lancamento(
         id: id ?? this.id,
@@ -244,7 +252,8 @@ class Lancamento {
         serieId: serieId != null ? serieId() : this.serieId,
         parcelaNumero: parcelaNumero ?? this.parcelaNumero,
         parcelaTotal: parcelaTotal ?? this.parcelaTotal,
-        contraparteId: contraparteId,
+        contraparteId: contraparteId != null ? contraparteId() : this.contraparteId,
+        vinculoId: vinculoId,
         pagaFaturaId: pagaFaturaId != null ? pagaFaturaId() : this.pagaFaturaId,
         origem: origem ?? this.origem,
         loteId: loteId != null ? loteId() : this.loteId,
@@ -499,4 +508,21 @@ class Fechamento {
     }
     return Fechamento(mes: _texto(m['mes']) ?? id, situacao: _texto(m['situacao']) ?? 'aberto', extratoCentavos: extrato);
   }
+}
+
+/// Cliente ou fornecedor. O cadastro nasce dos lançamentos: é criado na
+/// hora de lançar, não numa tela de cadastro.
+class Contraparte {
+  const Contraparte({required this.id, required this.nome, required this.tipo});
+  final String id;
+  final String nome;
+
+  /// `cliente` ou `fornecedor`.
+  final String tipo;
+
+  factory Contraparte.deMapa(String id, Mapa m) => Contraparte(
+        id: id,
+        nome: _texto(m['nome']) ?? 'Sem nome',
+        tipo: m['tipo'] == 'fornecedor' ? 'fornecedor' : 'cliente',
+      );
 }

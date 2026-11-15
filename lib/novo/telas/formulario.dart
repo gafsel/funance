@@ -81,7 +81,14 @@ class FormularioAvancado extends StatefulWidget {
     this.titulo = 'Detalhes do lançamento',
     this.permiteRepetir = true,
     this.rotuloDeSalvar = 'Pronto',
+    this.contrapartes,
+    this.aoCriarContraparte,
   });
+
+  /// Clientes e fornecedores do espaço. `null` esconde o campo (espaço
+  /// pessoal).
+  final List<Contraparte>? contrapartes;
+  final Future<Contraparte?> Function(String nome, String tipo)? aoCriarContraparte;
 
   final Leitura inicial;
   final List<Conta> contas;
@@ -114,6 +121,50 @@ class _FormularioAvancadoState extends State<FormularioAvancado> {
   }
 
   Conta? _conta(String? id) => widget.contas.where((c) => c.id == id).firstOrNull;
+
+  /// Criadas nesta tela, para aparecerem antes de a lista do banco chegar.
+  final _criadas = <Contraparte>[];
+
+  Future<void> _escolherContraparte() async {
+    final tipo = _l.tipo == 'entrada' ? 'cliente' : 'fornecedor';
+    const novo = Contraparte(id: '', nome: 'Novo…', tipo: '');
+    const nenhum = Contraparte(id: '-', nome: 'Nenhum', tipo: '');
+    final opcoes = [...widget.contrapartes!, ..._criadas].where((x) => x.tipo == tipo).toList()
+      ..sort((a, b) => a.nome.compareTo(b.nome));
+    final escolhida = await escolher<Contraparte>(context,
+        titulo: tipo == 'cliente' ? 'Cliente' : 'Fornecedor', itens: [nenhum, ...opcoes, novo], rotulo: (x) => x.nome);
+    if (escolhida == null || !mounted) return;
+    if (escolhida.id == '-') return setState(() => _l = _l.copiar(contraparteId: () => null));
+    if (escolhida.id.isNotEmpty) return setState(() => _l = _l.copiar(contraparteId: () => escolhida.id));
+
+    final nome = TextEditingController();
+    final digitado = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(tipo == 'cliente' ? 'Novo cliente' : 'Novo fornecedor'),
+        content: TextField(
+          controller: nome,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          decoration: const InputDecoration(labelText: 'Nome'),
+          onSubmitted: (v) => Navigator.pop(context, v),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+          FilledButton(onPressed: () => Navigator.pop(context, nome.text), child: const Text('Criar')),
+        ],
+      ),
+    );
+    nome.dispose();
+    if (digitado == null || digitado.trim().isEmpty) return;
+    final criada = await widget.aoCriarContraparte?.call(digitado.trim(), tipo);
+    if (criada != null && mounted) {
+      setState(() {
+        _criadas.add(criada);
+        _l = _l.copiar(contraparteId: () => criada.id);
+      });
+    }
+  }
 
   void _salvar() {
     final valor = lerCentavos(_valor.text);
@@ -224,6 +275,14 @@ class _FormularioAvancadoState extends State<FormularioAvancado> {
                         atual: categorias.where((x) => x.id == _l.categoriaId).firstOrNull);
                     setState(() => _l = _l.copiar(categoriaId: () => escolhida?.id));
                   },
+                ),
+              ],
+              if (widget.contrapartes != null && _l.tipo != 'transferencia') ...[
+                const SizedBox(height: Espacos.m),
+                campo(
+                  _l.tipo == 'entrada' ? 'Cliente' : 'Fornecedor',
+                  [...widget.contrapartes!, ..._criadas].where((x) => x.id == _l.contraparteId).firstOrNull?.nome ?? 'Nenhum',
+                  _escolherContraparte,
                 ),
               ],
               const SizedBox(height: Espacos.g),

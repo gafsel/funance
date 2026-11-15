@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../modelo/modelos.dart';
 import '../regras/caminho.dart';
+import '../regras/empresa.dart';
 import '../regras/formatos.dart';
 import '../regras/leitura_frase.dart';
 import '../regras/livre.dart';
@@ -74,6 +75,8 @@ final metasProvider = _colecao<Meta>((r) => r.metas());
 final faturasProvider = _colecao<Fatura>((r) => r.faturas());
 final resumosProvider = _colecao<ResumoMes>((r) => r.resumos());
 final entradaProvider = _colecao<ItemEntrada>((r) => r.entradaPendente());
+final contrapartesProvider = _colecao<Contraparte>((r) => r.contrapartes());
+final previstosProvider = _colecao<Lancamento>((r) => r.previstos());
 final regrasProvider = _colecao<Regra>((r) => r.regras());
 final fechamentosProvider = _colecao<Fechamento>((r) => r.fechamentos());
 
@@ -129,43 +132,29 @@ final livreProvider = Provider<LivreParaGastar>((ref) {
   );
 });
 
-/// Ponto mais baixo do caixa nos próximos 30 dias: saldo das contas de uso
-/// mais o que está agendado, dia a dia.
-final caixaPrevistoProvider = Provider<({int minimoCentavos, String? diaDoMinimo, int finalCentavos})>((ref) {
-  final hoje = ref.watch(hojeProvider);
-  final limite = somarDias(hoje, 30);
+/// Caixa previsto para os próximos 30 dias, nas contas de uso.
+final caixaPrevistoProvider = Provider<CaixaPrevisto>((ref) {
   final contas = {
     for (final c in ref.watch(contasProvider).valueOrNull ?? const <Conta>[])
       if (!c.arquivada && c.ehDeUso) c.id,
   };
   final saldos = ref.watch(saldosProvider);
-  var caixa = contas.fold<int>(0, (s, id) => s + (saldos[id] ?? 0));
-  final mes = hoje.substring(0, 7);
-  final agendados = {
-    for (final l in [
-      ...ref.watch(lancamentosDoMesProvider(mes)).valueOrNull ?? const <Lancamento>[],
-      ...ref.watch(lancamentosDoMesProvider(somarMeses(mes, 1))).valueOrNull ?? const <Lancamento>[],
-    ])
-      if (l.previsto && l.data.compareTo(hoje) >= 0 && l.data.compareTo(limite) <= 0) l.id: l,
-  }.values.toList()
-    ..sort((a, b) => a.data.compareTo(b.data));
-  var minimo = caixa;
-  String? diaDoMinimo;
-  for (final l in agendados) {
-    if (l.ehEntrada && contas.contains(l.contaId)) caixa += l.valorCentavos;
-    if (!l.ehEntrada && contas.contains(l.contaId)) caixa -= l.valorCentavos;
-    if (l.ehTransferencia && contas.contains(l.contaDestinoId)) caixa += l.valorCentavos;
-    if (caixa < minimo) {
-      minimo = caixa;
-      diaDoMinimo = l.data;
-    }
-  }
-  return (minimoCentavos: minimo, diaDoMinimo: diaDoMinimo, finalCentavos: caixa);
+  return preverCaixa(
+    hoje: ref.watch(hojeProvider),
+    caixaHojeCentavos: contas.fold<int>(0, (s, id) => s + (saldos[id] ?? 0)),
+    contasDeUso: contas,
+    previstos: ref.watch(previstosProvider).valueOrNull ?? const [],
+  );
 });
+
+/// Categorias que representam a retirada do dono.
+final proLaboreIdsProvider = Provider<Set<String>>((ref) => {
+      for (final c in ref.watch(categoriasProvider).valueOrNull ?? const <Categoria>[])
+        if (normalizar(c.nome).replaceAll(RegExp(r'[^a-z]'), '').contains('prolabore')) c.id,
+    });
 
 final caminhoProvider = Provider<List<Degrau>>((ref) {
   final hoje = ref.watch(hojeProvider);
-  final categorias = ref.watch(categoriasProvider).valueOrNull ?? const <Categoria>[];
   return calcularCaminho(DadosDoCaminho(
     hoje: hoje,
     ehEmpresa: ref.watch(espacoAtualProvider)?.ehEmpresa ?? false,
@@ -176,10 +165,7 @@ final caminhoProvider = Provider<List<Degrau>>((ref) {
     metas: ref.watch(metasProvider).valueOrNull ?? const [],
     fechamentos: ref.watch(fechamentosProvider).valueOrNull ?? const [],
     lancamentosDoMes: ref.watch(lancamentosDoMesProvider(hoje.substring(0, 7))).valueOrNull ?? const [],
-    categoriaProLaboreIds: {
-      for (final c in categorias)
-        if (normalizar(c.nome).replaceAll(RegExp(r'[^a-z]'), '').contains('prolabore')) c.id,
-    },
+    categoriaProLaboreIds: ref.watch(proLaboreIdsProvider),
     previstoProximos30Centavos: ref.watch(caixaPrevistoProvider).minimoCentavos,
   ));
 });

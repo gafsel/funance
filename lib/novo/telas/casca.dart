@@ -10,6 +10,7 @@ import 'lancar.dart';
 import 'mais.dart';
 import 'metas.dart';
 import 'comeco.dart';
+import 'empresa.dart';
 import 'pecas.dart';
 
 /// Navegação do app: barra embaixo no celular, trilho ao lado na mesa. O
@@ -24,12 +25,13 @@ class Casca extends ConsumerStatefulWidget {
 class _CascaState extends ConsumerState<Casca> {
   int _aba = 0;
 
-  static const _abas = [
-    (Icons.home_outlined, Icons.home_rounded, 'Início'),
-    (Icons.receipt_long_outlined, Icons.receipt_long_rounded, 'Lançamentos'),
-    (Icons.inbox_outlined, Icons.inbox_rounded, 'Entrada'),
-    (Icons.flag_outlined, Icons.flag_rounded, 'Metas'),
-    (Icons.more_horiz_rounded, Icons.more_horiz_rounded, 'Mais'),
+  static const _abasBase = [
+    (Icons.home_outlined, Icons.home_rounded, 'Início', TelaInicio()),
+    (Icons.receipt_long_outlined, Icons.receipt_long_rounded, 'Lançamentos', TelaLancamentos()),
+    (Icons.inbox_outlined, Icons.inbox_rounded, 'Entrada', TelaEntrada()),
+    (Icons.storefront_outlined, Icons.storefront_rounded, 'Empresa', TelaEmpresa()),
+    (Icons.flag_outlined, Icons.flag_rounded, 'Metas', TelaMetas()),
+    (Icons.more_horiz_rounded, Icons.more_horiz_rounded, 'Mais', TelaMais()),
   ];
 
   @override
@@ -68,10 +70,13 @@ class _CascaState extends ConsumerState<Casca> {
       );
     }
 
-    final corpo = IndexedStack(
-      index: _aba,
-      children: const [TelaInicio(), TelaLancamentos(), TelaEntrada(), TelaMetas(), TelaMais()],
-    );
+    // A aba Empresa só existe em espaço de empresa.
+    final abas = [
+      for (final aba in _abasBase)
+        if (aba.$3 != 'Empresa' || espaco.ehEmpresa) aba,
+    ];
+    final indice = _aba.clamp(0, abas.length - 1);
+    final corpo = IndexedStack(index: indice, children: [for (final aba in abas) aba.$4]);
     final titulo = Row(
       children: [
         const Marca(),
@@ -95,7 +100,7 @@ class _CascaState extends ConsumerState<Casca> {
           children: [
             NavigationRail(
               extended: MediaQuery.sizeOf(context).width >= 1200,
-              selectedIndex: _aba,
+              selectedIndex: indice,
               onDestinationSelected: (i) => setState(() => _aba = i),
               leading: Padding(
                 padding: const EdgeInsets.symmetric(vertical: Espacos.g),
@@ -109,7 +114,7 @@ class _CascaState extends ConsumerState<Casca> {
                 ),
               ),
               destinations: [
-                for (final (icone, ativo, rotulo) in _abas)
+                for (final (icone, ativo, rotulo, _) in abas)
                   NavigationRailDestination(
                     icon: _comContagem(Icon(icone), rotulo == 'Entrada' ? pendentes : 0),
                     selectedIcon: _comContagem(Icon(ativo), rotulo == 'Entrada' ? pendentes : 0),
@@ -147,10 +152,10 @@ class _CascaState extends ConsumerState<Casca> {
         label: const Text('Lançar'),
       ),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _aba,
+        selectedIndex: indice,
         onDestinationSelected: (i) => setState(() => _aba = i),
         destinations: [
-          for (final (icone, ativo, rotulo) in _abas)
+          for (final (icone, ativo, rotulo, _) in abas)
             NavigationDestination(
               icon: _comContagem(Icon(icone), rotulo == 'Entrada' ? pendentes : 0),
               selectedIcon: _comContagem(Icon(ativo), rotulo == 'Entrada' ? pendentes : 0),

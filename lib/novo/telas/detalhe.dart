@@ -94,7 +94,16 @@ Future<void> abrirLancamento(BuildContext context, WidgetRef ref, Lancamento l) 
             contaDestinoId: l.contaDestinoId,
             categoriaId: l.categoriaId,
             efetivado: l.efetivado,
+            contraparteId: l.contraparteId,
           ),
+          contrapartes: (ref.read(espacoAtualProvider)?.ehEmpresa ?? false)
+              ? (ref.read(contrapartesProvider).valueOrNull ?? const <Contraparte>[])
+              : null,
+          aoCriarContraparte: (nome, tipo) async {
+            final id = 'cp-${DateTime.now().microsecondsSinceEpoch}';
+            await repo.gravarContraparte(id, nome: nome, tipo: tipo);
+            return Contraparte(id: id, nome: nome, tipo: tipo);
+          },
         ),
       ));
       if (editada == null) return;
@@ -104,6 +113,7 @@ Future<void> abrirLancamento(BuildContext context, WidgetRef ref, Lancamento l) 
         contaId: editada.contaId,
         contaDestinoId: () => editada.contaDestinoId,
         categoriaId: () => editada.categoriaId,
+        contraparteId: () => editada.contraparteId,
         situacao: editada.efetivado ? 'efetivado' : 'previsto',
         // O planejado só muda se o lançamento continua agendado; pagar com
         // valor diferente não reescreve o que tinha sido previsto.

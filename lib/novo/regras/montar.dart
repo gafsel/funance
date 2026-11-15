@@ -55,6 +55,7 @@ Montagem montar(
         serieId: serieId,
         parcelaNumero: numero,
         parcelaTotal: total,
+        contraparteId: leitura.contraparteId,
         origem: origemDoItem ?? origem,
         autorId: autorId,
       );

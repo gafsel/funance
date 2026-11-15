@@ -67,8 +67,22 @@ class _LancarState extends ConsumerState<Lancar> {
   }
 
   List<(String, Leitura?)> _itens(ContextoDeLeitura ctx) => [
-        for (final (linha, leitura) in lerTexto(_texto.text, ctx)) (linha, _ajustes[linha] ?? leitura),
+        for (final (linha, leitura) in lerTexto(_texto.text, ctx)) (linha, _ajustes[linha] ?? _comContraparte(leitura, linha)),
       ];
+
+  /// Em espaço de empresa, o nome de um cliente ou fornecedor na frase já
+  /// liga o lançamento a ele.
+  Leitura? _comContraparte(Leitura? leitura, String linha) {
+    if (leitura == null || leitura.tipo == 'transferencia' || !(ref.read(espacoAtualProvider)?.ehEmpresa ?? false)) return leitura;
+    final texto = ' ${normalizar(linha)} ';
+    final tipo = leitura.tipo == 'entrada' ? 'cliente' : 'fornecedor';
+    for (final x in ref.read(contrapartesProvider).valueOrNull ?? const <Contraparte>[]) {
+      if (x.tipo == tipo && x.nome.length >= 3 && texto.contains(' ${normalizar(x.nome)} ')) {
+        return leitura.copiar(contraparteId: () => x.id);
+      }
+    }
+    return leitura;
+  }
 
   Future<void> _lerComIa(List<String> linhas, ContextoDeLeitura ctx) async {
     final espaco = ref.read(espacoAtualProvider);
@@ -121,6 +135,14 @@ class _LancarState extends ConsumerState<Lancar> {
         contas: ctx.contas,
         categorias: ctx.categorias,
         hoje: ctx.hoje,
+        contrapartes: (ref.read(espacoAtualProvider)?.ehEmpresa ?? false)
+            ? (ref.read(contrapartesProvider).valueOrNull ?? const <Contraparte>[])
+            : null,
+        aoCriarContraparte: (nome, tipo) async {
+          final id = _uuid.v4();
+          await ref.read(repositorioProvider)?.gravarContraparte(id, nome: nome, tipo: tipo);
+          return Contraparte(id: id, nome: nome, tipo: tipo);
+        },
       ),
     ));
     if (ajustada != null) setState(() => _ajustes[linha] = ajustada);
