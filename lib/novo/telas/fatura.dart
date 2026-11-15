@@ -532,14 +532,23 @@ class _TelaFaturaState extends ConsumerState<TelaFatura> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Lista(filhos: [
-                for (final l in compras.take(_visiveis))
+                for (final (i, l) in compras.take(_visiveis).indexed) ...[
+                  // Um divisor por dia, com o total das compras dele.
+                  if (i == 0 || compras[i - 1].dia != l.dia)
+                    CabecalhoDoDia(
+                      dia: l.dia,
+                      hoje: hoje,
+                      direita: reais(compras.where((x) => x.dia == l.dia).fold<int>(0, (s, x) => s + naFatura(x))),
+                    ),
                   LinhaDeLancamento(
                     lancamento: l,
                     hoje: hoje,
                     conta: cartao,
                     categoria: categorias[l.categoriaId],
+                    semData: true,
                     onTap: () => abrirLancamento(context, ref, l),
                   ),
+                ],
               ]),
               if (compras.length > _visiveis)
                 Padding(

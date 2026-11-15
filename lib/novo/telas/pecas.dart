@@ -305,6 +305,32 @@ String quandoDoLancamento(Lancamento l, String hoje) {
   return l.data.compareTo(hoje) < 0 ? 'Venceu $dia' : 'Vence $dia';
 }
 
+/// Divisor de data numa lista de lançamentos: o dia à esquerda e, se
+/// houver, um número daquele dia à direita (o saldo, o total).
+class CabecalhoDoDia extends StatelessWidget {
+  const CabecalhoDoDia({super.key, required this.dia, required this.hoje, this.direita});
+  final String dia;
+  final String hoje;
+  final String? direita;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = Cores.de(context);
+    final t = Theme.of(context).textTheme;
+    final nome = diaPorExtenso(dia, hoje);
+    return Container(
+      color: c.suave,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      child: Row(children: [
+        Expanded(
+          child: Text('${nome[0].toUpperCase()}${nome.substring(1)}', style: t.labelMedium?.copyWith(color: c.tinta2)),
+        ),
+        if (direita != null) Text(direita!, style: t.labelMedium?.copyWith(color: c.tinta2)),
+      ]),
+    );
+  }
+}
+
 class LinhaDeLancamento extends ConsumerWidget {
   const LinhaDeLancamento({
     super.key,
@@ -315,8 +341,11 @@ class LinhaDeLancamento extends ConsumerWidget {
     this.categoria,
     this.onTap,
     this.acao,
+    this.semData = false,
   });
 
+  /// A lista já está agrupada por dia: a data não precisa repetir na linha.
+  final bool semData;
   final Lancamento lancamento;
   final String hoje;
   final Conta? conta;
@@ -337,7 +366,7 @@ class LinhaDeLancamento extends ConsumerWidget {
     final origem = contas[l.contaId] ?? conta;
     final paraOnde = contas[l.contaDestinoId] ?? destino;
     final detalhes = [
-      quandoDoLancamento(l, hoje),
+      if (!semData) quandoDoLancamento(l, hoje),
       if (categoria != null) categoria!.nome,
       if (l.parcelaNumero != null) '${l.parcelaNumero}/${l.parcelaTotal}',
     ].join(' · ');

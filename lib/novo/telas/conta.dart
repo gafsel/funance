@@ -114,7 +114,11 @@ class _TelaContaState extends ConsumerState<TelaConta> {
                   detalhe: 'Começou o mês com ${reais(saldoAntes)} · ${linhas.length} ${linhas.length == 1 ? 'movimento' : 'movimentos'}',
                   direita: Text(reais(corrido), style: Textos.valor(context)),
                 ),
-                for (final (l, saldo) in recentesPrimeiro.take(_visiveis))
+                for (final (i, (l, saldo)) in recentesPrimeiro.take(_visiveis).indexed) ...[
+                  // Um divisor por dia, com o saldo com que a conta fechou o
+                  // dia: é o saldo depois do último movimento dele.
+                  if (i == 0 || recentesPrimeiro[i - 1].$1.dia != l.dia)
+                    CabecalhoDoDia(dia: l.dia, hoje: hoje, direita: 'Saldo ${reais(saldo)}'),
                   Linha(
                     antes: l.ehTransferencia
                         ? Container(
@@ -135,24 +139,17 @@ class _TelaContaState extends ConsumerState<TelaConta> {
                         : null,
                     detalhe: [
                       if (l.ehTransferencia) (l.contaId == conta.id ? 'foi para' : 'veio de'),
-                      diaPorExtenso(l.dia, hoje),
                       if (categorias[l.categoriaId] != null) categorias[l.categoriaId]!.nome,
                       if (l.parcelaNumero != null) '${l.parcelaNumero}/${l.parcelaTotal}',
                       if (conferido != null && l.dia.compareTo(conferido) <= 0) 'conferido',
                     ].join(' · '),
                     aoTocar: () => abrirLancamento(context, ref, l),
-                    direita: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Builder(builder: (context) {
-                          final m = movimentoNaConta(l, conta.id);
-                          return Text('${m > 0 ? '+' : ''}${reais(m)}', style: Textos.valor(context, cor: m > 0 ? c.positivo : c.tinta));
-                        }),
-                        Text(reais(saldo), style: t.bodySmall),
-                      ],
-                    ),
+                    direita: Builder(builder: (context) {
+                      final m = movimentoNaConta(l, conta.id);
+                      return Text('${m > 0 ? '+' : ''}${reais(m)}', style: Textos.valor(context, cor: m > 0 ? c.positivo : c.tinta));
+                    }),
                   ),
+                ],
               ]),
               if (recentesPrimeiro.length > _visiveis)
                 Padding(
