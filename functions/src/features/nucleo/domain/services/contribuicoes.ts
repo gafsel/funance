@@ -10,8 +10,7 @@
  * diferença entre as novas e as guardadas.
  */
 
-import { dateKeyToStartInstant, toDateKey } from "../../../../core/utils/date_key";
-import { InvoiceService } from "../../../finance/domain/services/invoice.service";
+import { shiftDateKey } from "../../../../core/utils/date_key";
 import {
     COLECOES,
     Conta,
@@ -34,25 +33,51 @@ export interface Celula {
 
 export type ContasPorId = Record<string, Pick<Conta, "tipo" | "diaFechamento" | "diaVencimento"> | undefined>;
 
-const MEIO_DIA_MS = 12 * 60 * 60 * 1000;
+const FECHAMENTO_PADRAO = 5;
+const VENCIMENTO_PADRAO = 10;
 
-const meioDia = (dia: DiaChave): Date => new Date(dateKeyToStartInstant(dia).getTime() + MEIO_DIA_MS);
+const doisDigitos = (n: number): string => String(n).padStart(2, "0");
+const ultimoDiaDoMes = (ano: number, mes: number): number => new Date(Date.UTC(ano, mes, 0)).getUTCDate();
 
-/** Dados fixos da fatura que recebe um movimento feito em `dia` no cartão. */
+/** `dia` do mês `mes` (1 a 12; pode passar de 12 ou ser menor que 1), limitado ao último dia dele. */
+function diaNoMes(ano: number, mes: number, dia: number): DiaChave {
+    const data = new Date(Date.UTC(ano, mes - 1, 1));
+    const a = data.getUTCFullYear();
+    const m = data.getUTCMonth() + 1;
+    return `${a}-${doisDigitos(m)}-${doisDigitos(Math.min(dia, ultimoDiaDoMes(a, m)))}`;
+}
+
+/**
+ * Dados fixos da fatura que recebe um movimento feito em `dia` no cartão.
+ *
+ * Vale a data do calendário: a compra até a véspera do fechamento entra na
+ * fatura que fecha neste mês; do dia do fechamento em diante, na seguinte. A
+ * janela devolvida (`inicio` a `fim`) sempre contém `dia`, e é por ela que o
+ * app lista as compras de uma fatura. Uma versão anterior empurrava a compra
+ * de fim de semana ou feriado para o próximo dia útil antes de decidir a
+ * fatura; quando o fechamento caía nesses dias, a compra da véspera era
+ * somada numa fatura e listada em outra.
+ */
 export function faturaDoDia(contaId: string, conta: Pick<Conta, "diaFechamento" | "diaVencimento">, dia: DiaChave):
     { id: string; base: Omit<Fatura, "totalCentavos" | "pagoCentavos"> } {
-    const dias = { closingDay: conta.diaFechamento ?? undefined, dueDay: conta.diaVencimento ?? undefined };
-    const vencimentoData = InvoiceService.calculateInvoiceDueDate(meioDia(dia), dias);
-    const janela = InvoiceService.calculateInvoiceCycleRange(vencimentoData, dias);
-    const vencimento = toDateKey(vencimentoData);
+    const diaFechamento = conta.diaFechamento || FECHAMENTO_PADRAO;
+    const diaVencimento = conta.diaVencimento || VENCIMENTO_PADRAO;
+    const [ano, mes, d] = dia.split("-").map(Number);
+
+    // Com fechamento 31, fevereiro fecha no dia 28 (ou 29).
+    const fechaNesteMes = d < Math.min(diaFechamento, ultimoDiaDoMes(ano, mes));
+    const mesDoFechamento = fechaNesteMes ? mes : mes + 1;
+    const fechamento = diaNoMes(ano, mesDoFechamento, diaFechamento);
+    // Vencimento menor que o fechamento cai no mês seguinte ao do fechamento.
+    const vencimento = diaNoMes(ano, mesDoFechamento + (diaVencimento < diaFechamento ? 1 : 0), diaVencimento);
     return {
         id: idDaFatura(contaId, vencimento),
         base: {
             contaId,
             vencimento,
-            fechamento: toDateKey(janela.closingDate),
-            inicio: toDateKey(janela.start),
-            fim: toDateKey(janela.end),
+            fechamento,
+            inicio: diaNoMes(ano, mesDoFechamento - 1, diaFechamento),
+            fim: shiftDateKey(fechamento, -1),
         },
     };
 }

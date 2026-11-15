@@ -85,6 +85,33 @@ describe("contribuicoes", () => {
         expect(faturaDoDia("cartao", contas.cartao, "2026-03-03").id).toBe("cartao_2026-03-10");
     });
 
+    it("vale a data do calendário: fim de semana e feriado não empurram a compra de fatura", () => {
+        // 4/out/2026 é domingo: a compra de sábado, dia 3, ainda é da fatura que fecha no dia 4.
+        const quatro = { diaFechamento: 4, diaVencimento: 10 };
+        expect(faturaDoDia("c", quatro, "2026-10-03").base).toEqual({
+            contaId: "c", vencimento: "2026-10-10", fechamento: "2026-10-04", inicio: "2026-09-04", fim: "2026-10-03",
+        });
+        // No próprio dia do fechamento já é a fatura seguinte.
+        expect(faturaDoDia("c", quatro, "2026-10-04").base).toEqual({
+            contaId: "c", vencimento: "2026-11-10", fechamento: "2026-11-04", inicio: "2026-10-04", fim: "2026-11-03",
+        });
+        // Sexta-feira Santa (3/abr/2026) na véspera do fechamento.
+        expect(faturaDoDia("c", { diaFechamento: 5, diaVencimento: 10 }, "2026-04-03").id).toBe("c_2026-04-10");
+    });
+
+    it("a janela da fatura sempre contém o dia da compra", () => {
+        const cartoes = [[2, 12], [4, 10], [10, 17], [13, 20], [28, 5], [31, 7], [1, 8], [30, 30]];
+        for (const [diaFechamento, diaVencimento] of cartoes) {
+            for (let i = 0; i < 800; i++) {
+                const dia = new Date(Date.UTC(2026, 0, 1 + i)).toISOString().slice(0, 10);
+                const { base } = faturaDoDia("c", { diaFechamento, diaVencimento }, dia);
+                expect(`${dia} em ${base.inicio}..${base.fim}`)
+                    .toBe(dia >= base.inicio && dia <= base.fim ? `${dia} em ${base.inicio}..${base.fim}` : "fora da janela");
+                expect(base.vencimento > base.fim).toBe(true);
+            }
+        }
+    });
+
     it("pagar a fatura soma em pago e não abate o total; estorno abate", () => {
         const pagamento = mapa(contribuicoes(lancamento({
             tipo: "transferencia", contaId: "cc", contaDestinoId: "cartao", categoriaId: null,
