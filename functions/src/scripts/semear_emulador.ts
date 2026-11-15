@@ -21,6 +21,7 @@ import { ReconstrucaoService } from "../features/nucleo/domain/services/reconstr
 import { vencimentoNoMes } from "../features/nucleo/domain/services/series";
 
 export const EMAIL_DE_TESTE = "teste@funances.test";
+export const EMAIL_SEM_ESPACO = "nova@funances.test";
 export const SENHA_DE_TESTE = "funances-teste";
 const PROJETO = "demo-funances";
 
@@ -37,6 +38,14 @@ async function main(): Promise<void> {
     }
     catch {
         uid = (await admin.auth().createUser({ email: EMAIL_DE_TESTE, password: SENHA_DE_TESTE, displayName: "Pessoa de Teste" })).uid;
+    }
+
+    // Um segundo usuário, sem espaço nenhum, para testar o começo guiado.
+    try {
+        await admin.auth().getUserByEmail(EMAIL_SEM_ESPACO);
+    }
+    catch {
+        await admin.auth().createUser({ email: EMAIL_SEM_ESPACO, password: SENHA_DE_TESTE, displayName: "Pessoa Nova" });
     }
 
     const hoje = toDateKey(new Date());

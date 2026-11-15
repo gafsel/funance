@@ -339,8 +339,20 @@ class Meta {
 
 /// `resumos/{AAAA-MM}`, calculado pelo servidor.
 class ResumoMes {
-  const ResumoMes({required this.mes, required this.deltaPorConta, required this.categorias});
+  const ResumoMes({
+    required this.mes,
+    required this.deltaPorConta,
+    required this.categorias,
+    this.entradasCentavos = 0,
+    this.saidasCentavos = 0,
+  });
   final String mes;
+
+  /// Total realizado no mês, sem transferências.
+  final int entradasCentavos;
+  final int saidasCentavos;
+
+  int get resultadoCentavos => entradasCentavos - saidasCentavos;
   final Map<String, int> deltaPorConta;
 
   /// Por categoria: (previsto, realizado).
@@ -366,7 +378,18 @@ class ResumoMes {
         }
       });
     }
-    return ResumoMes(mes: mes, deltaPorConta: contas, categorias: categorias);
+    int realizado(String lado) {
+      final v = m[lado];
+      return v is Map ? (_inteiro(v['realizadoCentavos']) ?? 0) : 0;
+    }
+
+    return ResumoMes(
+      mes: mes,
+      deltaPorConta: contas,
+      categorias: categorias,
+      entradasCentavos: realizado('entradas'),
+      saidasCentavos: realizado('saidas'),
+    );
   }
 }
 

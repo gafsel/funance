@@ -3,12 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../dados/provedores.dart';
 import '../modelo/modelos.dart';
+import '../regras/caminho.dart';
 import '../regras/formatos.dart';
 import '../tema/tema_novo.dart';
 import 'detalhe.dart';
 import 'fatura.dart';
 import 'lancar.dart';
 import 'pecas.dart';
+import 'revisao.dart';
 
 class TelaInicio extends ConsumerWidget {
   const TelaInicio({super.key});
@@ -45,7 +47,10 @@ class TelaInicio extends ConsumerWidget {
           onTap: () => abrirLancamento(context, ref, l),
         );
 
-    final livre = const _Livre();
+    final livre = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: const [_Livre(), _Avisos()],
+    );
     final blocoContas = _Contas(contas: contas, saldos: saldos, faturas: faturas, hoje: hoje);
     final blocoProximos = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -232,6 +237,105 @@ class _Contas extends StatelessWidget {
             ]),
           ),
         ],
+      ],
+    );
+  }
+}
+
+/// Avisos do Início: o passo do caminho, mês apertado, limites estourando e
+/// a revisão da semana. Só aparece o que pede atenção agora.
+class _Avisos extends ConsumerWidget {
+  const _Avisos();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final hoje = ref.watch(hojeProvider);
+    final mes = hoje.substring(0, 7);
+    final texto = Theme.of(context).textTheme;
+    final c = Cores.de(context);
+    final livre = ref.watch(livreProvider);
+    final pausadas = ref.watch(metasPausadasProvider);
+    final repo = ref.watch(repositorioProvider);
+    final atual = degrauAtual(ref.watch(caminhoProvider));
+    final revisada = ref.watch(marcasProvider).valueOrNull?.containsKey(marcaDaSemana(hoje)) ?? false;
+    final resumo = (ref.watch(resumosProvider).valueOrNull ?? const <ResumoMes>[]).where((r) => r.mes == mes).firstOrNull;
+    final estourando = [
+      for (final x in ref.watch(categoriasProvider).valueOrNull ?? const <Categoria>[])
+        if (!x.arquivada && (x.limiteMensalCentavos ?? 0) > 0 && (resumo?.categorias[x.id]?.$2 ?? 0) * 10 >= x.limiteMensalCentavos! * 8) x,
+    ];
+
+    Widget aviso({required IconData icone, required String titulo, required String corpo, Color? cor, String? acao, VoidCallback? aoTocar}) =>
+        Padding(
+          padding: const EdgeInsets.only(top: Espacos.p),
+          child: Cartao(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icone, color: cor ?? c.primaria),
+                const SizedBox(width: Espacos.m),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(titulo, style: texto.titleMedium),
+                      Text(corpo, style: texto.bodyMedium),
+                      if (acao != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: Espacos.p),
+                          child: OutlinedButton(onPressed: aoTocar, child: Text(acao)),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (livre.livreCentavos < 0 && livre.rendaCentavos > 0 && livre.metasCentavos > 0)
+          aviso(
+            icone: Icons.thermostat_rounded,
+            cor: c.atencao,
+            titulo: 'Mês apertado',
+            corpo: 'Faltam ${reais(-livre.livreCentavos)} para fechar o mês. Pausar as metas libera ${reais(livre.metasCentavos)}; o prazo delas é que estica, nada se perde.',
+            acao: 'Pausar as metas neste mês',
+            aoTocar: () => repo?.marcar('pausa-$mes', {'em': hoje}),
+          ),
+        if (pausadas)
+          aviso(
+            icone: Icons.pause_circle_outline_rounded,
+            titulo: 'Metas pausadas neste mês',
+            corpo: 'A parcela das metas não está sendo descontada do livre para gastar.',
+            acao: 'Retomar as metas',
+            aoTocar: () => repo?.desmarcar('pausa-$mes'),
+          ),
+        for (final x in estourando)
+          aviso(
+            icone: Icons.speed_rounded,
+            cor: c.atencao,
+            titulo: '${x.nome}: ${reais(resumo?.categorias[x.id]?.$2 ?? 0)} de ${reais(x.limiteMensalCentavos!)}',
+            corpo: (resumo?.categorias[x.id]?.$2 ?? 0) > x.limiteMensalCentavos!
+                ? 'Passou do limite que você definiu para o mês.'
+                : 'Já passou de 80% do limite do mês.',
+          ),
+        if (atual != null)
+          aviso(
+            icone: Icons.flag_outlined,
+            cor: c.calor,
+            titulo: 'Seu passo de agora: ${atual.titulo}',
+            corpo: atual.proximoPasso,
+          ),
+        if (!revisada)
+          aviso(
+            icone: Icons.event_repeat_outlined,
+            titulo: 'Revisão da semana',
+            corpo: 'Cinco minutos para conferir a caixa de entrada, os vencidos e o que sobrou.',
+            acao: 'Fazer a revisão',
+            aoTocar: () => abrirRevisao(context),
+          ),
       ],
     );
   }

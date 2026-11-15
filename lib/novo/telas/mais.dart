@@ -6,7 +6,11 @@ import '../dados/provedores.dart';
 import '../modelo/modelos.dart';
 import '../regras/formatos.dart';
 import '../tema/tema_novo.dart';
+import 'categorias.dart';
+import 'comeco.dart';
 import 'fatura.dart';
+import 'fechamento.dart';
+import 'revisao.dart';
 import 'formulario.dart';
 import 'pecas.dart';
 
@@ -41,6 +45,33 @@ class TelaMais extends ConsumerWidget {
                     trailing: e.id == atual?.id ? const Icon(Icons.check_rounded) : null,
                     onTap: () => lembrarEspaco(ref, e.id),
                   ),
+                ListTile(
+                  leading: const Icon(Icons.add_rounded),
+                  title: const Text('Novo espaço'),
+                  onTap: () => Navigator.of(context)
+                      .push(MaterialPageRoute<void>(builder: (_) => const TelaComeco(podeVoltar: true))),
+                ),
+              ]),
+            ),
+            const TituloDeSecao('Organizar'),
+            Cartao(
+              padding: const EdgeInsets.symmetric(vertical: Espacos.p),
+              child: Column(children: [
+                ListTile(
+                  leading: const Icon(Icons.label_outline_rounded),
+                  title: Text(atual?.ehEmpresa == true ? 'Centros de custo e limites' : 'Categorias e limites'),
+                  onTap: () => abrirCategorias(context),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.fact_check_outlined),
+                  title: const Text('Fechar o mês'),
+                  onTap: () => abrirFechamento(context, ref.read(hojeProvider).substring(0, 7)),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.event_repeat_outlined),
+                  title: const Text('Revisão da semana'),
+                  onTap: () => abrirRevisao(context),
+                ),
               ]),
             ),
             const TituloDeSecao('Contas e cartões'),

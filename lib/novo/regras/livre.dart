@@ -54,6 +54,7 @@ LivreParaGastar calcularLivre({
   required String hoje,
   required Iterable<Lancamento> lancamentos,
   required Iterable<Meta> metas,
+  bool metasPausadas = false,
 }) {
   final mes = hoje.substring(0, 7);
   var renda = 0;
@@ -75,7 +76,11 @@ LivreParaGastar calcularLivre({
     }
   }
 
-  final parcelaDasMetas = metas
+  // Num mês apertado a pessoa pode pausar as metas: a parcela deixa de ser
+  // descontada, e o prazo de cada meta é que absorve.
+  final parcelaDasMetas = metasPausadas
+      ? 0
+      : metas
       .where((m) => m.emAberto)
       .fold<int>(0, (soma, m) => soma + (m.parcelaMensalCentavos ?? 0));
 

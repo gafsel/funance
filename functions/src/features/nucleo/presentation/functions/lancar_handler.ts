@@ -12,6 +12,7 @@ import { BatchOperation, commitInChunks } from "../../../../core/utils/batch.uti
 import { isDateKey, toDateKey } from "../../../../core/utils/date_key";
 import { shiftMonthKey } from "../../../../core/utils/month_key";
 import { COLECOES, RAIZ, Serie } from "../../domain/models/modelo";
+import { criarEspaco as criarEspacoNoBanco, validarPedido } from "../../domain/services/espaco.service";
 import { ContextoDaFrase, FraseService, LIMITE_DE_CARACTERES } from "../../domain/services/frase.service";
 import { proximosDaSerie } from "../../domain/services/series";
 
@@ -66,6 +67,24 @@ export const interpretarFrase = onCall(AI_CALLABLE_OPTIONS_SHORT, async (request
     catch (error) {
         console.error("[interpretarFrase] falha na IA", error instanceof Error ? error.message : error);
         throw new HttpsError("unavailable", "Não consegui ler agora. Tente de novo ou use o modo avançado.");
+    }
+});
+
+/** Cria um espaço novo; quem chama vira dono. */
+export const criarEspaco = onCall(async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "O usuário deve estar autenticado.");
+    let pedido;
+    try {
+        pedido = validarPedido(request.data);
+    }
+    catch (error) {
+        throw new HttpsError("invalid-argument", error instanceof Error ? error.message : "Pedido inválido.");
+    }
+    try {
+        return { espacoId: await criarEspacoNoBanco(admin.firestore(), request.auth.uid, pedido) };
+    }
+    catch (error) {
+        throw new HttpsError("failed-precondition", error instanceof Error ? error.message : "Não foi possível criar o espaço.");
     }
 });
 

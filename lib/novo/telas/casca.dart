@@ -8,6 +8,8 @@ import 'inicio.dart';
 import 'lancamentos.dart';
 import 'lancar.dart';
 import 'mais.dart';
+import 'metas.dart';
+import 'comeco.dart';
 import 'pecas.dart';
 
 /// Navegação do app: barra embaixo no celular, trilho ao lado na mesa. O
@@ -26,6 +28,7 @@ class _CascaState extends ConsumerState<Casca> {
     (Icons.home_outlined, Icons.home_rounded, 'Início'),
     (Icons.receipt_long_outlined, Icons.receipt_long_rounded, 'Lançamentos'),
     (Icons.inbox_outlined, Icons.inbox_rounded, 'Entrada'),
+    (Icons.flag_outlined, Icons.flag_rounded, 'Metas'),
     (Icons.more_horiz_rounded, Icons.more_horiz_rounded, 'Mais'),
   ];
 
@@ -50,16 +53,15 @@ class _CascaState extends ConsumerState<Casca> {
     if (espacos.isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
+    if (espaco == null && !espacos.hasError) return const TelaComeco();
     if (espaco == null) {
       return Scaffold(
         body: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 420),
-            child: Vazio(
-              espacos.hasError
-                  ? 'Não foi possível carregar os seus espaços. Confira a conexão e abra de novo.'
-                  : 'Esta conta ainda não participa de nenhum espaço. A criação de um espaço novo chega em breve.',
-              acao: const _BotaoSair(),
+            child: const Vazio(
+              'Não foi possível carregar os seus espaços. Confira a conexão e abra de novo.',
+              acao: _BotaoSair(),
             ),
           ),
         ),
@@ -68,7 +70,7 @@ class _CascaState extends ConsumerState<Casca> {
 
     final corpo = IndexedStack(
       index: _aba,
-      children: const [TelaInicio(), TelaLancamentos(), TelaEntrada(), TelaMais()],
+      children: const [TelaInicio(), TelaLancamentos(), TelaEntrada(), TelaMetas(), TelaMais()],
     );
     final titulo = Row(
       children: [

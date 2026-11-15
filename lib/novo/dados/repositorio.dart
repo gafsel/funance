@@ -213,4 +213,17 @@ class Repositorio {
         'fechadoPor': fechado ? autorId : null,
         'fechadoEm': fechado ? FieldValue.serverTimestamp() : null,
       });
+
+  // ---- Metas, caminho e categorias ----------------------------------------
+
+  Future<void> gravarMeta(String id, Mapa dados) => _col('metas').doc(id).set(dados, SetOptions(merge: true));
+
+  /// Marcações do caminho: degraus concluídos, metas pausadas no mês,
+  /// semanas revisadas. Cada uma é um documento com id próprio.
+  Stream<Map<String, Mapa>> marcas() =>
+      _col('caminho').snapshots().map((s) => {for (final d in s.docs) d.id: d.data()});
+
+  Future<void> marcar(String id, Mapa dados) => _col('caminho').doc(id).set(dados, SetOptions(merge: true));
+
+  Future<void> desmarcar(String id) => _col('caminho').doc(id).delete();
 }

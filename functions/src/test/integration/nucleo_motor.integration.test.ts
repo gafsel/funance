@@ -4,6 +4,7 @@ import * as os from "os";
 import * as path from "path";
 
 import { COLECOES, RAIZ } from "../../features/nucleo/domain/models/modelo";
+import { CATEGORIAS_PADRAO, criarEspaco, validarPedido } from "../../features/nucleo/domain/services/espaco.service";
 import { MotorService } from "../../features/nucleo/domain/services/motor.service";
 import { ReconstrucaoService } from "../../features/nucleo/domain/services/reconstrucao.service";
 import { migrarWorkspace, parseArgs } from "../../scripts/migrar_funances2";
@@ -156,6 +157,25 @@ describe("motor do Funances 2", () => {
         expect((await motor.processarLancamento(espacoId, "r1")).alteradas).toBe(0);
         await gravar("novo", base);
         expect((await reconstrucao.reconstruir(espacoId, { aplicar: false })).divergencias).toEqual([]);
+    });
+});
+
+describe("criar espaço", () => {
+    it("quem cria vira dono e o espaço nasce com as categorias do tipo", async () => {
+        if (admin.apps.length === 0) admin.initializeApp({ projectId: process.env.GCLOUD_PROJECT });
+        const firestore = admin.firestore();
+        const uid = `u-criar-${Date.now()}`;
+        const id = await criarEspaco(firestore, uid, validarPedido({ nome: "  Minha loja ", tipo: "empresa" }));
+        const espaco = firestore.collection(RAIZ).doc(id);
+
+        expect((await espaco.get()).data()).toMatchObject({ nome: "Minha loja", tipo: "empresa" });
+        expect((await espaco.collection("membros").doc(uid).get()).data()).toMatchObject({ uid, papel: "dono" });
+        expect((await espaco.collection("categorias").doc("pro-labore").get()).data()).toMatchObject({ nome: "Pró-labore", tipo: "saida" });
+        expect((await espaco.collection("categorias").get()).size).toBe(CATEGORIAS_PADRAO.empresa.length);
+
+        expect(() => validarPedido({ nome: "", tipo: "pessoal" })).toThrow("nome");
+        expect(() => validarPedido({ nome: "x", tipo: "outro" })).toThrow("tipo");
+        await firestore.recursiveDelete(espaco);
     });
 });
 
