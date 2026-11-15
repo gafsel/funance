@@ -72,6 +72,20 @@ final categoriasProvider = _colecao<Categoria>((r) => r.categorias());
 final metasProvider = _colecao<Meta>((r) => r.metas());
 final faturasProvider = _colecao<Fatura>((r) => r.faturas());
 final resumosProvider = _colecao<ResumoMes>((r) => r.resumos());
+final entradaProvider = _colecao<ItemEntrada>((r) => r.entradaPendente());
+final regrasProvider = _colecao<Regra>((r) => r.regras());
+final fechamentosProvider = _colecao<Fechamento>((r) => r.fechamentos());
+
+/// Saldo de cada conta no fim de um mês, pelos resumos do servidor.
+final saldosNoFimDoMesProvider = Provider.family<Map<String, int>, String>((ref, mes) {
+  final resumos = ref.watch(resumosProvider).valueOrNull ?? const <ResumoMes>[];
+  final ultimoDia = diaNoMes(mes, 31);
+  return {
+    for (final c in ref.watch(contasProvider).valueOrNull ?? const <Conta>[])
+      c.id: (c.saldoInicialData == null || c.saldoInicialData!.compareTo(ultimoDia) <= 0 ? c.saldoInicialCentavos : 0) +
+          resumos.where((r) => r.mes.compareTo(mes) <= 0).fold<int>(0, (s, r) => s + (r.deltaPorConta[c.id] ?? 0)),
+  };
+});
 
 final lancamentosDoMesProvider = StreamProvider.family<List<Lancamento>, String>((ref, mes) {
   final repo = ref.watch(repositorioProvider);

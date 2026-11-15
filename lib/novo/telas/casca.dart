@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../dados/provedores.dart';
 import '../tema/tema_novo.dart';
+import 'entrada.dart';
 import 'inicio.dart';
 import 'lancamentos.dart';
 import 'lancar.dart';
@@ -24,6 +25,7 @@ class _CascaState extends ConsumerState<Casca> {
   static const _abas = [
     (Icons.home_outlined, Icons.home_rounded, 'Início'),
     (Icons.receipt_long_outlined, Icons.receipt_long_rounded, 'Lançamentos'),
+    (Icons.inbox_outlined, Icons.inbox_rounded, 'Entrada'),
     (Icons.more_horiz_rounded, Icons.more_horiz_rounded, 'Mais'),
   ];
 
@@ -43,6 +45,7 @@ class _CascaState extends ConsumerState<Casca> {
     final espaco = ref.watch(espacoAtualProvider);
     final texto = Theme.of(context).textTheme;
     final c = Cores.de(context);
+    final pendentes = ref.watch(entradaProvider).valueOrNull?.length ?? 0;
 
     if (espacos.isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -65,7 +68,7 @@ class _CascaState extends ConsumerState<Casca> {
 
     final corpo = IndexedStack(
       index: _aba,
-      children: const [TelaInicio(), TelaLancamentos(), TelaMais()],
+      children: const [TelaInicio(), TelaLancamentos(), TelaEntrada(), TelaMais()],
     );
     final titulo = Row(
       children: [
@@ -105,7 +108,11 @@ class _CascaState extends ConsumerState<Casca> {
               ),
               destinations: [
                 for (final (icone, ativo, rotulo) in _abas)
-                  NavigationRailDestination(icon: Icon(icone), selectedIcon: Icon(ativo), label: Text(rotulo)),
+                  NavigationRailDestination(
+                    icon: _comContagem(Icon(icone), rotulo == 'Entrada' ? pendentes : 0),
+                    selectedIcon: _comContagem(Icon(ativo), rotulo == 'Entrada' ? pendentes : 0),
+                    label: Text(rotulo),
+                  ),
               ],
             ),
             const VerticalDivider(width: 1),
@@ -142,12 +149,19 @@ class _CascaState extends ConsumerState<Casca> {
         onDestinationSelected: (i) => setState(() => _aba = i),
         destinations: [
           for (final (icone, ativo, rotulo) in _abas)
-            NavigationDestination(icon: Icon(icone), selectedIcon: Icon(ativo), label: rotulo),
+            NavigationDestination(
+              icon: _comContagem(Icon(icone), rotulo == 'Entrada' ? pendentes : 0),
+              selectedIcon: _comContagem(Icon(ativo), rotulo == 'Entrada' ? pendentes : 0),
+              label: rotulo,
+            ),
         ],
       ),
     );
   }
 }
+
+Widget _comContagem(Widget icone, int n) =>
+    n == 0 ? icone : Badge(label: Text(n > 99 ? '99+' : '$n'), child: icone);
 
 class _BotaoSair extends ConsumerWidget {
   const _BotaoSair();

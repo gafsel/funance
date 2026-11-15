@@ -45,6 +45,7 @@ class _TelaEntrarState extends State<TelaEntrar> {
         'invalid-credential' || 'wrong-password' || 'user-not-found' => 'E-mail ou senha não conferem.',
         'invalid-email' => 'Esse e-mail não parece válido.',
         'too-many-requests' => 'Muitas tentativas. Espere um pouco e tente de novo.',
+        'network-request-failed' => 'Sem conexão com o servidor. Confira a internet e tente de novo.',
         'operation-not-allowed' => 'Essa forma de entrar ainda não está ligada neste ambiente.',
         'popup-closed-by-user' || 'cancelled-popup-request' => 'A janela do Google foi fechada antes de terminar.',
         _ => 'Não foi possível entrar agora. Tente de novo.',

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 import 'firebase_options.dart';
 import 'firebase_options_testes.dart';
@@ -59,6 +60,11 @@ const FirebaseOptions opcoesDosEmuladores = FirebaseOptions(
 
 Future<void> conectarEmuladores() async {
   await FirebaseAuth.instance.useAuthEmulator('127.0.0.1', 9099);
+  // Na web, uma sessão guardada faz o SDK falar com o servidor de verdade
+  // antes de o emulador ser ligado, e aí o emulador é ignorado pelo resto da
+  // sessão. Sem sessão guardada isso não acontece; o preço é entrar de novo
+  // a cada recarga, só neste modo.
+  if (kIsWeb) await FirebaseAuth.instance.setPersistence(Persistence.NONE);
   FirebaseFirestore.instance.useFirestoreEmulator('127.0.0.1', 8080);
   funcoesDoAmbiente.useFunctionsEmulator('127.0.0.1', 5001);
 }

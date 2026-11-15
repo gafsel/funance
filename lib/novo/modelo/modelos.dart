@@ -369,3 +369,111 @@ class ResumoMes {
     return ResumoMes(mes: mes, deltaPorConta: contas, categorias: categorias);
   }
 }
+
+/// Item da caixa de entrada: veio de fora (extrato, planilha, notificação)
+/// e espera a confirmação da pessoa. Nada daqui entra no saldo sozinho.
+class ItemEntrada {
+  const ItemEntrada({
+    required this.id,
+    required this.descricao,
+    required this.valorCentavos,
+    required this.data,
+    required this.tipo,
+    this.contaId,
+    this.categoriaId,
+    this.origem = 'extrato',
+    this.situacao = 'pendente',
+    this.loteId,
+    this.lancamentoId,
+  });
+
+  final String id;
+  final String descricao;
+  final int valorCentavos;
+  final String data;
+
+  /// `entrada`, `saida` ou `transferencia`.
+  final String tipo;
+  final String? contaId;
+  final String? categoriaId;
+  final String origem;
+
+  /// `pendente`, `confirmado` ou `ignorado`.
+  final String situacao;
+  final String? loteId;
+
+  /// Lançamento que este item virou, ou ao qual foi ligado.
+  final String? lancamentoId;
+
+  factory ItemEntrada.deMapa(String id, Mapa m) {
+    final sugestao = m['sugestao'];
+    return ItemEntrada(
+      id: id,
+      descricao: m['descricao'] is String ? m['descricao'] as String : '',
+      valorCentavos: _inteiro(m['valorCentavos']) ?? 0,
+      data: _texto(m['data']) ?? '0000-00-00',
+      tipo: _texto(m['tipo']) ?? 'saida',
+      contaId: sugestao is Map ? _texto(sugestao['contaId']) : null,
+      categoriaId: sugestao is Map ? _texto(sugestao['categoriaId']) : null,
+      origem: _texto(m['origem']) ?? 'extrato',
+      situacao: _texto(m['situacao']) ?? 'pendente',
+      loteId: _texto(m['loteId']),
+      lancamentoId: _texto(m['lancamentoId']),
+    );
+  }
+
+  Mapa paraMapa() => {
+        'descricao': descricao,
+        'valorCentavos': valorCentavos,
+        'data': data,
+        'tipo': tipo,
+        'origem': origem,
+        'situacao': situacao,
+        'sugestao': {'contaId': contaId, 'categoriaId': categoriaId},
+        'loteId': loteId,
+        'lancamentoId': lancamentoId,
+        'bruto': null,
+      };
+}
+
+/// Regra de classificação: texto reconhecido → categoria.
+class Regra {
+  const Regra({required this.id, required this.texto, required this.categoriaId, this.contaId});
+  final String id;
+  final String texto;
+  final String categoriaId;
+  final String? contaId;
+
+  factory Regra.deMapa(String id, Mapa m) => Regra(
+        id: id,
+        texto: _texto(m['texto']) ?? '',
+        categoriaId: _texto(m['categoriaId']) ?? '',
+        contaId: _texto(m['contaId']),
+      );
+}
+
+/// `fechamentos/{AAAA-MM}`.
+class Fechamento {
+  const Fechamento({required this.mes, required this.situacao, this.extratoCentavos = const {}});
+  final String mes;
+
+  /// `aberto`, `fechado` ou `historico`.
+  final String situacao;
+
+  /// Saldo de extrato informado, por conta.
+  final Map<String, int> extratoCentavos;
+
+  bool get fechado => situacao == 'fechado';
+
+  factory Fechamento.deMapa(String id, Mapa m) {
+    final extrato = <String, int>{};
+    final bruto = m['extratoCentavos'];
+    if (bruto is Map) {
+      bruto.forEach((conta, valor) {
+        final v = _inteiro(valor);
+        if (v != null) extrato['$conta'] = v;
+      });
+    }
+    return Fechamento(mes: _texto(m['mes']) ?? id, situacao: _texto(m['situacao']) ?? 'aberto', extratoCentavos: extrato);
+  }
+}

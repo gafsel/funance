@@ -125,4 +125,92 @@ class Repositorio {
 
   Future<void> gravarCategoria(String id, Mapa dados) =>
       _col('categorias').doc(id).set(dados, SetOptions(merge: true));
+
+  // ---- Caixa de entrada, regras e fechamento ------------------------------
+
+  Stream<List<ItemEntrada>> entradaPendente() =>
+      _lista(_col('entrada').where('situacao', isEqualTo: 'pendente'), ItemEntrada.deMapa);
+
+  Stream<List<Regra>> regras() => _lista(_col('regras'), Regra.deMapa);
+  Stream<List<Fechamento>> fechamentos() => _lista(_col('fechamentos'), Fechamento.deMapa);
+
+  /// Põe os itens na caixa de entrada. Quem já está lá (pendente, confirmado
+  /// ou ignorado) não é tocado: reimportar o mesmo extrato não duplica nem
+  /// ressuscita nada. Devolve quantos entraram de fato.
+  Future<({int novos, String loteId})> importar(List<ItemEntrada> itens, {required String loteId, String? autorId}) async {
+    final existentes = <String>{};
+    for (var i = 0; i < itens.length; i += 30) {
+      final ids = [for (final item in itens.skip(i).take(30)) item.id];
+      final achados = await _col('entrada').where(FieldPath.documentId, whereIn: ids).get();
+      existentes.addAll(achados.docs.map((d) => d.id));
+    }
+    final novos = itens.where((i) => !existentes.contains(i.id)).toList();
+    for (var i = 0; i < novos.length; i += 400) {
+      final batch = _db.batch();
+      for (final item in novos.skip(i).take(400)) {
+        batch.set(_col('entrada').doc(item.id), {...item.paraMapa(), 'loteId': loteId});
+      }
+      await batch.commit();
+    }
+    if (novos.isNotEmpty) {
+      await _col('lotes').doc(loteId).set({
+        'origem': 'importacao',
+        'lancamentos': <String>[],
+        'series': <String>[],
+        'entrada': [for (final i in novos) i.id],
+        'criadoEm': FieldValue.serverTimestamp(),
+        'autorId': autorId,
+        'desfeito': false,
+      });
+    }
+    return (novos: novos.length, loteId: loteId);
+  }
+
+  /// Desfaz uma importação: tira da caixa o que ainda está pendente.
+  Future<void> desfazerImportacao(String loteId) async {
+    final pendentes = await _col('entrada').where('loteId', isEqualTo: loteId).get();
+    final batch = _db.batch();
+    for (final d in pendentes.docs) {
+      if (d.data()['situacao'] == 'pendente') batch.delete(d.reference);
+    }
+    batch.update(_col('lotes').doc(loteId), {'desfeito': true});
+    await batch.commit();
+  }
+
+  /// Confirma um item criando o lançamento `novo`, ou ligando-o a um
+  /// lançamento que já existia (`existente`, já com os campos atualizados).
+  Future<void> confirmarItem(ItemEntrada item, {Lancamento? novo, Lancamento? existente}) {
+    final batch = _db.batch();
+    final lancamento = novo ?? existente!;
+    batch.set(_col('lancamentos').doc(lancamento.id), lancamento.paraMapa());
+    batch.update(_col('entrada').doc(item.id), {'situacao': 'confirmado', 'lancamentoId': lancamento.id});
+    return batch.commit();
+  }
+
+  /// Desfaz `confirmarItem`: o item volta a pendente; o lançamento criado é
+  /// apagado, ou o que já existia volta a ser como era (`anterior`).
+  Future<void> desconfirmarItem(ItemEntrada item, {String? criadoId, Lancamento? anterior}) {
+    final batch = _db.batch();
+    if (criadoId != null) batch.delete(_col('lancamentos').doc(criadoId));
+    if (anterior != null) batch.set(_col('lancamentos').doc(anterior.id), anterior.paraMapa());
+    batch.update(_col('entrada').doc(item.id), {'situacao': 'pendente', 'lancamentoId': null});
+    return batch.commit();
+  }
+
+  Future<void> marcarItem(String itemId, String situacao) =>
+      _col('entrada').doc(itemId).update({'situacao': situacao});
+
+  Future<void> salvarRegra(String id, {required String texto, required String categoriaId}) =>
+      _col('regras').doc(id).set({'texto': texto, 'categoriaId': categoriaId, 'contaId': null});
+
+  Future<void> apagarRegra(String id) => _col('regras').doc(id).delete();
+
+  Future<void> salvarFechamento(String mes, {required Map<String, int> extratoCentavos, required bool fechado, String? autorId}) =>
+      _col('fechamentos').doc(mes).set({
+        'mes': mes,
+        'situacao': fechado ? 'fechado' : 'aberto',
+        'extratoCentavos': extratoCentavos,
+        'fechadoPor': fechado ? autorId : null,
+        'fechadoEm': fechado ? FieldValue.serverTimestamp() : null,
+      });
 }

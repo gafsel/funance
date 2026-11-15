@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../dados/provedores.dart';
@@ -7,6 +8,8 @@ import '../regras/formatos.dart';
 import '../regras/leitura_frase.dart';
 import '../tema/tema_novo.dart';
 import 'detalhe.dart';
+import 'fechamento.dart';
+import 'formulario.dart';
 import 'pecas.dart';
 
 /// Mês em exibição na tela de lançamentos; `null` = mês de hoje.
@@ -85,6 +88,11 @@ class _TelaLancamentosState extends ConsumerState<TelaLancamentos> {
           selected: {_filtro},
           onSelectionChanged: (s) => setState(() => _filtro = s.first),
         ),
+        OutlinedButton.icon(
+          onPressed: () => abrirFechamento(context, mes),
+          icon: const Icon(Icons.fact_check_outlined),
+          label: const Text('Fechar o mês'),
+        ),
         SizedBox(
           width: mesa ? 260 : double.infinity,
           child: TextField(
@@ -127,6 +135,18 @@ class _TelaLancamentosState extends ConsumerState<TelaLancamentos> {
           categorias: categorias,
           hoje: hoje,
           aoTocar: (l) => abrirLancamento(context, ref, l),
+          aoEditar: (antes, depois) async {
+            final repo = ref.read(repositorioProvider);
+            if (repo == null) return;
+            final mensageiro = ScaffoldMessenger.of(context);
+            await repo.gravar(depois);
+            mensageiro
+              ..clearSnackBars()
+              ..showSnackBar(SnackBar(
+                content: const Text('Alteração salva.'),
+                action: SnackBarAction(label: 'Desfazer', onPressed: () => repo.gravar(antes)),
+              ));
+          },
         ),
       );
     } else {
@@ -181,8 +201,11 @@ class _Grade extends StatelessWidget {
     required this.categorias,
     required this.hoje,
     required this.aoTocar,
+    required this.aoEditar,
   });
 
+  /// Edição feita direto numa célula: (como era, como ficou).
+  final void Function(Lancamento, Lancamento) aoEditar;
   final List<Lancamento> lancamentos;
   final Map<String, Conta> contas;
   final Map<String, Categoria> categorias;
@@ -221,11 +244,33 @@ class _Grade extends StatelessWidget {
         for (final l in lancamentos)
           linha(onTap: () => aoTocar(l), [
             celula(diaPorExtenso(l.dia, hoje)),
-            celula(
-              '${l.descricao.isEmpty ? 'Sem descrição' : l.descricao}${l.parcelaNumero != null ? '  ${l.parcelaNumero}/${l.parcelaTotal}' : ''}',
+            Expanded(
               flex: 5,
+              child: _CelulaDeTexto(
+                valor: l.descricao,
+                sufixo: l.parcelaNumero != null ? '  ${l.parcelaNumero}/${l.parcelaTotal}' : '',
+                aoMudar: (novo) => aoEditar(l, l.copiar(descricao: novo)),
+              ),
             ),
-            celula(l.ehTransferencia ? 'Transferência' : (categorias[l.categoriaId]?.nome ?? '—'), flex: 3),
+            Expanded(
+              flex: 3,
+              child: l.ehTransferencia
+                  ? Text('Transferência', style: texto.bodyMedium)
+                  : _CelulaDeEscolha(
+                      rotulo: categorias[l.categoriaId]?.nome ?? '—',
+                      aoTocar: () async {
+                        final opcoes = categorias.values
+                            .where((x) => !x.arquivada && x.tipo == (l.ehEntrada ? 'entrada' : 'saida'))
+                            .toList()
+                          ..sort((a, b) => a.nome.compareTo(b.nome));
+                        final escolhida = await escolher<Categoria>(context,
+                            titulo: 'Categoria', itens: opcoes, rotulo: (x) => x.nome, atual: categorias[l.categoriaId]);
+                        if (escolhida != null && escolhida.id != l.categoriaId) {
+                          aoEditar(l, l.copiar(categoriaId: () => escolhida.id));
+                        }
+                      },
+                    ),
+            ),
             celula(
               l.ehTransferencia
                   ? '${contas[l.contaId]?.nome ?? '?'} → ${contas[l.contaDestinoId]?.nome ?? '?'}'
@@ -244,4 +289,86 @@ class _Grade extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Célula que vira campo de texto ao ser tocada; Enter salva, Esc desiste.
+class _CelulaDeTexto extends StatefulWidget {
+  const _CelulaDeTexto({required this.valor, required this.aoMudar, this.sufixo = ''});
+  final String valor;
+  final String sufixo;
+  final void Function(String) aoMudar;
+
+  @override
+  State<_CelulaDeTexto> createState() => _CelulaDeTextoState();
+}
+
+class _CelulaDeTextoState extends State<_CelulaDeTexto> {
+  TextEditingController? _controle;
+  final _foco = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _foco.addListener(() {
+      if (!_foco.hasFocus) _terminar(salvar: true);
+    });
+  }
+
+  @override
+  void dispose() {
+    _controle?.dispose();
+    _foco.dispose();
+    super.dispose();
+  }
+
+  void _terminar({required bool salvar}) {
+    final controle = _controle;
+    if (controle == null) return;
+    final novo = controle.text.trim();
+    setState(() => _controle = null);
+    controle.dispose();
+    if (salvar && novo.isNotEmpty && novo != widget.valor) widget.aoMudar(novo);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final texto = Theme.of(context).textTheme;
+    final controle = _controle;
+    if (controle == null) {
+      return InkWell(
+        onTap: () {
+          setState(() => _controle = TextEditingController(text: widget.valor));
+          WidgetsBinding.instance.addPostFrameCallback((_) => _foco.requestFocus());
+        },
+        child: Text(
+          '${widget.valor.isEmpty ? 'Sem descrição' : widget.valor}${widget.sufixo}',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: texto.bodyMedium,
+        ),
+      );
+    }
+    return CallbackShortcuts(
+      bindings: {const SingleActivator(LogicalKeyboardKey.escape): () => _terminar(salvar: false)},
+      child: TextField(
+        controller: controle,
+        focusNode: _foco,
+        style: texto.bodyMedium,
+        decoration: const InputDecoration(isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: Espacos.p, vertical: Espacos.p)),
+        onSubmitted: (_) => _terminar(salvar: true),
+      ),
+    );
+  }
+}
+
+class _CelulaDeEscolha extends StatelessWidget {
+  const _CelulaDeEscolha({required this.rotulo, required this.aoTocar});
+  final String rotulo;
+  final VoidCallback aoTocar;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+        onTap: aoTocar,
+        child: Text(rotulo, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodyMedium),
+      );
 }
