@@ -66,86 +66,77 @@ class TelaRevisao extends ConsumerWidget {
     final pendentes = ref.watch(entradaProvider).valueOrNull?.length ?? 0;
     final feita = ref.watch(marcasProvider).valueOrNull?.containsKey(marcaDaSemana(hoje)) ?? false;
 
-    Widget item(IconData icone, String titulo, String detalhe, {bool atencao = false}) => ListTile(
-          leading: Icon(icone, color: atencao ? c.atencao : c.tintaSuave),
-          title: Text(titulo),
-          subtitle: Text(detalhe),
+    Widget item(String titulo, String detalhe, {bool atencao = false}) => Linha(
+          antes: Icon(
+            atencao ? Icons.error_outline_rounded : Icons.check_circle_rounded,
+            size: 20,
+            color: atencao ? c.atencao : c.positivo,
+          ),
+          titulo: titulo,
+          detalhe: detalhe,
         );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Revisão da semana'), backgroundColor: c.fundo, surfaceTintColor: c.fundo),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 640),
-          child: ListView(
-            padding: const EdgeInsets.all(Espacos.g),
-            children: [
-              Text('Cinco minutos, uma vez por semana, para nada se acumular.', style: texto.bodyMedium),
-              const SizedBox(height: Espacos.m),
-              Cartao(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Gasto nos últimos 7 dias', style: texto.bodyMedium?.copyWith(color: c.tintaSuave)),
-                    Text(reais(resumo.gastoCentavos), style: texto.displaySmall),
-                    if (resumo.maiores.isNotEmpty) ...[
-                      const SizedBox(height: Espacos.p),
-                      for (final (id, total) in resumo.maiores)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 2),
-                          child: Row(children: [
-                            Expanded(child: Text(categorias[id]?.nome ?? 'Sem categoria', style: texto.bodyMedium)),
-                            Text(reais(total), style: texto.bodyMedium),
-                          ]),
-                        ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(height: Espacos.m),
-              Cartao(
-                padding: const EdgeInsets.symmetric(vertical: Espacos.p),
-                child: Column(children: [
-                  item(
-                    Icons.inbox_outlined,
-                    pendentes == 0 ? 'Caixa de entrada vazia' : '$pendentes ${pendentes == 1 ? 'item' : 'itens'} na caixa de entrada',
-                    pendentes == 0 ? 'Nada esperando confirmação.' : 'Confirme ou ignore na aba Entrada.',
-                    atencao: pendentes > 0,
-                  ),
-                  item(
-                    Icons.event_busy_outlined,
-                    resumo.vencidos == 0 ? 'Nenhum agendado vencido' : '${resumo.vencidos} ${resumo.vencidos == 1 ? 'agendado venceu' : 'agendados venceram'}',
-                    resumo.vencidos == 0 ? 'Tudo o que tinha data foi resolvido.' : 'Marque como pago, mude a data ou apague.',
-                    atencao: resumo.vencidos > 0,
-                  ),
-                  item(
-                    Icons.label_off_outlined,
-                    resumo.semCategoria == 0 ? 'Tudo classificado' : '${resumo.semCategoria} ${resumo.semCategoria == 1 ? 'gasto sem categoria' : 'gastos sem categoria'}',
-                    resumo.semCategoria == 0 ? 'Os gastos da semana têm categoria.' : 'Classifique na lista de lançamentos.',
-                    atencao: resumo.semCategoria > 0,
-                  ),
-                  item(
-                    Icons.savings_outlined,
-                    '${reais(livre.livreCentavos)} livres até o fim do mês',
-                    livre.livreCentavos < 0 ? 'O mês está apertado. Veja as opções no Início.' : 'Cerca de ${reais(livre.porDiaCentavos)} por dia.',
-                    atencao: livre.livreCentavos < 0,
-                  ),
-                ]),
-              ),
-              const SizedBox(height: Espacos.g),
-              FilledButton(
-                onPressed: feita
-                    ? null
-                    : () async {
-                        final navegador = Navigator.of(context);
-                        await ref.read(repositorioProvider)?.marcar(marcaDaSemana(hoje), {'em': hoje});
-                        navegador.pop();
-                      },
-                child: Text(feita ? 'Revisão desta semana já feita' : 'Revisão feita'),
-              ),
-            ],
+      appBar: AppBar(title: const Text('Revisão da semana')),
+      body: Pagina(
+        larguraMaxima: 560,
+        centralizada: true,
+        filhos: [
+          Text('Cinco minutos, uma vez por semana, para nada se acumular.', style: texto.bodyMedium?.copyWith(color: c.tinta2)),
+          const SizedBox(height: Espacos.g),
+          Text('Gasto nos últimos 7 dias', style: texto.bodyMedium?.copyWith(fontSize: 13, color: c.tinta2)),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(reais(resumo.gastoCentavos), style: Textos.numerao(context, tamanho: 36)),
           ),
-        ),
+          if (resumo.maiores.isNotEmpty) ...[
+            const TituloDeSecao('Para onde foi'),
+            Lista(filhos: [
+              for (final (id, total) in resumo.maiores)
+                Linha(
+                  titulo: categorias[id]?.nome ?? 'Sem categoria',
+                  direita: Text(reais(total), style: Textos.valor(context)),
+                ),
+            ]),
+          ],
+          const TituloDeSecao('O que conferir'),
+          Lista(filhos: [
+            item(
+              pendentes == 0 ? 'Caixa de entrada vazia' : '$pendentes ${pendentes == 1 ? 'item' : 'itens'} na caixa de entrada',
+              pendentes == 0 ? 'Nada esperando confirmação.' : 'Confirme ou ignore em Lançamentos.',
+              atencao: pendentes > 0,
+            ),
+            item(
+              resumo.vencidos == 0 ? 'Nenhum agendado vencido' : '${resumo.vencidos} ${resumo.vencidos == 1 ? 'agendado venceu' : 'agendados venceram'}',
+              resumo.vencidos == 0 ? 'Tudo o que tinha data foi resolvido.' : 'Marque como pago, mude a data ou apague.',
+              atencao: resumo.vencidos > 0,
+            ),
+            item(
+              resumo.semCategoria == 0 ? 'Tudo classificado' : '${resumo.semCategoria} ${resumo.semCategoria == 1 ? 'gasto sem categoria' : 'gastos sem categoria'}',
+              resumo.semCategoria == 0 ? 'Os gastos da semana têm categoria.' : 'Classifique na lista de lançamentos.',
+              atencao: resumo.semCategoria > 0,
+            ),
+            item(
+              '${reais(livre.livreCentavos)} livres até o fim do mês',
+              livre.livreCentavos < 0 ? 'O mês está apertado. Veja as opções no Início.' : 'Cerca de ${reais(livre.porDiaCentavos)} por dia.',
+              atencao: livre.livreCentavos < 0,
+            ),
+          ]),
+          const SizedBox(height: Espacos.g),
+          Acoes(filhos: [
+            FilledButton(
+              onPressed: feita
+                  ? null
+                  : () async {
+                      final navegador = Navigator.of(context);
+                      await ref.read(repositorioProvider)?.marcar(marcaDaSemana(hoje), {'em': hoje});
+                      navegador.pop();
+                    },
+              child: Text(feita ? 'Revisão desta semana já feita' : 'Revisão feita'),
+            ),
+          ]),
+        ],
       ),
     );
   }

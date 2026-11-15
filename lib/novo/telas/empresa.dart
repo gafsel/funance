@@ -34,54 +34,64 @@ class TelaEmpresa extends ConsumerWidget {
     final aReceber = porPrazo(previstos, hoje, aReceber: true);
     final aPagar = porPrazo(previstos, hoje, aReceber: false);
 
-    Widget numero(String rotulo, int centavos, {Color? cor, String? detalhe}) => SizedBox(
-          width: 190,
+    final mesa = ehMesa(context);
+
+    Widget numero(String rotulo, int centavos, {Color? cor, String? detalhe}) => Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(rotulo, style: texto.bodySmall),
-              Text(reais(centavos), style: texto.titleLarge?.copyWith(color: cor)),
-              if (detalhe != null) Text(detalhe, style: texto.bodySmall),
+              Text(rotulo, maxLines: 1, overflow: TextOverflow.ellipsis, style: texto.bodySmall),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(reais(centavos), style: Textos.numerao(context, tamanho: mesa ? 24 : 19).copyWith(color: cor)),
+              ),
+              if (detalhe != null) Text(detalhe, maxLines: 1, overflow: TextOverflow.ellipsis, style: texto.bodySmall),
             ],
           ),
         );
 
-    Widget prazos(String titulo, Map<Prazo, int> totais, {required bool receber}) => Expanded(
-          child: Cartao(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(titulo, style: texto.titleMedium),
-                const SizedBox(height: Espacos.p),
-                for (final p in Prazo.values)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 3),
-                    child: Row(children: [
-                      Expanded(child: Text(rotulosDePrazo[p]!, style: texto.bodyMedium)),
-                      Text(
-                        reais(totais[p]!),
-                        style: texto.bodyMedium?.copyWith(color: p == Prazo.vencido && totais[p]! > 0 ? c.atencao : null),
-                      ),
-                    ]),
-                  ),
-                const Divider(height: Espacos.g),
-                Row(children: [
-                  Expanded(child: Text('Total', style: texto.labelLarge)),
-                  Text(reais(totais.values.fold(0, (s, v) => s + v)), style: texto.labelLarge),
-                ]),
-              ],
-            ),
+    Widget prazos(String titulo, Map<Prazo, int> totais) => Cartao(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(titulo, style: texto.titleMedium),
+              const SizedBox(height: 6),
+              for (final p in Prazo.values)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 3),
+                  child: Row(children: [
+                    Expanded(child: Text(rotulosDePrazo[p]!, style: texto.bodyMedium?.copyWith(fontSize: 13, color: c.tinta2))),
+                    Text(
+                      reais(totais[p]!),
+                      style: Textos.valor(context, tamanho: 13, cor: p == Prazo.vencido && totais[p]! > 0 ? c.atencao : c.tinta2),
+                    ),
+                  ]),
+                ),
+              const Divider(height: 14),
+              Row(children: [
+                Expanded(child: Text('Total', style: texto.titleSmall)),
+                Text(reais(totais.values.fold(0, (s, v) => s + v)), style: Textos.valor(context)),
+              ]),
+            ],
           ),
         );
 
     Widget linhaDoResultado(String rotulo, int previsto, int realizado, {bool forte = false, Color? cor}) => Padding(
-          padding: const EdgeInsets.symmetric(horizontal: Espacos.g, vertical: Espacos.p),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Row(children: [
-            Expanded(flex: 4, child: Text(rotulo, style: forte ? texto.titleMedium : texto.bodyMedium)),
-            Expanded(flex: 2, child: Text(previsto == 0 ? '—' : reais(previsto), textAlign: TextAlign.end, style: texto.bodySmall)),
             Expanded(
-              flex: 2,
-              child: Text(reais(realizado), textAlign: TextAlign.end, style: (forte ? texto.titleMedium : texto.bodyMedium)?.copyWith(color: cor)),
+              flex: 5,
+              child: Text(rotulo, maxLines: 1, overflow: TextOverflow.ellipsis, style: forte ? texto.titleSmall : texto.bodyMedium?.copyWith(fontSize: 13.5)),
+            ),
+            Expanded(
+              flex: 3,
+              child: Text(previsto == 0 ? '—' : reais(previsto), maxLines: 1, textAlign: TextAlign.end, style: Textos.valor(context, tamanho: 12.5, cor: c.tinta3)),
+            ),
+            Expanded(
+              flex: 3,
+              child: Text(reais(realizado), maxLines: 1, textAlign: TextAlign.end, style: Textos.valor(context, tamanho: forte ? 14 : 13.5, cor: cor)),
             ),
           ]),
         );
@@ -91,127 +101,140 @@ class TelaEmpresa extends ConsumerWidget {
     for (final l in previstos) {
       if (l.contraparteId != null && !l.ehTransferencia) emAberto.putIfAbsent(l.contraparteId!, () => []).add(l);
     }
+    final ordenadas = [...contrapartes]..sort((a, b) => a.nome.compareTo(b.nome));
 
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 980),
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(Espacos.g, Espacos.g, Espacos.g, 96),
-          children: [
-            Text('Caixa previsto', style: texto.titleLarge),
-            Text('Próximos 30 dias, nas contas da empresa.', style: texto.bodySmall),
-            const SizedBox(height: Espacos.m),
-            Cartao(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Wrap(spacing: Espacos.xg, runSpacing: Espacos.m, children: [
-                    numero('Em caixa hoje', caixa.hojeCentavos),
-                    numero(
-                      'Ponto mais baixo',
-                      caixa.minimoCentavos,
-                      cor: caixa.minimoCentavos < 0 ? c.problema : null,
-                      detalhe: caixa.diaDoMinimo == null ? 'hoje' : diaPorExtenso(caixa.diaDoMinimo!, hoje),
-                    ),
-                    numero('Daqui a 30 dias', caixa.finalCentavos),
-                  ]),
-                  const SizedBox(height: Espacos.m),
-                  Text(
-                    caixa.minimoCentavos < 0
-                        ? 'O caixa fica negativo em ${diaPorExtenso(caixa.diaDoMinimo ?? hoje, hoje)}. Antecipe um recebimento ou adie um pagamento antes dessa data.'
-                        : 'O caixa se mantém positivo no período.',
-                    style: texto.bodyMedium?.copyWith(color: caixa.minimoCentavos < 0 ? c.problema : null),
-                  ),
-                  if (caixa.aReceberVencidoCentavos > 0)
-                    Padding(
-                      padding: const EdgeInsets.only(top: Espacos.xp),
-                      child: Text(
-                        '${reais(caixa.aReceberVencidoCentavos)} a receber já venceram e ficaram de fora desta previsão.',
-                        style: texto.bodySmall?.copyWith(color: c.atencao),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: Espacos.g),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                prazos('A receber', aReceber, receber: true),
-                const SizedBox(width: Espacos.m),
-                prazos('A pagar', aPagar, receber: false),
-              ],
-            ),
-            const TituloDeSecao('Clientes e fornecedores'),
-            Cartao(
-              padding: const EdgeInsets.symmetric(vertical: Espacos.p),
-              child: contrapartes.isEmpty
-                  ? const Vazio('Ninguém cadastrado ainda. Clientes e fornecedores são criados ao lançar, no modo avançado.')
-                  : Column(children: [
-                      for (final x in [...contrapartes]..sort((a, b) => a.nome.compareTo(b.nome)))
-                        Builder(builder: (context) {
-                          final itens = emAberto[x.id] ?? const <Lancamento>[];
-                          final total = itens.fold<int>(0, (s, l) => s + l.valorCentavos);
-                          final vencidos = itens.where((l) => l.data.compareTo(hoje) < 0).length;
-                          return ListTile(
-                            title: Text(x.nome),
-                            subtitle: Text(
-                              itens.isEmpty
-                                  ? (x.tipo == 'cliente' ? 'Cliente · nada em aberto' : 'Fornecedor · nada em aberto')
-                                  : '${x.tipo == 'cliente' ? 'Cliente · a receber' : 'Fornecedor · a pagar'}'
-                                      '${vencidos > 0 ? ' · $vencidos ${vencidos == 1 ? 'vencido' : 'vencidos'}' : ''}',
-                              style: texto.bodySmall?.copyWith(color: vencidos > 0 ? c.atencao : null),
-                            ),
-                            trailing: Text(reais(total), style: texto.titleMedium),
-                            onTap: () => Navigator.of(context)
-                                .push(MaterialPageRoute<void>(builder: (_) => TelaContraparte(contraparte: x))),
-                          );
-                        }),
-                    ]),
-            ),
-            TituloDeSecao(
-              'Resultado de ${nomeDoMes(mes)}',
-              acao: TextButton.icon(
-                onPressed: () => showDialog<void>(context: context, builder: (_) => const _PagarProLabore()),
-                icon: const Icon(Icons.payments_outlined),
-                label: const Text('Pagar pró-labore'),
-              ),
-            ),
-            Cartao(
-              padding: const EdgeInsets.symmetric(vertical: Espacos.p),
-              child: Column(children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: Espacos.g, vertical: Espacos.xp),
-                  child: Row(children: [
-                    const Expanded(flex: 4, child: SizedBox()),
-                    Expanded(flex: 2, child: Text('Previsto', textAlign: TextAlign.end, style: texto.bodySmall)),
-                    Expanded(flex: 2, child: Text('Realizado', textAlign: TextAlign.end, style: texto.bodySmall)),
-                  ]),
+    final blocoCaixa = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const TituloDeSecao('Caixa previsto', detalhe: 'próximos 30 dias', semTopo: true),
+        Cartao(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                numero('Em caixa hoje', caixa.hojeCentavos),
+                const SizedBox(width: 10),
+                numero(
+                  'Ponto mais baixo',
+                  caixa.minimoCentavos,
+                  cor: caixa.minimoCentavos < 0 ? c.problema : null,
+                  detalhe: caixa.diaDoMinimo == null ? 'hoje' : diaPorExtenso(caixa.diaDoMinimo!, hoje),
                 ),
-                for (final (id, previsto, realizado) in resultado.receitas)
-                  linhaDoResultado(categorias[id]?.nome ?? 'Sem centro de custo', previsto, realizado, cor: c.positivo),
-                for (final (id, previsto, realizado) in resultado.despesas)
-                  linhaDoResultado(categorias[id]?.nome ?? 'Sem centro de custo', previsto, -realizado),
-                if (resultado.receitas.isEmpty && resultado.despesas.isEmpty) const Vazio('Nenhum lançamento neste mês ainda.'),
-                const Divider(),
-                linhaDoResultado('Resultado', 0, resultado.antesDoProLaboreCentavos,
-                    forte: true, cor: resultado.antesDoProLaboreCentavos < 0 ? c.problema : c.tinta),
-                linhaDoResultado('Pró-labore', resultado.proLabore.$1, -resultado.proLabore.$2),
-                linhaDoResultado('Depois do pró-labore', 0, resultado.depoisDoProLaboreCentavos,
-                    forte: true, cor: resultado.depoisDoProLaboreCentavos < 0 ? c.atencao : c.tinta),
+                const SizedBox(width: 10),
+                numero('Em 30 dias', caixa.finalCentavos),
+              ]),
+              const SizedBox(height: 10),
+              Text(
+                caixa.minimoCentavos < 0
+                    ? 'O caixa fica negativo ${diaPorExtenso(caixa.diaDoMinimo ?? hoje, hoje)}. Antecipe um recebimento ou adie um pagamento antes dessa data.'
+                    : 'O caixa se mantém positivo no período.',
+                style: texto.bodyMedium?.copyWith(fontSize: 13, color: caixa.minimoCentavos < 0 ? c.problema : c.tinta2),
+              ),
+              if (caixa.aReceberVencidoCentavos > 0)
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(Espacos.g, Espacos.xp, Espacos.g, Espacos.p),
-                  child: Text(
-                    'O pró-labore aparece à parte: o resultado mostra a operação; a retirada do dono vem depois.',
-                    style: texto.bodySmall,
-                  ),
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Etiqueta('${reais(caixa.aReceberVencidoCentavos)} a receber vencidos, fora da previsão', tom: Tom.atencao),
                 ),
+            ],
+          ),
+        ),
+        const SizedBox(height: Espacos.m),
+        if (mesa)
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Expanded(child: prazos('A receber', aReceber)),
+            const SizedBox(width: Espacos.m),
+            Expanded(child: prazos('A pagar', aPagar)),
+          ])
+        else ...[
+          prazos('A receber', aReceber),
+          const SizedBox(height: Espacos.m),
+          prazos('A pagar', aPagar),
+        ],
+        const TituloDeSecao('Clientes e fornecedores'),
+        if (ordenadas.isEmpty)
+          const Cartao(
+            padding: EdgeInsets.zero,
+            child: Vazio('Ninguém cadastrado ainda. Clientes e fornecedores são criados ao lançar, no modo avançado.'),
+          )
+        else
+          Lista(filhos: [
+            for (final x in ordenadas)
+              Builder(builder: (context) {
+                final itens = emAberto[x.id] ?? const <Lancamento>[];
+                final total = itens.fold<int>(0, (s, l) => s + l.valorCentavos);
+                final vencidos = itens.where((l) => l.data.compareTo(hoje) < 0).length;
+                return Linha(
+                  titulo: x.nome,
+                  detalhe: itens.isEmpty
+                      ? (x.tipo == 'cliente' ? 'Cliente · nada em aberto' : 'Fornecedor · nada em aberto')
+                      : '${x.tipo == 'cliente' ? 'Cliente · a receber' : 'Fornecedor · a pagar'}'
+                          '${vencidos > 0 ? ' · $vencidos ${vencidos == 1 ? 'vencido' : 'vencidos'}' : ''}',
+                  corDoDetalhe: vencidos > 0 ? c.atencao : null,
+                  direita: Text(reais(total), style: Textos.valor(context)),
+                  aoTocar: () => Navigator.of(context)
+                      .push(MaterialPageRoute<void>(builder: (_) => TelaContraparte(contraparte: x))),
+                );
+              }),
+          ]),
+      ],
+    );
+
+    final blocoResultado = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TituloDeSecao(
+          'Resultado de ${nomeDoMes(mes)}',
+          semTopo: mesa,
+          acao: BotaoPequeno(
+            'Pagar pró-labore',
+            aoTocar: () => showDialog<void>(context: context, builder: (_) => const _PagarProLabore()),
+          ),
+        ),
+        Cartao(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Column(children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+              child: Row(children: [
+                Expanded(flex: 5, child: Text('CENTRO DE CUSTO', style: Textos.sobrancelha(context))),
+                Expanded(flex: 3, child: Text('PREVISTO', textAlign: TextAlign.end, style: Textos.sobrancelha(context))),
+                Expanded(flex: 3, child: Text('REALIZADO', textAlign: TextAlign.end, style: Textos.sobrancelha(context))),
               ]),
             ),
+            for (final (id, previsto, realizado) in resultado.receitas)
+              linhaDoResultado(categorias[id]?.nome ?? 'Sem centro de custo', previsto, realizado, cor: c.positivo),
+            for (final (id, previsto, realizado) in resultado.despesas)
+              linhaDoResultado(categorias[id]?.nome ?? 'Sem centro de custo', previsto, realizado == 0 ? 0 : -realizado),
+            if (resultado.receitas.isEmpty && resultado.despesas.isEmpty) const Vazio('Nenhum lançamento neste mês ainda.'),
+            const Divider(),
+            linhaDoResultado('Resultado', 0, resultado.antesDoProLaboreCentavos,
+                forte: true, cor: resultado.antesDoProLaboreCentavos < 0 ? c.problema : c.tinta),
+            linhaDoResultado('Pró-labore', resultado.proLabore.$1, resultado.proLabore.$2 == 0 ? 0 : -resultado.proLabore.$2),
+            linhaDoResultado('Depois do pró-labore', 0, resultado.depoisDoProLaboreCentavos,
+                forte: true, cor: resultado.depoisDoProLaboreCentavos < 0 ? c.atencao : c.tinta),
+          ]),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'O pró-labore aparece à parte: o resultado mostra a operação; a retirada do dono vem depois.',
+          style: texto.bodySmall,
+        ),
+      ],
+    );
+
+    if (mesa) {
+      return Pagina(filhos: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: blocoCaixa),
+            const SizedBox(width: Espacos.xg),
+            Expanded(child: blocoResultado),
           ],
         ),
-      ),
-    );
+      ]);
+    }
+    return Pagina(filhos: [blocoCaixa, blocoResultado]);
   }
 }
 
@@ -235,13 +258,11 @@ class TelaContraparte extends ConsumerWidget {
     final mensagem = vencidos.isEmpty ? null : mensagemDeCobranca(contraparte.nome, vencidos, hoje);
 
     return Scaffold(
-      appBar: AppBar(title: Text(contraparte.nome), backgroundColor: c.fundo, surfaceTintColor: c.fundo),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 720),
-          child: ListView(
-            padding: const EdgeInsets.all(Espacos.g),
-            children: [
+      appBar: AppBar(title: Text(contraparte.nome)),
+      body: Pagina(
+        larguraMaxima: 640,
+        centralizada: true,
+        filhos: [
               if (mensagem != null) ...[
                 Cartao(
                   child: Column(
@@ -252,11 +273,13 @@ class TelaContraparte extends ConsumerWidget {
                       const SizedBox(height: Espacos.m),
                       Container(
                         padding: const EdgeInsets.all(Espacos.m),
-                        decoration: BoxDecoration(color: c.superficieAlta, borderRadius: Raios.p),
+                        decoration: BoxDecoration(color: c.suave, borderRadius: Raios.p),
                         child: SelectableText(mensagem, style: texto.bodyMedium),
                       ),
                       const SizedBox(height: Espacos.m),
-                      OutlinedButton.icon(
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: OutlinedButton.icon(
                         onPressed: () async {
                           final mensageiro = ScaffoldMessenger.of(context);
                           var copiou = true;
@@ -274,32 +297,28 @@ class TelaContraparte extends ConsumerWidget {
                                   : 'O navegador não deixou copiar. Selecione o texto acima e copie.'),
                             ));
                         },
-                        icon: const Icon(Icons.copy_rounded),
+                        icon: const Icon(Icons.copy_rounded, size: 18),
                         label: const Text('Copiar mensagem'),
-                      ),
+                      )),
                     ],
                   ),
                 ),
                 const SizedBox(height: Espacos.m),
               ],
               const TituloDeSecao('Em aberto'),
-              Cartao(
-                padding: EdgeInsets.zero,
-                child: itens.isEmpty
-                    ? const Vazio('Nada em aberto.')
-                    : Column(children: [
-                        for (final l in itens)
-                          LinhaDeLancamento(
-                            lancamento: l,
-                            hoje: hoje,
-                            conta: contas[l.contaId],
-                            onTap: () => abrirLancamento(context, ref, l),
-                          ),
-                      ]),
-              ),
-            ],
-          ),
-        ),
+              if (itens.isEmpty)
+                const Cartao(padding: EdgeInsets.zero, child: Vazio('Nada em aberto.'))
+              else
+                Lista(filhos: [
+                  for (final l in itens)
+                    LinhaDeLancamento(
+                      lancamento: l,
+                      hoje: hoje,
+                      conta: contas[l.contaId],
+                      onTap: () => abrirLancamento(context, ref, l),
+                    ),
+                ]),
+        ],
       ),
     );
   }

@@ -52,8 +52,10 @@ final _propostasProvider = Provider<List<_Proposta>>((ref) {
   ];
 });
 
-class TelaEntrada extends ConsumerWidget {
-  const TelaEntrada({super.key});
+/// Caixa de entrada: o que veio de fora e espera confirmação. É um bloco,
+/// não uma tela: mora dentro de Lançamentos.
+class CaixaDeEntrada extends ConsumerWidget {
+  const CaixaDeEntrada({super.key});
 
   Lancamento _novoLancamento(_Proposta p, String? autor) => Lancamento(
         id: _uuid.v4(),
@@ -134,107 +136,97 @@ class TelaEntrada extends ConsumerWidget {
     final c = Cores.de(context);
     final repo = ref.watch(repositorioProvider);
 
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 900),
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(Espacos.g, Espacos.g, Espacos.g, 96),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
           children: [
-            Wrap(
-              spacing: Espacos.m,
-              runSpacing: Espacos.p,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Text('Caixa de entrada', style: texto.titleLarge),
-                OutlinedButton.icon(
-                  onPressed: () => showDialog<void>(context: context, builder: (_) => const _Importar()),
-                  icon: const Icon(Icons.upload_file_rounded),
-                  label: const Text('Importar extrato'),
-                ),
-                if (prontas.length > 1)
-                  FilledButton(
-                    onPressed: () => _confirmar(context, ref, prontas),
-                    child: Text('Confirmar ${prontas.length} prontos'),
-                  ),
-              ],
+            Expanded(
+              child: Text(
+                propostas.isEmpty ? 'Nada para confirmar' : 'Para confirmar',
+                style: texto.titleMedium,
+              ),
             ),
-            const SizedBox(height: Espacos.p),
-            Text(
-              'O que vem de extrato, planilha ou notificação espera aqui. Nada entra no saldo antes de você confirmar.',
-              style: texto.bodySmall,
+            if (prontas.length > 1) ...[
+              BotaoPequeno('Confirmar ${prontas.length} prontos', cheio: true, aoTocar: () => _confirmar(context, ref, prontas)),
+              const SizedBox(width: Espacos.p),
+            ],
+            BotaoPequeno(
+              'Importar extrato',
+              icone: Icons.upload_file_rounded,
+              aoTocar: () => showDialog<void>(context: context, builder: (_) => const _Importar()),
             ),
-            const SizedBox(height: Espacos.m),
-            if (propostas.isEmpty)
-              const Cartao(child: Vazio('Caixa vazia. Importe um extrato para conferir o mês.'))
-            else
-              Cartao(
-                padding: EdgeInsets.zero,
-                child: Column(children: [
-                  for (final p in propostas)
-                    InkWell(
-                      onTap: () => _abrirItem(context, ref, p),
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(Espacos.g, Espacos.m, Espacos.p, Espacos.m),
-                        child: Row(
+          ],
+        ),
+        const SizedBox(height: Espacos.p),
+        if (propostas.isEmpty)
+          const Cartao(
+            padding: EdgeInsets.zero,
+            child: Vazio('O que vem de extrato, planilha ou notificação espera aqui. Nada entra no saldo antes de você confirmar.'),
+          )
+        else
+          Lista(filhos: [
+            for (final p in propostas)
+              InkWell(
+                onTap: () => _abrirItem(context, ref, p),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(p.item.descricao, maxLines: 1, overflow: TextOverflow.ellipsis, style: texto.bodyLarge),
-                                  const SizedBox(height: Espacos.xp),
-                                  Wrap(spacing: Espacos.p, runSpacing: Espacos.xp, children: [
-                                    Etiqueta(diaPorExtenso(p.item.data, hoje)),
-                                    Etiqueta(contas[p.item.contaId]?.nome ?? 'sem conta'),
-                                    if (p.correspondente != null)
-                                      Etiqueta(
-                                        p.correspondente!.efetivado ? 'já lançado' : 'era agendado',
-                                        cor: c.positivo,
-                                      )
-                                    else
-                                      Etiqueta(
-                                        categorias[p.categoriaId]?.nome ?? 'sem categoria',
-                                        cor: p.categoriaId == null ? c.atencao : null,
-                                      ),
-                                  ]),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: Espacos.p),
-                            Text(
-                              '${p.item.tipo == 'entrada' ? '+' : '-'}${reais(p.item.valorCentavos)}',
-                              style: texto.titleMedium?.copyWith(color: p.item.tipo == 'entrada' ? c.positivo : c.tinta),
-                            ),
-                            IconButton(
-                              tooltip: 'Confirmar',
-                              onPressed: p.pronta ? () => _confirmar(context, ref, [p]) : () => _abrirItem(context, ref, p),
-                              icon: Icon(Icons.check_circle_outline_rounded, color: p.pronta ? c.primaria : c.tintaSuave),
-                            ),
-                            IconButton(
-                              tooltip: 'Ignorar',
-                              onPressed: repo == null
-                                  ? null
-                                  : () async {
-                                      final mensageiro = ScaffoldMessenger.of(context);
-                                      await repo.marcarItem(p.item.id, 'ignorado');
-                                      mensageiro
-                                        ..clearSnackBars()
-                                        ..showSnackBar(SnackBar(
-                                          content: const Text('Item ignorado.'),
-                                          action: SnackBarAction(label: 'Desfazer', onPressed: () => repo.marcarItem(p.item.id, 'pendente')),
-                                        ));
-                                    },
-                              icon: const Icon(Icons.close_rounded),
-                            ),
+                            Text(p.item.descricao, maxLines: 1, overflow: TextOverflow.ellipsis, style: texto.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+                            const SizedBox(height: 4),
+                            Wrap(spacing: 6, runSpacing: 4, children: [
+                              Etiqueta(diaPorExtenso(p.item.data, hoje)),
+                              Etiqueta(contas[p.item.contaId]?.nome ?? 'sem conta'),
+                              if (p.correspondente != null)
+                                Etiqueta(p.correspondente!.efetivado ? 'já lançado' : 'era agendado', tom: Tom.bom)
+                              else
+                                Etiqueta(
+                                  categorias[p.categoriaId]?.nome ?? 'sem categoria',
+                                  tom: p.categoriaId == null ? Tom.atencao : Tom.primario,
+                                ),
+                            ]),
                           ],
                         ),
                       ),
-                    ),
-                ]),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${p.item.tipo == 'entrada' ? '+' : '-'}${reais(p.item.valorCentavos)}',
+                        style: Textos.valor(context, cor: p.item.tipo == 'entrada' ? c.positivo : c.tinta),
+                      ),
+                      IconButton(
+                        tooltip: 'Confirmar',
+                        visualDensity: VisualDensity.compact,
+                        onPressed: p.pronta ? () => _confirmar(context, ref, [p]) : () => _abrirItem(context, ref, p),
+                        icon: Icon(Icons.check_circle_outline_rounded, color: p.pronta ? c.primaria : c.tinta3),
+                      ),
+                      IconButton(
+                        tooltip: 'Ignorar',
+                        visualDensity: VisualDensity.compact,
+                        onPressed: repo == null
+                            ? null
+                            : () async {
+                                final mensageiro = ScaffoldMessenger.of(context);
+                                await repo.marcarItem(p.item.id, 'ignorado');
+                                mensageiro
+                                  ..clearSnackBars()
+                                  ..showSnackBar(SnackBar(
+                                    content: const Text('Item ignorado.'),
+                                    action: SnackBarAction(label: 'Desfazer', onPressed: () => repo.marcarItem(p.item.id, 'pendente')),
+                                  ));
+                              },
+                        icon: const Icon(Icons.close_rounded),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-          ],
-        ),
-      ),
+          ]),
+      ],
     );
   }
 }

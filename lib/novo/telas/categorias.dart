@@ -45,9 +45,11 @@ class TelaCategorias extends ConsumerWidget {
                 ),
               ],
               const SizedBox(height: Espacos.g),
-              FilledButton(onPressed: () => Navigator.pop(context, 'salvar'), child: const Text('Salvar')),
-              if (categoria != null)
-                TextButton(onPressed: () => Navigator.pop(context, 'arquivar'), child: const Text('Arquivar categoria')),
+              Acoes(filhos: [
+                FilledButton(onPressed: () => Navigator.pop(context, 'salvar'), child: const Text('Salvar')),
+                if (categoria != null)
+                  TextButton(onPressed: () => Navigator.pop(context, 'arquivar'), child: const Text('Arquivar categoria')),
+              ]),
             ],
           ),
         ),
@@ -69,44 +71,55 @@ class TelaCategorias extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = Cores.de(context);
-    final texto = Theme.of(context).textTheme;
     final empresa = ref.watch(espacoAtualProvider)?.ehEmpresa ?? false;
     final mes = ref.watch(hojeProvider).substring(0, 7);
     final resumo = (ref.watch(resumosProvider).valueOrNull ?? const <ResumoMes>[]).where((r) => r.mes == mes).firstOrNull;
     final todas = (ref.watch(categoriasProvider).valueOrNull ?? const <Categoria>[]).where((x) => !x.arquivada).toList()
       ..sort((a, b) => a.nome.compareTo(b.nome));
 
-    Widget grupo(String titulo, String tipo) => Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            TituloDeSecao(titulo, acao: TextButton.icon(onPressed: () => _editar(context, ref, null, tipo), icon: const Icon(Icons.add_rounded), label: const Text('Nova'))),
-            Cartao(
-              padding: const EdgeInsets.symmetric(vertical: Espacos.p),
-              child: Column(children: [
-                for (final x in todas.where((x) => x.tipo == tipo))
-                  ListTile(
-                    title: Text(x.nome),
-                    subtitle: x.limiteMensalCentavos == null
-                        ? null
-                        : Text('${reais(resumo?.categorias[x.id]?.$2 ?? 0)} de ${reais(x.limiteMensalCentavos!)} neste mês'),
-                    trailing: Text(reais(resumo?.categorias[x.id]?.$2 ?? 0), style: texto.bodyMedium),
-                    onTap: () => _editar(context, ref, x, tipo),
-                  ),
-              ]),
-            ),
-          ],
-        );
+    Widget grupo(String titulo, String tipo, {bool semTopo = false}) {
+      final doTipo = todas.where((x) => x.tipo == tipo).toList();
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TituloDeSecao(
+            titulo,
+            semTopo: semTopo,
+            acao: BotaoPequeno('Nova', icone: Icons.add_rounded, aoTocar: () => _editar(context, ref, null, tipo)),
+          ),
+          if (doTipo.isEmpty)
+            const Cartao(padding: EdgeInsets.zero, child: Vazio('Nenhuma ainda.'))
+          else
+            Lista(filhos: [
+              for (final x in doTipo)
+                Builder(builder: (context) {
+                  final gasto = resumo?.categorias[x.id]?.$2 ?? 0;
+                  final limite = x.limiteMensalCentavos;
+                  final passou = limite != null && gasto > limite;
+                  return Linha(
+                    titulo: x.nome,
+                    detalhe: limite == null ? 'Sem limite' : 'Limite de ${reais(limite)} por mês',
+                    corDoDetalhe: passou ? c.atencao : null,
+                    direita: Text(reais(gasto), style: Textos.valor(context, cor: passou ? c.atencao : null)),
+                    aoTocar: () => _editar(context, ref, x, tipo),
+                  );
+                }),
+            ]),
+        ],
+      );
+    }
 
     return Scaffold(
-      appBar: AppBar(title: Text(empresa ? 'Centros de custo' : 'Categorias'), backgroundColor: c.fundo, surfaceTintColor: c.fundo),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 720),
-          child: ListView(
-            padding: const EdgeInsets.all(Espacos.g),
-            children: [grupo('Saídas', 'saida'), grupo('Entradas', 'entrada')],
-          ),
-        ),
+      appBar: AppBar(title: Text(empresa ? 'Centros de custo' : 'Categorias')),
+      body: Pagina(
+        larguraMaxima: 640,
+        centralizada: true,
+        filhos: [
+          Text('O valor à direita é o que já saiu ou entrou neste mês.', style: Theme.of(context).textTheme.bodySmall),
+          const SizedBox(height: Espacos.m),
+          grupo('Saídas', 'saida', semTopo: true),
+          grupo('Entradas', 'entrada'),
+        ],
       ),
     );
   }

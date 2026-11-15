@@ -5,6 +5,7 @@ import '../modelo/modelos.dart';
 import '../regras/formatos.dart';
 import '../regras/leitura_frase.dart';
 import '../tema/tema_novo.dart';
+import 'pecas.dart';
 
 /// Escolha de um item numa lista, em folha.
 Future<T?> escolher<T>(
@@ -29,7 +30,7 @@ Future<T?> escolher<T>(
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(Espacos.g, 0, Espacos.g, Espacos.p),
-                child: Text(titulo, style: Theme.of(context).textTheme.titleLarge),
+                child: Text(titulo, style: Theme.of(context).textTheme.titleMedium),
               ),
               Flexible(
                 child: ListView(
@@ -205,26 +206,20 @@ class _FormularioAvancadoState extends State<FormularioAvancado> {
           borderRadius: Raios.m,
           child: InputDecorator(
             decoration: InputDecoration(labelText: rotulo, suffixIcon: const Icon(Icons.expand_more_rounded)),
-            child: Text(valor, style: texto.bodyLarge),
+            child: Text(valor, maxLines: 1, overflow: TextOverflow.ellipsis, style: texto.bodyMedium),
           ),
         );
 
     return Scaffold(
-      appBar: AppBar(title: Text(widget.titulo), backgroundColor: c.fundo, surfaceTintColor: c.fundo),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 560),
-          child: ListView(
-            padding: const EdgeInsets.all(Espacos.g),
-            children: [
-              SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(value: 'saida', label: Text('Saída')),
-                  ButtonSegment(value: 'entrada', label: Text('Entrada')),
-                  ButtonSegment(value: 'transferencia', label: Text('Transferência')),
-                ],
-                selected: {_l.tipo},
-                onSelectionChanged: (s) => setState(() => _l = _l.copiar(tipo: s.first, categoriaId: () => null)),
+      appBar: AppBar(title: Text(widget.titulo)),
+      body: Pagina(
+        larguraMaxima: 520,
+        centralizada: true,
+        filhos: [
+              Segmentos<String>(
+                opcoes: const [('saida', 'Saída'), ('entrada', 'Entrada'), ('transferencia', 'Transferência')],
+                valor: _l.tipo,
+                aoMudar: (v) => setState(() => _l = _l.copiar(tipo: v, categoriaId: () => null)),
               ),
               const SizedBox(height: Espacos.g),
               TextField(
@@ -297,14 +292,10 @@ class _FormularioAvancadoState extends State<FormularioAvancado> {
                 const SizedBox(height: Espacos.p),
                 Text('Repetir', style: texto.titleMedium),
                 const SizedBox(height: Espacos.p),
-                SegmentedButton<String>(
-                  segments: const [
-                    ButtonSegment(value: 'nao', label: Text('Não')),
-                    ButtonSegment(value: 'parcelado', label: Text('Parcelado')),
-                    ButtonSegment(value: 'mensal', label: Text('Todo mês')),
-                  ],
-                  selected: {_repetir},
-                  onSelectionChanged: (s) => setState(() => _repetir = s.first),
+                Segmentos<String>(
+                  opcoes: const [('nao', 'Não'), ('parcelado', 'Parcelado'), ('mensal', 'Todo mês')],
+                  valor: _repetir,
+                  aoMudar: (v) => setState(() => _repetir = v),
                 ),
                 if (_repetir == 'parcelado') ...[
                   const SizedBox(height: Espacos.m),
@@ -324,10 +315,8 @@ class _FormularioAvancadoState extends State<FormularioAvancado> {
                 Text(_erro!, style: texto.bodyMedium?.copyWith(color: c.problema)),
               ],
               const SizedBox(height: Espacos.xg),
-              FilledButton(onPressed: _salvar, child: Text(widget.rotuloDeSalvar)),
-            ],
-          ),
-        ),
+              Acoes(filhos: [FilledButton(onPressed: _salvar, child: Text(widget.rotuloDeSalvar))]),
+        ],
       ),
     );
   }

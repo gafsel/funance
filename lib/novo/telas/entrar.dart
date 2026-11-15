@@ -71,15 +71,14 @@ class _TelaEntrarState extends State<TelaEntrar> {
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(Espacos.xg),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 380),
+            constraints: const BoxConstraints(maxWidth: 340),
             child: AutofillGroup(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Align(alignment: Alignment.centerLeft, child: Marca(tamanho: 44)),
-                  const SizedBox(height: Espacos.g),
-                  Text('Funances', style: texto.headlineMedium),
-                  Text('Suas metas, um passo por vez.', style: texto.bodyLarge),
+                  Row(children: [const Marca(tamanho: 34), const SizedBox(width: 10), Text('funances', style: Textos.marca(context, tamanho: 24))]),
+                  const SizedBox(height: Espacos.m),
+                  Text('Suas metas, um passo por vez.', style: texto.bodyLarge?.copyWith(color: Cores.de(context).tinta2)),
                   const SizedBox(height: Espacos.xxg),
                   TextField(
                     controller: _email,

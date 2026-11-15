@@ -29,50 +29,34 @@ class TelaCartao extends ConsumerWidget {
     final texto = Theme.of(context).textTheme;
 
     return Scaffold(
-      appBar: AppBar(title: Text(cartao.nome), backgroundColor: c.fundo, surfaceTintColor: c.fundo),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 720),
-          child: ListView(
-            padding: const EdgeInsets.all(Espacos.g),
-            children: [
-              Text(
-                'Fecha dia ${cartao.diaFechamento ?? 5}, vence dia ${cartao.diaVencimento ?? 10}. '
-                'A compra conta como gasto no mês em que foi feita; pagar a fatura não conta de novo.',
-                style: texto.bodySmall,
-              ),
-              const SizedBox(height: Espacos.m),
-              if (faturas.isEmpty) const Vazio('Nenhuma fatura neste cartão ainda.'),
-              for (final f in faturas)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: Espacos.p),
-                  child: Cartao(
-                    onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute<void>(builder: (_) => TelaFatura(cartao: cartao, faturaId: f.id))),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Vence ${diaPorExtenso(f.vencimento, hoje)}', style: texto.titleMedium),
-                              Text(
-                                f.quitada
-                                    ? 'Paga'
-                                    : (f.fechamento.compareTo(hoje) > 0 ? 'Aberta, fecha ${diaPorExtenso(f.fechamento, hoje)}' : 'Fechada'),
-                                style: texto.bodySmall,
-                              ),
-                            ],
-                          ),
-                        ),
-                        Text(reais(f.totalCentavos), style: texto.titleMedium),
-                      ],
-                    ),
-                  ),
-                ),
-            ],
+      appBar: AppBar(title: Text(cartao.nome)),
+      body: Pagina(
+        larguraMaxima: 640,
+        centralizada: true,
+        filhos: [
+          Text(
+            'Fecha dia ${cartao.diaFechamento ?? 5}, vence dia ${cartao.diaVencimento ?? 10}. '
+            'A compra conta como gasto no mês em que foi feita; pagar a fatura não conta de novo.',
+            style: texto.bodySmall,
           ),
-        ),
+          const SizedBox(height: Espacos.m),
+          if (faturas.isEmpty)
+            const Cartao(padding: EdgeInsets.zero, child: Vazio('Nenhuma fatura neste cartão ainda.'))
+          else
+            Lista(filhos: [
+              for (final f in faturas)
+                Linha(
+                  titulo: 'Vence ${diaPorExtenso(f.vencimento, hoje)}',
+                  detalhe: f.quitada
+                      ? 'Paga'
+                      : (f.fechamento.compareTo(hoje) > 0 ? 'Aberta, fecha ${diaPorExtenso(f.fechamento, hoje)}' : 'Fechada'),
+                  corDoDetalhe: !f.quitada && f.vencimento.compareTo(hoje) < 0 ? c.atencao : null,
+                  direita: Text(reais(f.totalCentavos), style: Textos.valor(context)),
+                  aoTocar: () => Navigator.of(context)
+                      .push(MaterialPageRoute<void>(builder: (_) => TelaFatura(cartao: cartao, faturaId: f.id))),
+                ),
+            ]),
+        ],
       ),
     );
   }
@@ -142,61 +126,51 @@ class TelaFatura extends ConsumerWidget {
         0, (s, l) => s + (l.contaId == cartao.id && !l.ehEntrada ? l.valorCentavos : -l.valorCentavos));
 
     return Scaffold(
-      appBar: AppBar(title: Text('Fatura de ${cartao.nome}'), backgroundColor: c.fundo, surfaceTintColor: c.fundo),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 720),
-          child: ListView(
-            padding: const EdgeInsets.all(Espacos.g),
-            children: [
-              Cartao(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Vence ${diaPorExtenso(f.vencimento, hoje)}', style: texto.bodyMedium?.copyWith(color: c.tintaSuave)),
-                    Text(reais(f.totalCentavos), style: texto.displaySmall),
-                    Text(
-                      'Compras de ${diaPorExtenso(f.inicio, hoje)} a ${diaPorExtenso(f.fim, hoje)}.'
-                      '${f.pagoCentavos > 0 ? ' Já pago: ${reais(f.pagoCentavos)}.' : ''}',
-                      style: texto.bodySmall,
-                    ),
-                    if (f.abertoCentavos > 0) ...[
-                      const SizedBox(height: Espacos.m),
-                      FilledButton(
-                        onPressed: () => _pagar(context, ref, f),
-                        child: Text('Pagar ${reais(f.abertoCentavos)}'),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const TituloDeSecao('Compras'),
-              Cartao(
-                padding: EdgeInsets.zero,
-                child: compras.isEmpty
-                    ? const Vazio('Nenhuma compra nesta fatura.')
-                    : Column(children: [
-                        for (final l in compras)
-                          LinhaDeLancamento(
-                            lancamento: l,
-                            hoje: hoje,
-                            conta: cartao,
-                            categoria: categorias[l.categoriaId],
-                            onTap: () => abrirLancamento(context, ref, l),
-                          ),
-                      ]),
-              ),
-              if (compras.isNotEmpty && somaListada != f.totalCentavos)
-                Padding(
-                  padding: const EdgeInsets.only(top: Espacos.p),
-                  child: Text(
-                    'As compras listadas somam ${reais(somaListada)}. A diferença para o total pode vir de compras em fim de semana ou feriado perto do fechamento, que entram no ciclo seguinte, ou da dívida inicial do cartão.',
-                    style: texto.bodySmall,
-                  ),
-                ),
-            ],
+      appBar: AppBar(title: Text('Fatura de ${cartao.nome}')),
+      body: Pagina(
+        larguraMaxima: 640,
+        centralizada: true,
+        filhos: [
+          Text('Vence ${diaPorExtenso(f.vencimento, hoje)}', style: texto.bodyMedium?.copyWith(fontSize: 13, color: c.tinta2)),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(reais(f.totalCentavos), style: Textos.numerao(context, tamanho: 36)),
           ),
-        ),
+          Text(
+            'Compras de ${diaPorExtenso(f.inicio, hoje)} a ${diaPorExtenso(f.fim, hoje)}.'
+            '${f.pagoCentavos > 0 ? ' Já pago: ${reais(f.pagoCentavos)}.' : ''}',
+            style: texto.bodyMedium?.copyWith(fontSize: 13, color: c.tinta2),
+          ),
+          if (f.abertoCentavos > 0) ...[
+            const SizedBox(height: Espacos.m),
+            Acoes(filhos: [
+              FilledButton(onPressed: () => _pagar(context, ref, f), child: Text('Pagar ${reais(f.abertoCentavos)}')),
+            ]),
+          ],
+          TituloDeSecao('Compras', detalhe: '${compras.length}'),
+          if (compras.isEmpty)
+            const Cartao(padding: EdgeInsets.zero, child: Vazio('Nenhuma compra nesta fatura.'))
+          else
+            Lista(filhos: [
+              for (final l in compras)
+                LinhaDeLancamento(
+                  lancamento: l,
+                  hoje: hoje,
+                  conta: cartao,
+                  categoria: categorias[l.categoriaId],
+                  onTap: () => abrirLancamento(context, ref, l),
+                ),
+            ]),
+          if (compras.isNotEmpty && somaListada != f.totalCentavos)
+            Padding(
+              padding: const EdgeInsets.only(top: Espacos.p),
+              child: Text(
+                'As compras listadas somam ${reais(somaListada)}. A diferença para o total pode vir de compras em fim de semana ou feriado perto do fechamento, que entram no ciclo seguinte, ou da dívida inicial do cartão.',
+                style: texto.bodySmall,
+              ),
+            ),
+        ],
       ),
     );
   }

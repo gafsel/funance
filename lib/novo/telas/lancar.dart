@@ -23,7 +23,7 @@ Future<void> abrirLancar(BuildContext context, {String textoInicial = ''}) {
       barrierDismissible: false,
       builder: (_) => Dialog(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 640, maxHeight: 720),
+          constraints: const BoxConstraints(maxWidth: 560, maxHeight: 640),
           child: Lancar(textoInicial: textoInicial),
         ),
       ),
@@ -204,7 +204,7 @@ class _LancarState extends ConsumerState<Lancar> {
                   final l = _ajustes.remove('');
                   if (l != null && l.completa) _salvar([l], ctx);
                 }),
-                icon: const Icon(Icons.tune_rounded),
+                icon: const Icon(Icons.tune_rounded, size: 16),
                 label: const Text('Modo avançado'),
               ),
               IconButton(
@@ -222,9 +222,12 @@ class _LancarState extends ConsumerState<Lancar> {
             maxLines: 6,
             textCapitalization: TextCapitalization.sentences,
             onChanged: (_) => setState(() => _aviso = null),
+            style: texto.bodyLarge,
             decoration: const InputDecoration(
-              hintText: 'mercado 45,90 no cartão\nuber 23 ontem\nrecebi salário 5000',
+              hintText: 'café 15\nuber 23 ontem no cartão\nrecebi salário 5000',
               helperText: 'Uma linha por lançamento. Pode colar vários de uma vez.',
+              helperMaxLines: 2,
+              contentPadding: EdgeInsets.all(12),
             ),
           ),
           const SizedBox(height: Espacos.m),
@@ -237,12 +240,12 @@ class _LancarState extends ConsumerState<Lancar> {
                     child: l == null
                         ? Cartao(
                             onTap: () => _detalhar(linha, null, ctx),
-                            child: Row(
-                              children: [
-                                Icon(Icons.help_outline_rounded, color: c.atencao),
-                                const SizedBox(width: Espacos.m),
-                                Expanded(child: Text('Não achei o valor em "$linha". Toque para preencher.')),
-                              ],
+                            cor: c.atencaoSuave,
+                            semBorda: true,
+                            padding: const EdgeInsets.all(12),
+                            child: Text(
+                              'Não achei o valor em "$linha". Toque para preencher.',
+                              style: texto.bodyMedium?.copyWith(fontSize: 13, color: c.atencao),
                             ),
                           )
                         : _CartaoDeLeitura(
@@ -260,8 +263,8 @@ class _LancarState extends ConsumerState<Lancar> {
                     child: TextButton.icon(
                       onPressed: _lendoComIa ? null : () => _lerComIa(semLeitura, ctx),
                       icon: _lendoComIa
-                          ? const SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                          : const Icon(Icons.auto_awesome_rounded),
+                          ? const SizedBox.square(dimension: 14, child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Icon(Icons.auto_awesome_rounded, size: 16),
                       label: Text(_lendoComIa ? 'Lendo…' : 'Tentar ler com a IA'),
                     ),
                   ),
@@ -310,38 +313,40 @@ class _CartaoDeLeitura extends StatelessWidget {
     final c = Cores.de(context);
     return Cartao(
       onTap: aoTocar,
+      padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Expanded(child: Text(l.descricao, style: texto.titleMedium, maxLines: 1, overflow: TextOverflow.ellipsis)),
+              Expanded(child: Text(l.descricao, style: texto.titleSmall, maxLines: 1, overflow: TextOverflow.ellipsis)),
+              const SizedBox(width: 8),
               Text(
                 '${l.tipo == 'entrada' ? '+' : (l.tipo == 'saida' ? '-' : '')}${reais(l.valorCentavos)}',
-                style: texto.titleMedium?.copyWith(color: l.tipo == 'entrada' ? c.positivo : c.tinta),
+                style: Textos.valor(context, tamanho: 15, cor: l.tipo == 'entrada' ? c.positivo : c.tinta),
               ),
             ],
           ),
-          const SizedBox(height: Espacos.p),
+          const SizedBox(height: 6),
           Wrap(
-            spacing: Espacos.p,
-            runSpacing: Espacos.xp,
+            spacing: 6,
+            runSpacing: 4,
             children: [
               Etiqueta(diaPorExtenso(l.data, hoje)),
-              Etiqueta(conta?.nome ?? 'sem conta', cor: conta == null ? c.atencao : null),
+              Etiqueta(conta?.nome ?? 'sem conta', tom: conta == null ? Tom.atencao : Tom.neutro),
               if (l.tipo == 'transferencia')
-                Etiqueta('→ ${destino?.nome ?? 'sem destino'}', cor: destino == null ? c.atencao : null)
+                Etiqueta('→ ${destino?.nome ?? 'sem destino'}', tom: destino == null ? Tom.atencao : Tom.neutro)
               else
-                Etiqueta(categoria?.nome ?? 'sem categoria'),
-              if (l.parcelas != null) Etiqueta('${l.parcelas}x'),
-              if (l.recorrente) const Etiqueta('todo mês'),
-              if (!l.efetivado) const Etiqueta('agendado'),
+                Etiqueta(categoria?.nome ?? 'sem categoria', tom: categoria == null ? Tom.neutro : Tom.primario),
+              if (l.parcelas != null) Etiqueta('${l.parcelas}x', tom: Tom.calor),
+              if (l.recorrente) const Etiqueta('todo mês', tom: Tom.calor),
+              if (!l.efetivado) const Etiqueta('agendado', tom: Tom.calor),
             ],
           ),
-          const SizedBox(height: Espacos.p),
+          const SizedBox(height: 6),
           Text(
             l.completa ? consequencia(l, conta: conta, destino: destino) : 'Falta um detalhe. Toque para completar.',
-            style: texto.bodySmall?.copyWith(color: l.completa ? null : c.atencao),
+            style: texto.bodyMedium?.copyWith(fontSize: 13, color: l.completa ? c.tinta2 : c.atencao),
           ),
         ],
       ),

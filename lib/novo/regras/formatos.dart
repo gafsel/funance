@@ -13,6 +13,8 @@ String _milhar(int n) {
 
 /// `R$ 1.234,56`. Negativo com o sinal antes do símbolo.
 String reais(int centavos, {bool comSimbolo = true}) {
+  // Zero é sempre positivo (na web, o inteiro pode chegar como -0).
+  if (centavos == 0) centavos = 0;
   final abs = centavos.abs();
   final texto = '${_milhar(abs ~/ 100)},${(abs % 100).toString().padLeft(2, '0')}';
   return '${centavos < 0 ? '-' : ''}${comSimbolo ? 'R\$ ' : ''}$texto';

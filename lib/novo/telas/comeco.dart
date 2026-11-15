@@ -139,7 +139,8 @@ class _TelaComecoState extends ConsumerState<TelaComeco> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('$n de 4', style: texto.bodySmall),
+                Text('PERGUNTA $n DE 4', style: Textos.sobrancelha(context)),
+                const SizedBox(height: 2),
                 Text(titulo, style: texto.titleMedium),
                 const SizedBox(height: Espacos.xp),
                 Text(ajuda, style: texto.bodySmall),
@@ -153,29 +154,25 @@ class _TelaComecoState extends ConsumerState<TelaComeco> {
     final valor = [FilteringTextInputFormatter.allow(RegExp(r'[-\d.,]'))];
 
     return Scaffold(
-      appBar: widget.podeVoltar ? AppBar(title: const Text('Novo espaço'), backgroundColor: c.fundo, surfaceTintColor: c.fundo) : null,
+      appBar: widget.podeVoltar ? AppBar(title: const Text('Novo espaço')) : null,
       body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 560),
-            child: ListView(
-              padding: const EdgeInsets.all(Espacos.g),
-              children: [
+        child: Pagina(
+              larguraMaxima: 520,
+              centralizada: true,
+              filhos: [
                 if (!widget.podeVoltar) ...[
-                  const Align(alignment: Alignment.centerLeft, child: Marca(tamanho: 40)),
-                  const SizedBox(height: Espacos.m),
+                  Row(children: [const Marca(tamanho: 28), const SizedBox(width: 8), Text('funances', style: Textos.marca(context, tamanho: 20))]),
+                  const SizedBox(height: Espacos.xg),
                   Text('Vamos começar', style: texto.headlineMedium),
-                  Text('Quatro perguntas. Dá para mudar tudo depois.', style: texto.bodyLarge),
+                  const SizedBox(height: 2),
+                  Text('Quatro perguntas. Dá para mudar tudo depois.', style: texto.bodyMedium?.copyWith(color: c.tinta2)),
                   const SizedBox(height: Espacos.g),
                 ],
                 pergunta(1, 'Para quem é este espaço?', 'Dinheiro pessoal e de empresa ficam em espaços separados.', [
-                  SegmentedButton<String>(
-                    segments: const [
-                      ButtonSegment(value: 'pessoal', label: Text('Para mim ou minha casa')),
-                      ButtonSegment(value: 'empresa', label: Text('Para a empresa')),
-                    ],
-                    selected: {_tipo},
-                    onSelectionChanged: (s) => setState(() => _tipo = s.first),
+                  Segmentos<String>(
+                    opcoes: const [('pessoal', 'Para mim ou minha casa'), ('empresa', 'Para a empresa')],
+                    valor: _tipo,
+                    aoMudar: (v) => setState(() => _tipo = v),
                   ),
                   const SizedBox(height: Espacos.m),
                   TextField(
@@ -230,14 +227,11 @@ class _TelaComecoState extends ConsumerState<TelaComeco> {
                     padding: const EdgeInsets.only(bottom: Espacos.m),
                     child: Text(_erro!, style: texto.bodyMedium?.copyWith(color: c.problema)),
                   ),
-                FilledButton(onPressed: _criando ? null : _criar, child: Text(_criando ? 'Criando…' : 'Começar')),
-                if (!widget.podeVoltar) ...[
-                  const SizedBox(height: Espacos.p),
-                  TextButton(onPressed: sair, child: const Text('Sair desta conta')),
-                ],
+                Acoes(filhos: [
+                  FilledButton(onPressed: _criando ? null : _criar, child: Text(_criando ? 'Criando…' : 'Começar')),
+                  if (!widget.podeVoltar) TextButton(onPressed: sair, child: const Text('Sair desta conta')),
+                ]),
               ],
-            ),
-          ),
         ),
       ),
     );
