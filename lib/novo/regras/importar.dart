@@ -266,3 +266,28 @@ Lancamento? acharCorrespondente(ItemEntrada item, Iterable<Lancamento> lancament
   }
   return melhor;
 }
+
+/// Linhas devolvidas pela leitura de um PDF, postas no formato de tabela que
+/// `lerExtrato` já entende (`dd/mm/aaaa`, descrição, valor com sinal). Assim o
+/// PDF segue o mesmo caminho do CSV: a pessoa vê o que foi lido antes de
+/// mandar para a caixa de entrada.
+String tabelaDoDocumento(Iterable<Object?> linhas) {
+  final saida = StringBuffer();
+  for (final bruta in linhas) {
+    if (bruta is! Map) continue;
+    final data = bruta['data'];
+    final descricao = bruta['descricao'];
+    final valor = bruta['valorCentavos'];
+    final tipo = bruta['tipo'];
+    if (data is! String || data.length != 10 || descricao is! String || valor is! num || valor <= 0) continue;
+    if (tipo != 'entrada' && tipo != 'saida') continue;
+    final centavos = valor.round();
+    final texto = '${centavos ~/ 100},${doisDigitos(centavos % 100)}';
+    saida.writeln([
+      '${data.substring(8, 10)}/${data.substring(5, 7)}/${data.substring(0, 4)}',
+      descricao.replaceAll(RegExp(r'[\t\r\n]+'), ' ').trim(),
+      tipo == 'saida' ? '-$texto' : texto,
+    ].join('\t'));
+  }
+  return saida.toString();
+}

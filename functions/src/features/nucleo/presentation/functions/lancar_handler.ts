@@ -6,12 +6,13 @@
 import * as admin from "firebase-admin";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { onSchedule } from "firebase-functions/v2/scheduler";
-import { AI_CALLABLE_OPTIONS_SHORT, AI_SCHEDULE_OPTIONS } from "../../../../core/config/functions.config";
+import { AI_CALLABLE_OPTIONS_SHORT, AI_DOCUMENT_CALLABLE_OPTIONS, AI_SCHEDULE_OPTIONS } from "../../../../core/config/functions.config";
 import { GEMINI_API_KEY } from "../../../../core/config/secrets";
 import { BatchOperation, commitInChunks } from "../../../../core/utils/batch.utils";
 import { isDateKey, toDateKey } from "../../../../core/utils/date_key";
 import { shiftMonthKey } from "../../../../core/utils/month_key";
 import { COLECOES, RAIZ, Serie } from "../../domain/models/modelo";
+import { DocumentoService, LIMITE_DO_PDF } from "../../domain/services/documento.service";
 import { criarEspaco as criarEspacoNoBanco, validarPedido } from "../../domain/services/espaco.service";
 import { ContextoDaFrase, FraseService, LIMITE_DE_CARACTERES } from "../../domain/services/frase.service";
 import { proximosDaSerie } from "../../domain/services/series";
@@ -67,6 +68,48 @@ export const interpretarFrase = onCall(AI_CALLABLE_OPTIONS_SHORT, async (request
     catch (error) {
         console.error("[interpretarFrase] falha na IA", error instanceof Error ? error.message : error);
         throw new HttpsError("unavailable", "Não consegui ler agora. Tente de novo ou use o modo avançado.");
+    }
+});
+
+/** Leituras de documento (PDF) por espaço e por dia. */
+export const LIMITE_DIARIO_DE_DOCUMENTOS = 20;
+
+let documentos: DocumentoService | null = null;
+
+/** Lê um extrato ou fatura em PDF e devolve as linhas; não grava nada. */
+export const lerDocumento = onCall(AI_DOCUMENT_CALLABLE_OPTIONS, async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "O usuário deve estar autenticado.");
+
+    const { espacoId, pdfBase64, hoje, ehCartao } = request.data ?? {};
+    if (typeof espacoId !== "string" || !espacoId) throw new HttpsError("invalid-argument", "Espaço é obrigatório.");
+    if (typeof pdfBase64 !== "string" || !pdfBase64 || !/^[A-Za-z0-9+/]+=*$/.test(pdfBase64.slice(0, 2000))) {
+        throw new HttpsError("invalid-argument", "Envie o PDF.");
+    }
+    if (pdfBase64.length * 3 / 4 > LIMITE_DO_PDF) throw new HttpsError("invalid-argument", "O PDF passa de 5 MB.");
+    if (!pdfBase64.startsWith("JVBER")) throw new HttpsError("invalid-argument", "O arquivo não é um PDF.");
+
+    const firestore = admin.firestore();
+    const espaco = firestore.collection(RAIZ).doc(espacoId);
+    const membro = await espaco.collection(COLECOES.membros).doc(request.auth.uid).get();
+    if (!membro.exists) throw new HttpsError("permission-denied", "Você não participa deste espaço.");
+
+    const dia = toDateKey(new Date());
+    const uso = espaco.collection("uso").doc(dia);
+    const permitido = await firestore.runTransaction(async (txn) => {
+        const atual = ((await txn.get(uso)).data()?.documentos ?? 0) as number;
+        if (atual >= LIMITE_DIARIO_DE_DOCUMENTOS) return false;
+        txn.set(uso, { documentos: atual + 1 }, { merge: true });
+        return true;
+    });
+    if (!permitido) throw new HttpsError("resource-exhausted", "Limite diário de PDFs atingido. Use o arquivo OFX ou CSV.");
+
+    documentos = documentos ?? new DocumentoService(() => GEMINI_API_KEY.value());
+    try {
+        return { linhas: await documentos.ler(pdfBase64, isDateKey(hoje) ? hoje : dia, ehCartao === true) };
+    }
+    catch (error) {
+        console.error("[lerDocumento] falha na IA", error instanceof Error ? error.message : error);
+        throw new HttpsError("unavailable", "Não consegui ler o PDF agora. Tente de novo ou use o arquivo OFX ou CSV.");
     }
 });
 

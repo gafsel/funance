@@ -1,10 +1,13 @@
 import 'dart:convert';
 
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../core/observability/app_logger.dart';
+import '../../firebase_ambiente.dart';
 import '../dados/provedores.dart';
 import '../dados/repositorio.dart';
 import '../modelo/modelos.dart';
@@ -352,6 +355,8 @@ class _ImportarState extends ConsumerState<_Importar> {
   late String? _contaId = widget.contaId;
   String? _arquivo;
   bool _enviando = false;
+  bool _lendoPdf = false;
+  String? _erroDoPdf;
 
   @override
   void dispose() {
@@ -362,11 +367,12 @@ class _ImportarState extends ConsumerState<_Importar> {
   Future<void> _abrirArquivo() async {
     final escolha = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: const ['ofx', 'csv', 'txt', 'tsv'],
+      allowedExtensions: const ['ofx', 'csv', 'txt', 'tsv', 'pdf'],
       withData: true,
     );
     final bytes = escolha?.files.single.bytes;
     if (bytes == null) return;
+    if (escolha!.files.single.name.toLowerCase().endsWith('.pdf')) return _lerPdf(escolha.files.single.name, bytes);
     String conteudo;
     try {
       conteudo = utf8.decode(bytes);
@@ -375,9 +381,55 @@ class _ImportarState extends ConsumerState<_Importar> {
       conteudo = latin1.decode(bytes);
     }
     setState(() {
-      _arquivo = escolha!.files.single.name;
+      _arquivo = escolha.files.single.name;
       _texto.text = conteudo;
     });
+  }
+
+  /// PDF não tem tabela para ler: vai para a IA do servidor, que devolve as
+  /// linhas. Elas caem no campo de texto, como se tivessem sido coladas.
+  Future<void> _lerPdf(String nome, List<int> bytes) async {
+    final espaco = ref.read(espacoAtualProvider);
+    final conta = (ref.read(contasProvider).valueOrNull ?? const <Conta>[]).where((c) => c.id == _contaId).firstOrNull;
+    if (espaco == null) return;
+    if (conta == null) return setState(() => _erroDoPdf = 'Escolha a conta antes de abrir o PDF.');
+    if (bytes.length > 5 * 1024 * 1024) return setState(() => _erroDoPdf = 'O PDF passa de 5 MB.');
+    setState(() {
+      _lendoPdf = true;
+      _erroDoPdf = null;
+      _arquivo = nome;
+    });
+    try {
+      final resposta = await funcoesDoAmbiente.httpsCallable('lerDocumento').call<Map<Object?, Object?>>({
+        'espacoId': espaco.id,
+        'pdfBase64': base64Encode(bytes),
+        'hoje': ref.read(hojeProvider),
+        'ehCartao': conta.ehCartao,
+      });
+      final tabela = tabelaDoDocumento(resposta.data['linhas'] as List? ?? const []);
+      if (!mounted) return;
+      setState(() {
+        _lendoPdf = false;
+        _texto.text = tabela;
+        if (tabela.isEmpty) _erroDoPdf = 'Não achei movimentações nesse PDF.';
+      });
+    } on FirebaseFunctionsException catch (erro, pilha) {
+      AppLogger.error('Leitura de PDF falhou', erro, pilha);
+      if (mounted) {
+        setState(() {
+          _lendoPdf = false;
+          _erroDoPdf = erro.message ?? 'Não consegui ler o PDF agora.';
+        });
+      }
+    } catch (erro, pilha) {
+      AppLogger.error('Leitura de PDF falhou', erro, pilha);
+      if (mounted) {
+        setState(() {
+          _lendoPdf = false;
+          _erroDoPdf = 'Não consegui ler o PDF agora. Tente de novo ou use o arquivo OFX ou CSV.';
+        });
+      }
+    }
   }
 
   Future<void> _enviar(Repositorio repo, ResultadoDaImportacao lido, Conta conta) async {
@@ -457,13 +509,27 @@ class _ImportarState extends ConsumerState<_Importar> {
               const SizedBox(height: Espacos.m),
               Row(children: [
                 OutlinedButton.icon(
-                  onPressed: _abrirArquivo,
+                  onPressed: _lendoPdf ? null : _abrirArquivo,
                   icon: const Icon(Icons.folder_open_rounded),
-                  label: const Text('Abrir arquivo (OFX ou CSV)'),
+                  label: const Text('Abrir arquivo (PDF, OFX ou CSV)'),
                 ),
                 const SizedBox(width: Espacos.m),
                 if (_arquivo != null) Expanded(child: Text(_arquivo!, maxLines: 1, overflow: TextOverflow.ellipsis, style: texto.bodySmall)),
               ]),
+              const SizedBox(height: Espacos.p),
+              if (_lendoPdf)
+                Row(children: [
+                  const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                  const SizedBox(width: Espacos.m),
+                  Expanded(child: Text('Lendo o PDF. Pode levar até um minuto.', style: texto.bodySmall)),
+                ])
+              else if (_erroDoPdf != null)
+                Text(_erroDoPdf!, style: texto.bodySmall?.copyWith(color: c.atencao))
+              else
+                Text(
+                  'PDF é lido pela IA do Google no servidor e não fica guardado. Confira as linhas antes de mandar.',
+                  style: texto.bodySmall,
+                ),
               const SizedBox(height: Espacos.m),
               TextField(
                 controller: _texto,

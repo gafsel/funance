@@ -102,4 +102,20 @@ OFXHEADER:100
     expect(acharCorrespondente(item, candidatos)?.id, 'agendado');
     expect(acharCorrespondente(item, candidatos, usados: {'agendado'}), isNull);
   });
+
+  test('linhas lidas de um PDF viram a mesma tabela do CSV', () {
+    final tabela = tabelaDoDocumento([
+      {'data': '2026-11-03', 'descricao': 'Mercado\tBom', 'valorCentavos': 4590, 'tipo': 'saida'},
+      {'data': '2026-11-05', 'descricao': 'Salário', 'valorCentavos': 650000, 'tipo': 'entrada'},
+      {'data': '2026-11-05', 'descricao': 'Sem sentido', 'valorCentavos': 100, 'tipo': 'outro'},
+      'lixo',
+    ]);
+    expect(tabela, '03/11/2026\tMercado Bom\t-45,90\n05/11/2026\tSalário\t6500,00\n');
+
+    final lido = lerExtrato(tabela, contaId: 'cc', hoje: '2026-11-15');
+    expect(lido.itens.map((i) => (i.data, i.descricao, i.valorCentavos, i.tipo)), [
+      ('2026-11-03', 'Mercado Bom', 4590, 'saida'),
+      ('2026-11-05', 'Salário', 650000, 'entrada'),
+    ]);
+  });
 }
