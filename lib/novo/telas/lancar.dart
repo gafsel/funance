@@ -37,6 +37,8 @@ class _LancarState extends ConsumerState<Lancar> {
 
   /// Ajustes feitos à mão ou vindos da IA, por linha digitada.
   final _ajustes = <String, Leitura>{};
+  /// (linha, leitura) em edição no formulário completo; `null` = modo texto.
+  (String, Leitura)? _emDetalhe;
   bool _lendoComIa = false;
   bool _salvando = false;
   String? _aviso;
@@ -107,27 +109,15 @@ class _LancarState extends ConsumerState<Lancar> {
     }
   }
 
-  Future<void> _detalhar(String linha, Leitura? leitura, ContextoDeLeitura ctx) async {
-    final ajustada = await Navigator.of(context).push<Leitura>(MaterialPageRoute(
-      fullscreenDialog: true,
-      builder: (_) => FormularioAvancado(
-        inicial: leitura ??
-            Leitura(tipo: 'saida', descricao: linha, valorCentavos: 0, data: ctx.hoje, contaId: ctx.contaPadraoId, original: linha),
-        contas: ctx.contas,
-        categorias: ctx.categorias,
-        hoje: ctx.hoje,
-        contrapartes: (ref.read(espacoAtualProvider)?.ehEmpresa ?? false)
-            ? (ref.read(contrapartesProvider).valueOrNull ?? const <Contraparte>[])
-            : null,
-        aoCriarContraparte: (nome, tipo) async {
-          final id = _uuid.v4();
-          await ref.read(repositorioProvider)?.gravarContraparte(id, nome: nome, tipo: tipo);
-          return Contraparte(id: id, nome: nome, tipo: tipo);
-        },
-      ),
-    ));
-    if (ajustada != null) setState(() => _ajustes[linha] = ajustada);
-  }
+  /// Abre o formulário completo DENTRO desta folha: para ajustar uma linha
+  /// do texto, ou para lançar direto pelo modo avançado (linha vazia).
+  void _detalhar(String linha, Leitura? leitura, ContextoDeLeitura ctx) => setState(() {
+        _emDetalhe = (
+          linha,
+          leitura ??
+              Leitura(tipo: 'saida', descricao: linha, valorCentavos: 0, data: ctx.hoje, contaId: ctx.contaPadraoId, original: linha),
+        );
+      });
 
   Future<void> _salvar(List<Leitura> prontas, ContextoDeLeitura ctx) async {
     final repo = ref.read(repositorioProvider);
@@ -177,6 +167,7 @@ class _LancarState extends ConsumerState<Lancar> {
           );
     final texto = Theme.of(context).textTheme;
     final c = Cores.de(context);
+    final emDetalhe = _emDetalhe;
     final itens = _itens(ctx);
     final prontas = [for (final (_, l) in itens) if (l != null && l.completa) l];
     final semLeitura = [for (final (linha, l) in itens) if (l == null) linha];
@@ -192,17 +183,53 @@ class _LancarState extends ConsumerState<Lancar> {
           Row(
             children: [
               Expanded(child: Text('Lançar', style: texto.titleLarge)),
-              TextButton.icon(
-                onPressed: () => _detalhar('', null, ctx).then((_) {
-                  final l = _ajustes.remove('');
-                  if (l != null && l.completa) _salvar([l], ctx);
-                }),
-                icon: const Icon(Icons.tune_rounded, size: 16),
-                label: const Text('Modo avançado'),
+              Segmentos<String>(
+                largo: false,
+                opcoes: const [('texto', 'Por texto'), ('avancado', 'Avançado')],
+                valor: emDetalhe == null ? 'texto' : 'avancado',
+                aoMudar: (v) => v == 'texto' ? setState(() => _emDetalhe = null) : _detalhar('', null, ctx),
               ),
             ],
           ),
-          const SizedBox(height: Espacos.p),
+          const SizedBox(height: Espacos.m),
+          if (emDetalhe != null) ...[
+            if (emDetalhe.$1.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: Espacos.p),
+                child: Text('Ajustando "${emDetalhe.$1}"', maxLines: 1, overflow: TextOverflow.ellipsis, style: texto.bodySmall),
+              ),
+            Expanded(
+              child: FormularioAvancado(
+                // Um formulário novo a cada linha aberta.
+                key: ValueKey('detalhe-${emDetalhe.$1}'),
+                inicial: emDetalhe.$2,
+                contas: ctx.contas,
+                categorias: ctx.categorias,
+                hoje: ctx.hoje,
+                rotuloDeSalvar: emDetalhe.$1.isEmpty ? 'Salvar lançamento' : 'Pronto',
+                contrapartes: (ref.watch(espacoAtualProvider)?.ehEmpresa ?? false)
+                    ? (ref.watch(contrapartesProvider).valueOrNull ?? const <Contraparte>[])
+                    : null,
+                aoCriarContraparte: (nome, tipo) async {
+                  final id = _uuid.v4();
+                  await ref.read(repositorioProvider)?.gravarContraparte(id, nome: nome, tipo: tipo);
+                  return Contraparte(id: id, nome: nome, tipo: tipo);
+                },
+                aoConcluir: (leitura) {
+                  final linha = emDetalhe.$1;
+                  if (linha.isEmpty) {
+                    // Modo avançado puro: salva direto.
+                    if (leitura.completa) _salvar([leitura], ctx);
+                  } else {
+                    setState(() {
+                      _ajustes[linha] = leitura;
+                      _emDetalhe = null;
+                    });
+                  }
+                },
+              ),
+            ),
+          ] else ...[
           TextField(
             controller: _texto,
             autofocus: true,
@@ -273,6 +300,7 @@ class _LancarState extends ConsumerState<Lancar> {
                 ? 'Salvar'
                 : (prontas.length == 1 ? 'Salvar ${reais(prontas.single.valorCentavos)}' : 'Salvar ${prontas.length} lançamentos')),
           ),
+          ],
         ],
       ),
     );

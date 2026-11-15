@@ -41,6 +41,7 @@ class Conta {
     this.apelido,
     this.conferidoAte,
     this.conferidoSaldoCentavos,
+    this.faturasConferidas = const {},
   });
 
   final String id;
@@ -56,6 +57,10 @@ class Conta {
   /// app batia com o do banco.
   final String? conferidoAte;
   final int? conferidoSaldoCentavos;
+
+  /// Faturas de cartão já conferidas com a do banco: id da fatura → total
+  /// que batia quando foi conferida.
+  final Map<String, int> faturasConferidas;
 
   bool get conjunta => donos.length > 1;
 
@@ -89,6 +94,12 @@ class Conta {
         apelido: _texto(m['apelido']),
         conferidoAte: _texto(m['conferidoAte']),
         conferidoSaldoCentavos: _inteiro(m['conferidoSaldoCentavos']),
+        faturasConferidas: m['faturasConferidas'] is Map
+            ? {
+                for (final e in (m['faturasConferidas'] as Map).entries)
+                  if (_inteiro(e.value) != null) '${e.key}': _inteiro(e.value)!,
+              }
+            : const {},
       );
 }
 

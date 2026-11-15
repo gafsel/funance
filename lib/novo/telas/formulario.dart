@@ -203,7 +203,13 @@ class FormularioAvancado extends ConsumerStatefulWidget {
     this.rotuloDeSalvar = 'Pronto',
     this.contrapartes,
     this.aoCriarContraparte,
+    this.aoConcluir,
   });
+
+  /// Com isto, o formulário não é uma tela: é só o conteúdo, para ficar
+  /// dentro de uma folha que já está aberta. Em vez de fechar a tela, ele
+  /// devolve a leitura por aqui.
+  final void Function(Leitura)? aoConcluir;
 
   /// Clientes e fornecedores do espaço. `null` esconde o campo (espaço
   /// pessoal).
@@ -312,17 +318,20 @@ class _FormularioAvancadoState extends ConsumerState<FormularioAvancado> {
     if (_repetir == 'parcelado' && (parcelas == null || parcelas < 2 || parcelas > 120)) {
       return setState(() => _erro = 'Parcelas: de 2 a 120.');
     }
-    Navigator.pop(
-      context,
-      _l.copiar(
-        valorCentavos: valor,
-        descricao: _descricao.text.trim(),
-        parcelas: () => parcelas,
-        recorrente: _repetir == 'mensal',
-        categoriaId: () => _l.tipo == 'transferencia' ? null : _l.categoriaId,
-        contaDestinoId: () => _l.tipo == 'transferencia' ? _l.contaDestinoId : null,
-      ),
+    final pronta = _l.copiar(
+      valorCentavos: valor,
+      descricao: _descricao.text.trim(),
+      parcelas: () => parcelas,
+      recorrente: _repetir == 'mensal',
+      categoriaId: () => _l.tipo == 'transferencia' ? null : _l.categoriaId,
+      contaDestinoId: () => _l.tipo == 'transferencia' ? _l.contaDestinoId : null,
     );
+    final concluir = widget.aoConcluir;
+    if (concluir != null) {
+      concluir(pronta);
+    } else {
+      Navigator.pop(context, pronta);
+    }
   }
 
   @override
@@ -349,12 +358,7 @@ class _FormularioAvancadoState extends ConsumerState<FormularioAvancado> {
           ),
         );
 
-    return Scaffold(
-      appBar: AppBar(title: Text(widget.titulo)),
-      body: Pagina(
-        larguraMaxima: 520,
-        centralizada: true,
-        filhos: [
+    final campos = <Widget>[
               Segmentos<String>(
                 opcoes: const [('saida', 'Saída'), ('entrada', 'Entrada'), ('transferencia', 'Transferência')],
                 valor: _l.tipo,
@@ -448,8 +452,14 @@ class _FormularioAvancadoState extends ConsumerState<FormularioAvancado> {
               ],
               const SizedBox(height: Espacos.xg),
               Acoes(filhos: [FilledButton(onPressed: _salvar, child: Text(widget.rotuloDeSalvar))]),
-        ],
-      ),
+    ];
+
+    if (widget.aoConcluir != null) {
+      return ListView(padding: EdgeInsets.zero, children: campos);
+    }
+    return Scaffold(
+      appBar: AppBar(title: Text(widget.titulo)),
+      body: Pagina(larguraMaxima: 520, centralizada: true, filhos: campos),
     );
   }
 }
