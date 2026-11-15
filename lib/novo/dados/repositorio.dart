@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
 import 'package:rxdart/rxdart.dart';
 
+import '../../core/observability/app_logger.dart';
 import '../modelo/modelos.dart';
 import '../regras/faturas.dart';
 import '../regras/formatos.dart';
@@ -116,9 +116,9 @@ class Repositorio {
       final faturas = await _col('faturas').where('contaId', isEqualTo: destino).get();
       final paga = faturaQueOPagamentoQuita([for (final d in faturas.docs) Fatura.deMapa(d.id, d.data())], l.dia);
       return paga == null ? l : l.copiar(pagaFaturaId: () => paga.id);
-    } catch (erro) {
+    } catch (erro, pilha) {
       // Sem rede: grava como está; a fatura mostra o aviso para corrigir.
-      debugPrint('Não deu para achar a fatura do pagamento ${l.id}: $erro');
+      AppLogger.error('Não deu para achar a fatura do pagamento ${l.id}', erro, pilha);
       return l;
     }
   }
