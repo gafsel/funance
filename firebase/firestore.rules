@@ -622,6 +622,91 @@ service cloud.firestore {
         );
     }
 
+    // ===== Funances 2 =====
+    //
+    // Modelo novo, em `espacos/{espacoId}`. O que o servidor calcula (dias de
+    // saldo, resumos, faturas) é só leitura para o app; o registro interno do
+    // motor (`aplicados`) não é lido por ninguém.
+
+    function ehMembro(espacoId) {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/espacos/$(espacoId)/membros/$(request.auth.uid));
+    }
+
+    function ehDono(espacoId) {
+      return request.auth != null &&
+        get(/databases/$(database)/documents/espacos/$(espacoId)/membros/$(request.auth.uid)).data.papel == 'dono';
+    }
+
+    function ehCentavos(value) {
+      return value is int && value >= 0 && value < 100000000000000;
+    }
+
+    function ehDia(value) {
+      return value is string && value.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+    }
+
+    function lancamentoValido(data) {
+      return data.tipo in ['entrada', 'saida', 'transferencia']
+        && data.situacao in ['previsto', 'efetivado', 'cancelado']
+        && isStr(data.contaId, 200)
+        && ehDia(data.data)
+        && (data.get('dataEfetiva', null) == null || ehDia(data.dataEfetiva))
+        && (data.get('previstoCentavos', null) == null || ehCentavos(data.previstoCentavos))
+        && (data.get('realizadoCentavos', null) == null || ehCentavos(data.realizadoCentavos))
+        && (data.situacao != 'efetivado' || (data.get('realizadoCentavos', null) != null && data.get('dataEfetiva', null) != null))
+        && (data.tipo != 'transferencia' || (isStr(data.get('contaDestinoId', null), 200) && data.contaDestinoId != data.contaId))
+        && isOptStr(data, 'descricao', 500);
+    }
+
+    function contaValida(data) {
+      return data.tipo in ['corrente', 'dinheiro', 'cartao', 'investimento', 'divida']
+        && isStr(data.nome, 200)
+        && data.saldoInicialCentavos is int
+        && (data.get('saldoInicialData', null) == null || ehDia(data.saldoInicialData))
+        && isOptInt(data, 'diaFechamento', 1, 31)
+        && isOptInt(data, 'diaVencimento', 1, 31);
+    }
+
+    match /espacos/{espacoId} {
+      // O espaço e os seus membros são criados pelo servidor (migração hoje;
+      // o começo guiado, na etapa 5).
+      allow read: if ehMembro(espacoId);
+      allow write: if false;
+
+      match /membros/{uid} {
+        allow read: if ehMembro(espacoId);
+        allow write: if false;
+      }
+
+      match /lancamentos/{id} {
+        allow read, delete: if ehMembro(espacoId);
+        allow create, update: if ehMembro(espacoId) && lancamentoValido(request.resource.data);
+      }
+
+      match /contas/{contaId} {
+        allow read: if ehMembro(espacoId);
+        allow create, update: if ehMembro(espacoId) && contaValida(request.resource.data);
+        // Conta com histórico é arquivada, não apagada.
+        allow delete: if false;
+
+        match /dias/{dia} {
+          allow read: if ehMembro(espacoId);
+          allow write: if false;
+        }
+      }
+
+      match /{colecao}/{id} {
+        allow read, write: if ehMembro(espacoId)
+          && colecao in ['series', 'categorias', 'metas', 'caminho', 'contrapartes', 'entrada', 'lotes', 'regras', 'fechamentos'];
+        allow read: if ehMembro(espacoId) && colecao in ['faturas', 'resumos'];
+      }
+    }
+
+    match /usuarios/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
