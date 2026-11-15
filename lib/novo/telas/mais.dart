@@ -99,6 +99,12 @@ class TelaMais extends ConsumerWidget {
             aoTocar: () => abrirCategorias(context),
           ),
           Linha(
+            titulo: 'Organização financeira',
+            detalhe: 'Renda, gastos fixos e um limite saudável por categoria',
+            direita: seta,
+            aoTocar: () => Navigator.of(context).pushNamed(caminhoDaOrganizacao),
+          ),
+          Linha(
             titulo: 'Revisão da semana',
             detalhe: 'Cinco minutos para nada se acumular',
             direita: seta,

@@ -9,6 +9,7 @@ import '../regras/formatos.dart';
 import '../regras/metas.dart';
 import '../tema/tema_novo.dart';
 import 'casca.dart';
+import 'cenario.dart';
 import 'conta.dart';
 import 'detalhe.dart';
 import 'fatura.dart';
@@ -29,8 +30,20 @@ class TelaInicio extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final mesa = ehMesa(context);
     const espaco = SizedBox(height: Espacos.g);
-    final esquerda = <Widget>[const _Heroi(), espaco, const _CampoRapido(), const _AVencer()];
-    final direita = <Widget>[const _Passo(), const _Avisos(), const _MetasResumo(), const _Contas()];
+    // A foto do mês: o que dá para gastar, quanto já tem destino, onde está
+    // apertado, os cartões e o que vence. O resto é expansão.
+    final esquerda = <Widget>[
+      const _Heroi(),
+      const FraseDoCenario(),
+      espaco,
+      const _CampoRapido(),
+      const ConviteParaOrganizar(),
+      const BlocoDoComprometimento(),
+      const BlocoDoQuantoAindaDa(),
+      const _Contas(mostrarContas: false),
+      const BlocoDasPendencias(),
+    ];
+    final direita = <Widget>[const _Passo(), const _Avisos(), const _MetasResumo(), const _Contas(mostrarCartoes: false)];
     const ultimos = _Ultimos();
 
     // Tela larga: três colunas. O que se faz agora, o que orienta, e as contas.
@@ -46,7 +59,7 @@ class TelaInicio extends ConsumerWidget {
               child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [_Passo(), _Avisos(), _MetasResumo()]),
             ),
             const SizedBox(width: Espacos.xg),
-            const Expanded(flex: 4, child: _Contas(semTopo: true)),
+            const Expanded(flex: 4, child: _Contas(semTopo: true, mostrarCartoes: false)),
           ],
         ),
       ]);
@@ -172,65 +185,6 @@ class _CampoRapido extends StatelessWidget {
           ]),
         ),
       ),
-    );
-  }
-}
-
-/// O que vence nos próximos sete dias, mais o que já venceu.
-class _AVencer extends ConsumerWidget {
-  const _AVencer();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final hoje = ref.watch(hojeProvider);
-    final mes = hoje.substring(0, 7);
-    final contas = {for (final x in ref.watch(contasProvider).valueOrNull ?? const <Conta>[]) x.id: x};
-    final categorias = {for (final x in ref.watch(categoriasProvider).valueOrNull ?? const <Categoria>[]) x.id: x};
-    final doMes = ref.watch(lancamentosDoMesProvider(mes)).valueOrNull ?? const <Lancamento>[];
-    final atrasados = ref.watch(atrasadosProvider).valueOrNull ?? const <Lancamento>[];
-    final limite = somarDias(hoje, 7);
-    final itens = {
-      for (final l in atrasados) l.id: l,
-      for (final l in doMes)
-        if (l.previsto && l.data.compareTo(limite) <= 0) l.id: l,
-    }.values.toList()
-      ..sort((a, b) => a.data.compareTo(b.data));
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        TituloDeSecao('A vencer', detalhe: itens.isEmpty ? null : '${itens.length} em aberto'),
-        if (itens.isEmpty)
-          const Cartao(padding: EdgeInsets.zero, child: Vazio('Nada a pagar ou receber nos próximos sete dias.'))
-        else
-          Lista(filhos: [
-            for (final l in itens.take(6))
-              LinhaDeLancamento(
-                lancamento: l,
-                hoje: hoje,
-                conta: contas[l.contaId],
-                destino: contas[l.contaDestinoId],
-                categoria: categorias[l.categoriaId],
-                onTap: () => abrirLancamento(context, ref, l),
-                acao: BotaoPequeno(
-                  l.ehEntrada ? 'Recebi' : 'Paguei',
-                  aoTocar: () async {
-                    final repo = ref.read(repositorioProvider);
-                    if (repo == null) return;
-                    final mensageiro = ScaffoldMessenger.of(context);
-                    await repo.efetivar(l, dia: hoje);
-                    mensageiro
-                      ..clearSnackBars()
-                      ..showSnackBar(SnackBar(
-                        duration: const Duration(seconds: 8),
-                        content: Text(l.ehEntrada ? 'Marcado como recebido hoje.' : 'Marcado como pago hoje.'),
-                        action: SnackBarAction(label: 'Desfazer', onPressed: () => repo.gravar(l)),
-                      ));
-                  },
-                ),
-              ),
-          ]),
-      ],
     );
   }
 }
@@ -409,7 +363,11 @@ class _MetasResumo extends ConsumerWidget {
 }
 
 class _Contas extends ConsumerWidget {
-  const _Contas({this.semTopo = false});
+  const _Contas({this.semTopo = false, this.mostrarContas = true, this.mostrarCartoes = true});
+
+  /// O início mostra os cartões junto da foto do mês e as contas à parte.
+  final bool mostrarContas;
+  final bool mostrarCartoes;
 
   /// Primeira coisa da coluna: o título não precisa de respiro em cima.
   final bool semTopo;
@@ -446,6 +404,7 @@ class _Contas extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (mostrarContas) ...[
         TituloDeSecao('Contas', semTopo: semTopo),
         if (outras.isEmpty)
           const Cartao(padding: EdgeInsets.zero, child: Vazio('Nenhuma conta cadastrada.'))
@@ -463,7 +422,8 @@ class _Contas extends ConsumerWidget {
                 ),
               ),
           ]),
-        if (cartoes.isNotEmpty) ...[
+        ],
+        if (mostrarCartoes && cartoes.isNotEmpty) ...[
           const TituloDeSecao('Cartões'),
           Lista(filhos: [
             for (final x in cartoes)

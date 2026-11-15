@@ -15,6 +15,7 @@ import { COLECOES, RAIZ, Serie } from "../../domain/models/modelo";
 import { AvisosService, enviarPorFcm } from "../../domain/services/avisos.service";
 import { DocumentoService, LIMITE_DO_PDF } from "../../domain/services/documento.service";
 import { criarEspaco as criarEspacoNoBanco, validarPedido } from "../../domain/services/espaco.service";
+import { lerPedido, OrganizacaoService } from "../../domain/services/organizacao.service";
 import { ContextoDaFrase, FraseService, LIMITE_DE_CARACTERES } from "../../domain/services/frase.service";
 import { proximosDaSerie } from "../../domain/services/series";
 
@@ -111,6 +112,46 @@ export const lerDocumento = onCall(AI_DOCUMENT_CALLABLE_OPTIONS, async (request)
     catch (error) {
         console.error("[lerDocumento] falha na IA", error instanceof Error ? error.message : error);
         throw new HttpsError("unavailable", "Não consegui ler o PDF agora. Tente de novo ou use o arquivo OFX ou CSV.");
+    }
+});
+
+/** Sugestões de organização (IA) por espaço e por dia. */
+export const LIMITE_DIARIO_DE_ORGANIZACOES = 10;
+
+let organizacoes: OrganizacaoService | null = null;
+
+/** Apontamento e limites sugeridos pela IA para a organização financeira; não grava nada. */
+export const sugerirOrganizacao = onCall(AI_CALLABLE_OPTIONS_SHORT, async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "O usuário deve estar autenticado.");
+
+    const espacoId = request.data?.espacoId;
+    if (typeof espacoId !== "string" || !espacoId) throw new HttpsError("invalid-argument", "Espaço é obrigatório.");
+    const pedido = lerPedido(request.data);
+    if (!pedido) throw new HttpsError("invalid-argument", "Informe renda, teto e as categorias.");
+
+    const firestore = admin.firestore();
+    const espaco = firestore.collection(RAIZ).doc(espacoId);
+    const membro = await espaco.collection(COLECOES.membros).doc(request.auth.uid).get();
+    if (!membro.exists) throw new HttpsError("permission-denied", "Você não participa deste espaço.");
+
+    const uso = espaco.collection("uso").doc(toDateKey(new Date()));
+    const permitido = await firestore.runTransaction(async (txn) => {
+        const atual = ((await txn.get(uso)).data()?.organizacoes ?? 0) as number;
+        if (atual >= LIMITE_DIARIO_DE_ORGANIZACOES) return false;
+        txn.set(uso, { organizacoes: atual + 1 }, { merge: true });
+        return true;
+    });
+    if (!permitido) throw new HttpsError("resource-exhausted", "Limite diário de sugestões atingido.");
+
+    organizacoes = organizacoes ?? new OrganizacaoService(() => GEMINI_API_KEY.value());
+    try {
+        const sugestao = await organizacoes.sugerir(pedido);
+        if (!sugestao) throw new Error("resposta sem aproveitamento");
+        return sugestao;
+    }
+    catch (error) {
+        console.error("[sugerirOrganizacao] falha na IA", error instanceof Error ? error.message : error);
+        throw new HttpsError("unavailable", "Não consegui gerar a sugestão agora.");
     }
 });
 

@@ -11,6 +11,7 @@ const caminhoDoInicio = '/';
 const caminhoDasCategorias = '/categorias';
 const caminhoDaDistribuicao = '/distribuicao';
 const caminhoDaRevisao = '/revisao';
+const caminhoDaOrganizacao = '/organizar';
 
 /// No celular, Empresa e Relatórios abrem a partir de "Mais".
 const caminhoDaEmpresaNoCelular = '/mais/empresa';
