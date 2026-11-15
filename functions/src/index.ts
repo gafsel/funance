@@ -62,3 +62,4 @@ export * from "./features/coaching/presentation/functions/coaching_scheduler";
 export * from "./features/goal/presentation/functions/gamification_handler";
 export * from "./features/health/presentation/functions/health_handler";
 export * from "./features/nucleo/presentation/functions/motor_handler";
+export * from "./features/nucleo/presentation/functions/lancar_handler";

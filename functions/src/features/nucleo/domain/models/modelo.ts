@@ -54,6 +54,8 @@ export interface Espaco {
 export type Papel = "dono" | "convidado";
 
 export interface Membro {
+    /** Repete o id do documento, para a consulta "meus espaços". */
+    uid: string;
     papel: Papel;
     entrada: Date | null;
 }

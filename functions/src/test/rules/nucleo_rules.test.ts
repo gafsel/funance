@@ -7,7 +7,7 @@ import {
     initializeTestEnvironment,
     RulesTestEnvironment,
 } from "@firebase/rules-unit-testing";
-import { deleteDoc, doc, getDoc, setDoc, setLogLevel } from "firebase/firestore";
+import { collectionGroup, deleteDoc, doc, getDoc, getDocs, query, setDoc, setLogLevel, where } from "firebase/firestore";
 
 /** Rules do modelo novo (`espacos/`), contra o emulador. */
 
@@ -40,8 +40,9 @@ describe("rules do Funances 2", () => {
         await env.withSecurityRulesDisabled(async (ctx) => {
             const admin = ctx.firestore();
             await setDoc(doc(admin, `espacos/${ESPACO}`), { nome: "Casa", tipo: "pessoal" });
-            await setDoc(doc(admin, caminho(`membros/${DONO}`)), { papel: "dono" });
-            await setDoc(doc(admin, caminho(`membros/${CONVIDADO}`)), { papel: "convidado" });
+            await setDoc(doc(admin, caminho(`membros/${DONO}`)), { uid: DONO, papel: "dono" });
+            await setDoc(doc(admin, caminho(`membros/${CONVIDADO}`)), { uid: CONVIDADO, papel: "convidado" });
+            await setDoc(doc(admin, caminho("uso/2026-03-12")), { frases: 1 });
             await setDoc(doc(admin, caminho("resumos/2026-03")), { saidas: { realizadoCentavos: 1 } });
             await setDoc(doc(admin, caminho("aplicados/l_x")), { celulas: [] });
             await setDoc(doc(admin, caminho("contas/cc")), { nome: "Corrente", tipo: "corrente", saldoInicialCentavos: 0 });
@@ -87,6 +88,15 @@ describe("rules do Funances 2", () => {
         await assertFails(deleteDoc(doc(db(DONO), caminho("contas/cc"))));
         await assertFails(setDoc(doc(db(DONO), `espacos/${ESPACO}`), { nome: "Outro" }));
         await assertFails(setDoc(doc(db(DONO), caminho(`membros/${DE_FORA}`)), { papel: "dono" }));
+    });
+
+    it("cada pessoa lista só os próprios vínculos", async () => {
+        const meus = (uid: string, alvo: string) =>
+            getDocs(query(collectionGroup(db(uid), "membros"), where("uid", "==", alvo)));
+        expect((await assertSucceeds(meus(DONO, DONO))).size).toBe(1);
+        await assertFails(meus(DE_FORA, DONO));
+        await assertFails(getDocs(collectionGroup(db(DONO), "membros")));
+        await assertFails(getDoc(doc(db(DONO), caminho("uso/2026-03-12"))));
     });
 
     it("membro grava nas coleções de apoio", async () => {

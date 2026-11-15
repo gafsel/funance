@@ -113,7 +113,7 @@ export function transformar(dados: DadosAntigos, opcoes: { hoje: string }): Tran
 
     const membros: Record<string, Membro> = {};
     (Array.isArray(ws.members) ? ws.members : []).forEach((uid: unknown, i: number) => {
-        if (typeof uid === "string") membros[uid] = { papel: i === 0 ? "dono" : "convidado", entrada: null };
+        if (typeof uid === "string") membros[uid] = { uid, papel: i === 0 ? "dono" : "convidado", entrada: null };
     });
 
     // ---- Categorias -------------------------------------------------------

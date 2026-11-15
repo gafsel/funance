@@ -11,7 +11,7 @@ describe("transformar", () => {
 
     it("espaço e membros: o primeiro da lista vira dono", () => {
         expect(novo.espaco).toMatchObject({ nome: "Casa", tipo: "pessoal", migradoDe: { projeto: "demo-antigo", workspaceId: "w1" } });
-        expect(novo.membros).toEqual({ u1: { papel: "dono", entrada: null }, u2: { papel: "convidado", entrada: null } });
+        expect(novo.membros).toEqual({ u1: { uid: "u1", papel: "dono", entrada: null }, u2: { uid: "u2", papel: "convidado", entrada: null } });
     });
 
     it("saldo inicial vira campo da conta e a parcela sintética some", () => {

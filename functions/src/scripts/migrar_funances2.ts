@@ -22,6 +22,8 @@
  *   --relatorios=<pasta>     onde gravar os relatórios (padrão: relatorios-migracao)
  *   --hoje=<YYYY-MM-DD>      data de referência (padrão: hoje no fuso do produto)
  *   --aplicar                grava no destino
+ *   --espera=<segundos>      com --aplicar num projeto com os gatilhos do motor
+ *                            publicados, espera e confere de novo (use 30)
  *   --mesmo-com-diferencas   com --aplicar, carrega mesmo havendo diferença
  *                            sem explicação ou problema (para inspecionar)
  *
@@ -55,6 +57,8 @@ export interface Opcoes {
     hoje: string;
     aplicar: boolean;
     mesmoComDiferencas: boolean;
+    /** Espera entre verificações depois da carga, para os gatilhos assentarem. */
+    esperaSegundos: number;
 }
 
 export function parseArgs(argv: string[], agora: Date = new Date()): Opcoes {
@@ -70,6 +74,7 @@ export function parseArgs(argv: string[], agora: Date = new Date()): Opcoes {
         hoje: valor("hoje")[0] ?? toDateKey(agora),
         aplicar: argv.includes("--aplicar"),
         mesmoComDiferencas: argv.includes("--mesmo-com-diferencas"),
+        esperaSegundos: Number(valor("espera")[0] ?? 0) || 0,
     };
 
     if (!opcoes.origem) throw new Error("informe --origem=<projeto>");
@@ -147,9 +152,20 @@ export async function migrarWorkspace(
     }
     await commitInChunks(destino, ops);
 
+    // Com os gatilhos do motor publicados, cada documento carregado dispara
+    // um evento. A reconstrução é repetida até uma verificação, feita depois
+    // da espera, não achar mais nada: aí os gatilhos já assentaram.
     const reconstrucao = new ReconstrucaoService(destino);
     await reconstrucao.reconstruir(workspaceId, { aplicar: true });
-    const verificacao = await reconstrucao.reconstruir(workspaceId, { aplicar: false });
+    let verificacao = await reconstrucao.reconstruir(workspaceId, { aplicar: false });
+    for (let tentativa = 0; tentativa < 6 && opcoes.esperaSegundos > 0; tentativa++) {
+        await new Promise((resolve) => setTimeout(resolve, opcoes.esperaSegundos * 1000));
+        verificacao = await reconstrucao.reconstruir(workspaceId, { aplicar: false });
+        if (verificacao.divergencias.length === 0) break;
+        log(`[${workspaceId}] gatilhos ainda assentando (${verificacao.divergencias.length} divergências); reconstruindo de novo.`);
+        await reconstrucao.reconstruir(workspaceId, { aplicar: true });
+        verificacao = await reconstrucao.reconstruir(workspaceId, { aplicar: false });
+    }
     if (verificacao.divergencias.length > 0 || verificacao.ilegiveis.length > 0) {
         throw new Error(`[${workspaceId}] derivados não fecharam após a carga: ` +
             `${verificacao.divergencias.length} divergências, ${verificacao.ilegiveis.length} lançamentos ilegíveis`);
