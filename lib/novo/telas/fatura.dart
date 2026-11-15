@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 
 import '../dados/provedores.dart';
 import '../modelo/modelos.dart';
+import '../regras/faturas.dart';
 import '../regras/formatos.dart';
 import '../tema/tema_novo.dart';
 import 'conta.dart';
@@ -16,6 +17,9 @@ import 'pecas.dart';
 
 void abrirCartao(BuildContext context, Conta cartao) =>
     Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => TelaCartao(cartao: cartao)));
+
+void abrirFatura(BuildContext context, Conta cartao, String faturaId) => Navigator.of(context)
+    .push(MaterialPageRoute<void>(builder: (_) => TelaFatura(cartao: cartao, faturaId: faturaId)));
 
 /// Faturas de um cartão: a em aberto em destaque, as outras em lista.
 class TelaCartao extends ConsumerWidget {
@@ -54,24 +58,34 @@ class TelaCartao extends ConsumerWidget {
             BotaoPequeno('Importar fatura', icone: Icons.upload_file_rounded, aoTocar: () => abrirImportacao(context, contaId: cartao.id)),
             BotaoPequeno('Extrato e titulares', aoTocar: () => abrirConta(context, cartao.id)),
           ]),
+          if (faturas.length > 1) ...[
+            const TituloDeSecao('Como as faturas variam'),
+            Cartao(child: _GraficoDeFaturas(faturas: faturas.take(12).toList().reversed.toList(), cartao: cartao, hoje: hoje)),
+          ],
           const TituloDeSecao('Faturas'),
           if (faturas.isEmpty)
             const Cartao(padding: EdgeInsets.zero, child: Vazio('Nenhuma fatura neste cartão ainda.'))
           else
             Lista(filhos: [
-              for (final f in faturas)
+              for (final (i, f) in faturas.indexed)
                 Linha(
                   titulo: 'Vence ${diaPorExtenso(f.vencimento, hoje)}',
                   detalhe: [
                     f.quitada
                         ? 'Paga'
-                        : (f.fechamento.compareTo(hoje) > 0 ? 'Aberta, fecha ${diaPorExtenso(f.fechamento, hoje)}' : 'Fechada'),
+                        : f.pagoCentavos > 0
+                            ? 'Faltam ${reais(f.abertoCentavos)}'
+                            : (f.fechamento.compareTo(hoje) > 0 ? 'Aberta, fecha ${diaPorExtenso(f.fechamento, hoje)}' : 'Fechada'),
+                    switch (variacaoPercentual(f.totalCentavos, i + 1 < faturas.length ? faturas[i + 1].totalCentavos : null)) {
+                      null || 0 => '',
+                      final v when v > 0 => '$v% a mais que a anterior',
+                      final v => '${-v}% a menos que a anterior',
+                    },
                     switch (agendadosDa(f)) { 0 => '', 1 => '1 agendado', final n => '$n agendados' },
                   ].where((p) => p.isNotEmpty).join(' · '),
                   corDoDetalhe: !f.quitada && f.vencimento.compareTo(hoje) < 0 ? c.atencao : null,
                   direita: Text(reais(f.totalCentavos), style: Textos.valor(context)),
-                  aoTocar: () => Navigator.of(context)
-                      .push(MaterialPageRoute<void>(builder: (_) => TelaFatura(cartao: cartao, faturaId: f.id))),
+                  aoTocar: () => abrirFatura(context, cartao, f.id),
                 ),
             ]),
         ],
@@ -80,9 +94,76 @@ class TelaCartao extends ConsumerWidget {
   }
 }
 
+/// As últimas faturas em barras, da mais antiga para a mais nova: mostra
+/// de relance se o cartão está subindo ou descendo. Tocar abre a fatura.
+class _GraficoDeFaturas extends StatelessWidget {
+  const _GraficoDeFaturas({required this.faturas, required this.cartao, required this.hoje});
+  final List<Fatura> faturas;
+  final Conta cartao;
+  final String hoje;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = Cores.de(context);
+    final t = Theme.of(context).textTheme;
+    final maior = faturas.fold<int>(1, (m, f) => f.totalCentavos > m ? f.totalCentavos : m);
+    final media = faturas.fold<int>(0, (s, f) => s + f.totalCentavos) ~/ faturas.length;
+    const altura = 96.0;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('Média de ${reais(media)} nas últimas ${faturas.length} faturas', style: t.bodySmall),
+        const SizedBox(height: Espacos.m),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            for (final f in faturas)
+              Expanded(
+                child: InkWell(
+                  borderRadius: Raios.p,
+                  onTap: () => abrirFatura(context, cartao, f.id),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 3),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(reaisCurtos(f.totalCentavos), style: t.labelSmall?.copyWith(color: c.tinta2)),
+                        ),
+                        const SizedBox(height: 4),
+                        Container(
+                          height: (altura * f.totalCentavos / maior).clamp(3.0, altura),
+                          constraints: const BoxConstraints(maxWidth: 56),
+                          decoration: BoxDecoration(
+                            borderRadius: Raios.p,
+                            color: f.quitada
+                                ? c.primariaSuave
+                                : (f.vencimento.compareTo(hoje) < 0 ? c.atencao : c.primaria),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(mesAbreviado(f.vencimento), style: t.labelSmall?.copyWith(color: c.tinta3)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
 /// O agendado cai nesta fatura quando a data dele está no ciclo de compras.
 bool _caiNaFatura(Lancamento l, Fatura f) =>
     l.contaId == f.contaId && l.data.compareTo(f.inicio) >= 0 && l.data.compareTo(f.fim) <= 0;
+
+final _pagamentosProvider = StreamProvider.family<List<Lancamento>, String>((ref, faturaId) {
+  final repo = ref.watch(repositorioProvider);
+  return repo == null ? Stream.value(const []) : repo.pagamentosDaFatura(faturaId);
+});
 
 final _comprasProvider = StreamProvider.family<List<Lancamento>, Fatura>((ref, fatura) {
   final repo = ref.watch(repositorioProvider);
@@ -321,6 +402,13 @@ class _TelaFaturaState extends ConsumerState<TelaFatura> {
     final compras = (ref.watch(_comprasProvider(f)).valueOrNull ?? const <Lancamento>[]).toList()
       ..sort((a, b) => b.dia.compareTo(a.dia));
     final categorias = {for (final x in ref.watch(categoriasProvider).valueOrNull ?? const <Categoria>[]) x.id: x};
+    final pagamentos = (ref.watch(_pagamentosProvider(f.id)).valueOrNull ?? const <Lancamento>[]).toList()
+      ..sort((a, b) => b.dia.compareTo(a.dia));
+    // Dinheiro mandado para o cartão sem dizer que fatura paga: está valendo
+    // como crédito neste ciclo, e provavelmente era pagamento.
+    final soltas = compras.where((l) => l.ehTransferencia && l.contaDestinoId == cartao.id).toList();
+    final todas = ref.watch(faturasProvider).valueOrNull ?? const <Fatura>[];
+    final contas = {for (final x in ref.watch(contasProvider).valueOrNull ?? const <Conta>[]) x.id: x};
     // Assinaturas e compras previstas que ainda vão entrar nesta fatura.
     final agendados = (ref.watch(previstosProvider).valueOrNull ?? const <Lancamento>[])
         .where((l) => _caiNaFatura(l, f))
@@ -360,6 +448,57 @@ class _TelaFaturaState extends ConsumerState<TelaFatura> {
         const SizedBox(height: Espacos.p),
         Text(
           'Ainda não contam no total. Com eles, a fatura vai a ${reais(f.totalCentavos + somaAgendada)}.',
+          style: t.bodySmall,
+        ),
+      ],
+    );
+
+    final avisoDeSoltas = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final l in soltas)
+          if (faturaQueOPagamentoQuita(todas.where((x) => x.contaId == cartao.id), l.dia) case final alvo?)
+            Padding(
+              padding: const EdgeInsets.only(bottom: Espacos.m),
+              child: Cartao(
+                child: Row(children: [
+                  Expanded(
+                    child: Text(
+                      '${reais(l.valorCentavos)} foram mandados para este cartão ${diaPorExtenso(l.dia, hoje)} sem dizer que fatura pagam. '
+                      'Hoje contam como crédito neste ciclo.',
+                      style: t.bodySmall,
+                    ),
+                  ),
+                  const SizedBox(width: Espacos.m),
+                  BotaoPequeno(
+                    'Pagar a de ${diaPorExtenso(alvo.vencimento, hoje)}',
+                    cheio: true,
+                    aoTocar: () => ref.read(repositorioProvider)?.gravar(l.copiar(pagaFaturaId: () => alvo.id)),
+                  ),
+                ]),
+              ),
+            ),
+      ],
+    );
+
+    final listaDePagamentos = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Lista(filhos: [
+          for (final l in pagamentos)
+            Linha(
+              antes: contas[l.contaId] == null ? null : SeloDaConta(conta: contas[l.contaId]!, membros: membros),
+              titulo: 'Pago ${diaPorExtenso(l.dia, hoje)}',
+              detalhe: contas[l.contaId]?.nome ?? '',
+              direita: Text(reais(l.valorCentavos), style: Textos.valor(context)),
+              aoTocar: () => abrirLancamento(context, ref, l),
+            ),
+        ]),
+        const SizedBox(height: Espacos.p),
+        Text(
+          f.quitada
+              ? 'Fatura quitada.'
+              : '${reais(f.pagoCentavos)} pagos de ${reais(f.totalCentavos)}. Faltam ${reais(f.abertoCentavos)}.',
           style: t.bodySmall,
         ),
       ],
@@ -518,6 +657,7 @@ class _TelaFaturaState extends ConsumerState<TelaFatura> {
             CaixaDeEntrada(contaId: cartao.id),
           ],
           const SizedBox(height: Espacos.xg),
+          if (soltas.isNotEmpty) avisoDeSoltas,
           if (mesa)
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -528,6 +668,12 @@ class _TelaFaturaState extends ConsumerState<TelaFatura> {
                     Text('Compras (${compras.length})', style: t.titleMedium),
                     const SizedBox(height: Espacos.p),
                     listaDeCompras,
+                    if (pagamentos.isNotEmpty) ...[
+                      const SizedBox(height: Espacos.xg),
+                      Text('Pagamentos (${pagamentos.length})', style: t.titleMedium),
+                      const SizedBox(height: Espacos.p),
+                      listaDePagamentos,
+                    ],
                     if (agendados.isNotEmpty) ...[
                       const SizedBox(height: Espacos.xg),
                       Text('Agendados (${agendados.length})', style: t.titleMedium),
@@ -552,6 +698,7 @@ class _TelaFaturaState extends ConsumerState<TelaFatura> {
               opcoes: [
                 ('compras', 'Compras (${compras.length})'),
                 if (agendados.isNotEmpty) ('agendados', 'Agendados (${agendados.length})'),
+                if (pagamentos.isNotEmpty) ('pagamentos', 'Pagos (${pagamentos.length})'),
                 ('categorias', 'Por categoria'),
               ],
               valor: _aba,
@@ -560,6 +707,8 @@ class _TelaFaturaState extends ConsumerState<TelaFatura> {
             const SizedBox(height: Espacos.m),
             if (_aba == 'agendados' && agendados.isNotEmpty)
               listaDeAgendados
+            else if (_aba == 'pagamentos' && pagamentos.isNotEmpty)
+              listaDePagamentos
             else if (_aba == 'categorias')
               blocoCategorias
             else

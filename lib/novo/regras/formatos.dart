@@ -88,3 +88,9 @@ String diaPorExtenso(String chave, String hoje) {
   final ano = chave.substring(0, 4) == hoje.substring(0, 4) ? '' : ' ${d.year}';
   return '${_semana[d.weekday - 1]}, ${d.day} ${_meses[d.month - 1].substring(0, 3)}$ano';
 }
+
+/// Mês em três letras de uma chave de dia ou de mês: `nov`.
+String mesAbreviado(String chave) => _meses[int.parse(chave.substring(5, 7)) - 1].substring(0, 3);
+
+/// Valor sem centavos, para rótulos apertados: `R$ 412`.
+String reaisCurtos(int centavos) => reais((centavos / 100).round() * 100).replaceFirst(RegExp(r',00$'), '');

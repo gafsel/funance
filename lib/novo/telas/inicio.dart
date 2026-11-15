@@ -481,8 +481,17 @@ class _Contas extends ConsumerWidget {
                     f == null ? 'Sem fatura em aberto' : 'Fatura ${venceu ? 'venceu' : 'vence'} ${diaPorExtenso(f.vencimento, hoje)}',
                   ),
                   corDoDetalhe: venceu ? c.atencao : null,
-                  direita: Text(reais(f?.abertoCentavos ?? 0), style: Textos.valor(context)),
-                  aoTocar: () => abrirCartao(context, x),
+                  direita: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Text(reais(f?.abertoCentavos ?? 0), style: Textos.valor(context)),
+                    IconButton(
+                      tooltip: 'Todas as faturas',
+                      visualDensity: VisualDensity.compact,
+                      icon: const Icon(Icons.more_vert_rounded, size: 20),
+                      onPressed: () => abrirCartao(context, x),
+                    ),
+                  ]),
+                  // Vai direto à fatura que pede atenção; a lista fica no ⋮.
+                  aoTocar: () => f == null ? abrirCartao(context, x) : abrirFatura(context, x, f.id),
                 );
               }),
           ]),

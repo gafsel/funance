@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:rxdart/rxdart.dart';
 
 import '../modelo/modelos.dart';
+import '../regras/faturas.dart';
 import '../regras/formatos.dart';
 import '../regras/montar.dart';
 
@@ -64,7 +66,8 @@ class Repositorio {
         batch.set(_col('series').doc(m.serieId), m.serie!);
         series.add(m.serieId!);
       }
-      for (final l in m.lancamentos) {
+      for (final bruto in m.lancamentos) {
+        final l = await _comFatura(bruto);
         batch.set(_col('lancamentos').doc(l.id), {...l.paraMapa(), 'loteId': loteId});
         ids.add(l.id);
       }
@@ -97,7 +100,34 @@ class Repositorio {
     await batch.commit();
   }
 
-  Future<void> gravar(Lancamento l) => _col('lancamentos').doc(l.id).set(l.paraMapa());
+  Future<void> gravar(Lancamento l) async =>
+      _col('lancamentos').doc(l.id).set((await _comFatura(l)).paraMapa());
+
+  /// Dinheiro mandado para um cartão é pagamento de fatura: sem isso, o
+  /// complemento de um pagamento parcial viraria crédito no ciclo atual e a
+  /// fatura antiga continuaria em aberto. Quem já diz que fatura paga fica
+  /// como está.
+  Future<Lancamento> _comFatura(Lancamento l) async {
+    final destino = l.contaDestinoId;
+    if (!l.ehTransferencia || !l.efetivado || destino == null || l.pagaFaturaId != null) return l;
+    try {
+      final conta = await _col('contas').doc(destino).get();
+      if (conta.data()?['tipo'] != 'cartao') return l;
+      final faturas = await _col('faturas').where('contaId', isEqualTo: destino).get();
+      final paga = faturaQueOPagamentoQuita([for (final d in faturas.docs) Fatura.deMapa(d.id, d.data())], l.dia);
+      return paga == null ? l : l.copiar(pagaFaturaId: () => paga.id);
+    } catch (erro) {
+      // Sem rede: grava como está; a fatura mostra o aviso para corrigir.
+      debugPrint('Não deu para achar a fatura do pagamento ${l.id}: $erro');
+      return l;
+    }
+  }
+
+  /// Pagamentos registrados para uma fatura.
+  Stream<List<Lancamento>> pagamentosDaFatura(String faturaId) => _lista(
+        _col('lancamentos').where('pagaFaturaId', isEqualTo: faturaId),
+        Lancamento.deMapa,
+      ).map((todos) => todos.where((l) => l.efetivado).toList());
 
   Future<void> apagar(String lancamentoId) => _col('lancamentos').doc(lancamentoId).delete();
 
