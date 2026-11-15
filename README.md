@@ -215,7 +215,8 @@ A credencial é o segredo `FIREBASE_SERVICE_ACCOUNT` do ambiente `testes` do
 GitHub. A conta de serviço precisa, em `funances2-testes`, dos papéis:
 Firebase Hosting Admin, Cloud Functions Admin, Service Account User, Firebase
 Rules Admin, Cloud Datastore Index Admin, Artifact Registry Writer, Cloud
-Build Editor e Secret Manager Viewer.
+Build Editor, Secret Manager Viewer, Cloud Run Admin, API Keys Viewer, Cloud
+Scheduler Admin, Firebase Storage Admin e Storage Admin.
 
 Os secrets do Gemini usados via `defineSecret` continuam no Secret Manager do
 projeto — não são configurados no GitHub.

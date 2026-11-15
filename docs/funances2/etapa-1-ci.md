@@ -1,22 +1,36 @@
 # Etapa 1: como o CI passa a publicar no projeto novo
 
-Estado em 14/11/2026: aplicado em parte. O projeto `funances2-testes` existe
-(Firestore em `southamerica-east1`, app web registrado), o `.firebaserc` e os
-workflows já apontam para ele e o build web escolhe o projeto por
-`--dart-define=AMBIENTE`. A seção "Como está hoje" descreve o estado anterior.
+Estado em 14/11/2026: aplicado. O push no `main` verifica e publica Hosting,
+Functions, rules e índices em `funances2-testes` (rodada 43656380100, toda
+verde). A seção "Como está hoje" descreve o estado anterior.
 
-Falta para o CI publicar de fato:
+O que existe no projeto de testes:
 
-- plano Blaze em `funances2-testes` (Functions exigem faturamento);
-- conta de serviço com os papéis listados abaixo e o segredo
-  `FIREBASE_SERVICE_ACCOUNT` no ambiente `testes` do GitHub;
-- `GEMINI_API_KEY` gravada em `funances2-testes`;
-- região das Functions: o código não define região (cai em `us-central1`) e o
-  Firestore novo está em `southamerica-east1`. Os gatilhos do Firestore
-  precisam estar na região do banco, então a região tem de ser definida no
-  servidor e no app antes do primeiro deploy do backend. Fica para a etapa 2,
-  junto com o motor novo;
-- projeto e workflow de produção (etapa 7).
+- Firestore e Storage em `southamerica-east1`; as 39 funções na mesma região
+  (o servidor escolhe a região pelo projeto em
+  `functions/src/core/config/region.ts`; o app, em `lib/firebase_ambiente.dart`);
+- plano Blaze; `GEMINI_API_KEY` no gerenciador de segredos;
+- conta de serviço `ci-deploy`, com a chave no segredo
+  `FIREBASE_SERVICE_ACCOUNT` do ambiente `testes` do GitHub. Papéis que o
+  deploy de fato exigiu: Firebase Hosting Admin, Cloud Functions Admin, Cloud
+  Run Admin, Service Account User, Firebase Rules Admin, Cloud Datastore Index
+  Admin, Artifact Registry Writer, Cloud Build Editor, Secret Manager Viewer,
+  API Keys Viewer, Cloud Scheduler Admin, Firebase Storage Admin e Storage
+  Admin.
+
+O que aprendemos no caminho:
+
+- a primeira publicação de um projeto novo tem de ser feita por um dono, uma
+  vez: ela ativa APIs e configura as funções de segunda geração, coisas que a
+  conta do CI não pode fazer. Vale para o projeto de produção na etapa 7;
+- o Node.js 20 foi desativado nas Cloud Functions em 30/10/2026; o servidor e
+  o CI estão em Node 22;
+- o `firebase-tools` 15 exige Java 21;
+- os testes de imagem só batem no macOS e ficam fora do CI (tag `golden`).
+
+Ainda não existe: login configurado em `funances2-testes` (o app web
+publicado abre e não entra), apps Android, iOS e macOS no projeto novo, e o
+projeto e o workflow de produção (etapa 7).
 
 Diferença em relação à proposta: o padrão de `AMBIENTE` num build local é
 `legado`, e não `testes`, porque só o projeto antigo tem Android, iOS e macOS

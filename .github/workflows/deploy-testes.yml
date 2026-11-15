@@ -75,7 +75,9 @@ jobs:
       # funances2-testes, dos papéis: Firebase Hosting Admin, Cloud Functions
       # Admin, Service Account User, Firebase Rules Admin, Cloud Datastore
       # Index Admin, Artifact Registry Writer, Cloud Build Editor e Secret
-      # Manager Viewer (o deploy confere que GEMINI_API_KEY existe).
+      # Manager Viewer (o deploy confere que GEMINI_API_KEY existe), Cloud Run
+      # Admin, API Keys Viewer, Cloud Scheduler Admin, Firebase Storage Admin e
+      # Storage Admin.
       - name: Gravar credenciais do service account
         env:
           SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
