@@ -20,7 +20,7 @@ self.addEventListener('push', (evento) => {
     self.registration.showNotification(aviso.title || 'Funances', {
       body: aviso.body || '',
       icon: aviso.icon || '/icons/Icon-192.png',
-      badge: aviso.badge,
+      badge: aviso.badge || '/icons/aviso.png',
       tag: aviso.tag,
       data: { link },
     }),

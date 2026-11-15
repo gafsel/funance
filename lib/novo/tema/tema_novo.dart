@@ -363,3 +363,11 @@ abstract final class CoresDoGoogle {
   static const amarelo = Color(0xFFFBBC05);
   static const verde = Color(0xFF34A853);
 }
+
+/// As cores da marca: iguais no modo claro e no escuro, porque são o
+/// desenho da logo (a moeda que sobe os degraus), não parte do tema.
+class CoresDaMarca {
+  static const fundo = Color(0xFF3CC7C4);
+  static const moeda = Color(0xFFFFC233);
+  static const tinta = Color(0xFF06262B);
+}

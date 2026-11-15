@@ -3,9 +3,9 @@
     "short_name": "Funances",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#FFFFFF",
-    "theme_color": "#FFFFFF",
-    "description": "Gestão financeira gamificada: planejamento por categoria, faturas, metas e insights.",
+    "background_color": "#0B2A34",
+    "theme_color": "#0B2A34",
+    "description": "Suas metas, um passo por vez.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

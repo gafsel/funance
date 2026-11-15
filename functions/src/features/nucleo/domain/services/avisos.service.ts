@@ -112,7 +112,7 @@ export const enviarPorFcm: Enviar = async (tokens, titulo, texto) => {
         tokens,
         notification: { title: titulo, body: texto },
         webpush: {
-            notification: { icon: "/icons/Icon-192.png", tag: titulo },
+            notification: { icon: "/icons/Icon-192.png", badge: "/icons/aviso.png", tag: titulo },
             fcmOptions: { link: "/" },
         },
     });

@@ -440,36 +440,135 @@ class Marca extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      CustomPaint(size: Size.square(tamanho), painter: _MarcaPainter(Cores.de(context)));
+      CustomPaint(size: Size.square(tamanho), painter: _MarcaPainter(const PoseDaMarca()));
 }
 
-class _MarcaPainter extends CustomPainter {
-  _MarcaPainter(this.c);
-  final Cores c;
+/// Como a marca está num instante: o quanto cada degrau já cresceu, onde a
+/// moeda está e o quanto os olhos estão abertos. A pose parada é a logo.
+class PoseDaMarca {
+  const PoseDaMarca({this.degraus = const [1, 1, 1], this.descida = 0, this.olhos = 1});
+
+  /// Altura de cada degrau, de 0 (ainda não apareceu) a 1 (inteiro).
+  final List<double> degraus;
+
+  /// Quanto a moeda está abaixo do lugar dela, na grade de 120 da logo.
+  final double descida;
+
+  /// 1 = abertos, perto de 0 = piscando.
+  final double olhos;
+}
+
+/// A marca em movimento: os degraus sobem um a um, a moeda aparece por trás
+/// deles e depois fica ali, balançando de leve e piscando de vez em quando.
+class MarcaAnimada extends StatefulWidget {
+  const MarcaAnimada({super.key, this.tamanho = 96});
+  final double tamanho;
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final l = size.width;
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(l * 0.26)),
-      Paint()..color = c.primaria,
+  State<MarcaAnimada> createState() => _MarcaAnimadaState();
+}
+
+class _MarcaAnimadaState extends State<MarcaAnimada> with TickerProviderStateMixin {
+  late final _entrada = AnimationController(vsync: this, duration: const Duration(milliseconds: 1100))..forward();
+  late final _vida = AnimationController(vsync: this, duration: const Duration(milliseconds: 2800))..repeat();
+
+  @override
+  void dispose() {
+    _entrada.dispose();
+    _vida.dispose();
+    super.dispose();
+  }
+
+  double _trecho(double t, double de, double ate, Curve curva) =>
+      curva.transform(((t - de) / (ate - de)).clamp(0.0, 1.0));
+
+  PoseDaMarca _pose() {
+    final e = _entrada.value;
+    final v = _vida.value;
+    final chegou = _trecho(e, 0.35, 1, Curves.easeOutBack);
+    // Depois de chegar, a moeda respira: sobe e desce três pontos.
+    final balanco = e < 1 ? 0.0 : 3 * (0.5 - (v * 2 - 1).abs()) * 2;
+    final piscando = e == 1 && v > 0.62 && v < 0.68;
+    return PoseDaMarca(
+      degraus: [for (var i = 0; i < 3; i++) _trecho(e, i * 0.12, i * 0.12 + 0.45, Curves.easeOutBack)],
+      descida: (1 - chegou) * 70 + balanco,
+      olhos: piscando ? 0.12 : 1,
     );
-    final degrau = Paint()..color = c.sobrePrimaria;
-    final u = l / 10;
-    for (var i = 0; i < 3; i++) {
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH((2.2 + i * 2) * u, (6.4 - i * 1.5) * u, 1.6 * u, (1.6 + i * 1.5) * u),
-          Radius.circular(u * 0.4),
-        ),
-        degrau,
-      );
-    }
-    canvas.drawCircle(Offset(7 * u, 2.3 * u), 0.85 * u, Paint()..color = c.calor);
   }
 
   @override
-  bool shouldRepaint(_MarcaPainter antigo) => antigo.c != c;
+  Widget build(BuildContext context) {
+    // Quem pede menos movimento vê a logo parada.
+    if (MediaQuery.of(context).disableAnimations) return Marca(tamanho: widget.tamanho);
+    return AnimatedBuilder(
+      animation: Listenable.merge([_entrada, _vida]),
+      builder: (context, _) => CustomPaint(size: Size.square(widget.tamanho), painter: _MarcaPainter(_pose())),
+    );
+  }
+}
+
+class _MarcaPainter extends CustomPainter {
+  _MarcaPainter(this.pose);
+  final PoseDaMarca pose;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final u = size.width / 120;
+    canvas.save();
+    canvas.clipRRect(RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(28 * u)));
+    canvas.drawRect(Offset.zero & size, Paint()..color = CoresDaMarca.fundo);
+
+    final y = pose.descida;
+    final tinta = Paint()..color = CoresDaMarca.tinta;
+    canvas.drawCircle(Offset(60 * u, (50 + y) * u), 30 * u, Paint()..color = CoresDaMarca.moeda);
+    for (final x in const [50.0, 70.0]) {
+      canvas.drawOval(
+        Rect.fromCenter(center: Offset(x * u, (45 + y) * u), width: 8 * u, height: 8 * u * pose.olhos),
+        tinta,
+      );
+    }
+    canvas.drawPath(
+      Path()
+        ..moveTo(49 * u, (57 + y) * u)
+        ..quadraticBezierTo(60 * u, (68 + y) * u, 71 * u, (57 + y) * u),
+      Paint()
+        ..color = CoresDaMarca.tinta
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 4 * u
+        ..strokeCap = StrokeCap.round,
+    );
+
+    // Os degraus ficam na frente: a moeda aparece por trás deles.
+    const alturas = [34.0, 42.0, 50.0];
+    for (var i = 0; i < 3; i++) {
+      final altura = alturas[i] * pose.degraus[i];
+      canvas.drawRect(Rect.fromLTWH((24 + i * 26) * u, (120 - altura) * u, 20 * u, altura * u), tinta);
+    }
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_MarcaPainter antigo) =>
+      antigo.pose.descida != pose.descida ||
+      antigo.pose.olhos != pose.olhos ||
+      antigo.pose.degraus.toString() != pose.degraus.toString();
+}
+
+/// A tela de abertura: a marca animada e o nome, enquanto o app descobre
+/// quem está entrando.
+class TelaDeAbertura extends StatelessWidget {
+  const TelaDeAbertura({super.key});
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        body: Center(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const MarcaAnimada(),
+            const SizedBox(height: Espacos.g),
+            Text('funances', style: Textos.marca(context, tamanho: 26)),
+          ]),
+        ),
+      );
 }
 
 /// Foto de um membro, ou as iniciais quando não há foto.

@@ -18,15 +18,17 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="Gestão financeira gamificada: planejamento por categoria, faturas, metas e insights.">
+  <meta name="description" content="Suas metas, um passo por vez: saiba quanto ainda dá para gastar no mês sem perder de vista o que você quer alcançar.">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="theme-color" content="#0B2A34">
   <meta name="apple-mobile-web-app-title" content="Funances">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="favicon.svg"/>
   <link rel="icon" type="image/png" href="favicon.png"/>
 
   <title>Funances</title>
@@ -35,6 +37,58 @@
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/croppie/2.6.5/croppie.min.js"></script>
 </head>
 <body>
+  <!--
+    Abertura: a marca animada aparece enquanto o app carrega e sai quando ele
+    desenha a primeira tela. Só HTML e CSS, para estar na tela antes de tudo.
+  -->
+  <style>
+    html, body { margin: 0; height: 100%; background: #0B2A34; }
+    @media (prefers-color-scheme: light) { html, body { background: #F6F8F7; } #abertura .nome { color: #0E3440; } }
+    #abertura { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; transition: opacity .35s ease; }
+    #abertura.saindo { opacity: 0; pointer-events: none; }
+    #abertura svg { width: 104px; height: 104px; }
+    #abertura .nome { font: 700 26px/1 system-ui, -apple-system, "Segoe UI", sans-serif; letter-spacing: -.02em; color: #F3F8F8; opacity: 0; animation: surgir .5s ease .7s forwards; }
+    #abertura .degrau { transform-box: fill-box; transform-origin: 50% 100%; transform: scaleY(0); animation: crescer .55s cubic-bezier(.34, 1.56, .64, 1) forwards; }
+    #abertura .degrau.b { animation-delay: .13s; }
+    #abertura .degrau.c { animation-delay: .26s; }
+    #abertura .moeda { transform: translateY(70px); animation: subir .7s cubic-bezier(.34, 1.56, .64, 1) .4s forwards, respirar 2.8s ease-in-out 1.2s infinite; }
+    #abertura .olho { transform-box: fill-box; transform-origin: 50% 50%; animation: piscar 2.8s linear 1.2s infinite; }
+    @keyframes crescer { to { transform: scaleY(1); } }
+    @keyframes subir { to { transform: translateY(0); } }
+    @keyframes respirar { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+    @keyframes piscar { 0%, 61%, 69%, 100% { transform: scaleY(1); } 64%, 66% { transform: scaleY(.12); } }
+    @keyframes surgir { to { opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) {
+      #abertura .degrau, #abertura .moeda, #abertura .olho, #abertura .nome { animation: none; transform: none; opacity: 1; }
+    }
+  </style>
+  <div id="abertura" role="img" aria-label="Funances está carregando">
+    <svg viewBox="0 0 120 120" aria-hidden="true">
+      <clipPath id="abertura-forma"><rect width="120" height="120" rx="28"/></clipPath>
+      <g clip-path="url(#abertura-forma)">
+        <rect width="120" height="120" fill="#3CC7C4"/>
+        <g class="moeda">
+          <circle cx="60" cy="50" r="30" fill="#FFC233"/>
+          <ellipse class="olho" cx="50" cy="45" rx="4" ry="4" fill="#06262B"/>
+          <ellipse class="olho" cx="70" cy="45" rx="4" ry="4" fill="#06262B"/>
+          <path d="M49 57 Q60 68 71 57" fill="none" stroke="#06262B" stroke-width="4" stroke-linecap="round"/>
+        </g>
+        <rect class="degrau" x="24" y="86" width="20" height="34" fill="#06262B"/>
+        <rect class="degrau b" x="50" y="78" width="20" height="42" fill="#06262B"/>
+        <rect class="degrau c" x="76" y="70" width="20" height="50" fill="#06262B"/>
+      </g>
+    </svg>
+    <div class="nome">funances</div>
+  </div>
+  <script>
+    // O Flutter avisa quando desenhou a primeira tela; a abertura sai aí.
+    window.addEventListener('flutter-first-frame', function () {
+      var abertura = document.getElementById('abertura');
+      if (!abertura) return;
+      abertura.classList.add('saindo');
+      setTimeout(function () { abertura.remove(); }, 400);
+    });
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

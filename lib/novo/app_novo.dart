@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'dados/provedores.dart';
+import 'telas/pecas.dart';
 import 'telas/casca.dart';
 import 'telas/entrar.dart';
 import 'tema/tema_novo.dart';
@@ -24,7 +25,7 @@ class AppNovo extends ConsumerWidget {
       supportedLocales: const [Locale('pt', 'BR')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       home: sessao.when(
-        loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+        loading: () => const TelaDeAbertura(),
         error: (_, _) => const TelaEntrar(),
         data: (usuario) => usuario == null ? const TelaEntrar() : const Casca(),
       ),
