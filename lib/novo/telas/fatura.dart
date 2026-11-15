@@ -31,6 +31,14 @@ class TelaCartao extends ConsumerWidget {
         .toList()
       ..sort((a, b) => b.vencimento.compareTo(a.vencimento));
     final texto = Theme.of(context).textTheme;
+    // Assinaturas e compras previstas que ainda vão cair neste cartão.
+    final agendados = (ref.watch(previstosProvider).valueOrNull ?? const <Lancamento>[])
+        .where((l) => l.contaId == cartao.id)
+        .toList()
+      ..sort((a, b) => a.data.compareTo(b.data));
+    final categorias = {
+      for (final cat in ref.watch(categoriasProvider).valueOrNull ?? const <Categoria>[]) cat.id: cat,
+    };
 
     return Scaffold(
       appBar: AppBar(title: Text(cartao.nome)),
@@ -64,6 +72,20 @@ class TelaCartao extends ConsumerWidget {
                   direita: Text(reais(f.totalCentavos), style: Textos.valor(context)),
                   aoTocar: () => Navigator.of(context)
                       .push(MaterialPageRoute<void>(builder: (_) => TelaFatura(cartao: cartao, faturaId: f.id))),
+                ),
+            ]),
+          TituloDeSecao('Agendados', detalhe: agendados.isEmpty ? null : '${agendados.length} nos próximos 60 dias'),
+          if (agendados.isEmpty)
+            const Cartao(padding: EdgeInsets.zero, child: Vazio('Nada agendado neste cartão. Assinaturas e compras previstas aparecem aqui.'))
+          else
+            Lista(filhos: [
+              for (final l in agendados)
+                LinhaDeLancamento(
+                  lancamento: l,
+                  hoje: hoje,
+                  conta: cartao,
+                  categoria: categorias[l.categoriaId],
+                  onTap: () => abrirLancamento(context, ref, l),
                 ),
             ]),
         ],

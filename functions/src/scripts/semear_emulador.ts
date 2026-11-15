@@ -115,6 +115,7 @@ async function main(): Promise<void> {
         guardar: feito("Guardar na reserva", 60000, dia(7), { tipo: "transferencia", contaDestinoId: "reserva" }),
         luz: agendado("Conta de luz", 18900, shiftDateKey(hoje, 3), { categoriaId: "moradia" }),
         internet: agendado("Internet", 11990, shiftDateKey(hoje, -2), { categoriaId: "moradia" }),
+        assinatura: agendado("Assinatura de música", 2190, shiftDateKey(hoje, 4), { categoriaId: "assinaturas", contaId: "roxo" }),
         freela: agendado("Freela do site", 120000, shiftDateKey(hoje, 6), { tipo: "entrada", categoriaId: "salario" }),
         mesPassado: feito("Mercado", 41200, shiftMonthKey(mes, -1) + "-20", { categoriaId: "mercado", contaId: "roxo" }),
         farmaciaBia: feito("Farmácia", 8900, dia(9), { categoriaId: "saude", contaId: "cartaobia" }),
