@@ -18,6 +18,7 @@ import 'package:funances/l10n/app_localizations.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_mode_provider.dart';
 import 'firebase_ambiente.dart';
+import 'novo/app_novo.dart';
 
 void main() {
   // runZonedGuarded captura os erros assíncronos que escapam das zonas do
@@ -31,8 +32,11 @@ void main() {
       configureUrlStrategy();
 
       await Firebase.initializeApp(
-        options: firebaseOptionsDoAmbiente(),
+        options: usarEmuladores
+            ? opcoesDosEmuladores
+            : firebaseOptionsDoAmbiente(),
       );
+      if (usarEmuladores) await conectarEmuladores();
       await CrashReporter.initialize();
       configureFirestorePersistence();
 
@@ -49,7 +53,10 @@ void main() {
         ErrorWidget.builder = (details) => const AppErrorWidget();
       }
 
-      runApp(const ProviderScope(child: MyApp()));
+      // O ambiente de testes sobe o app do Funances 2; o legado, o app atual.
+      runApp(ProviderScope(
+        child: ambiente == 'legado' ? const MyApp() : const AppNovo(),
+      ));
     },
     (error, stack) => CrashReporter.recordError(error, stack, fatal: true),
   );

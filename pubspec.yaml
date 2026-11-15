@@ -79,6 +79,7 @@ dependencies:
   image_picker: ^1.2.2
   image_cropper: ^12.2.1
   flame: ^1.38.2
+  google_fonts: ^8.2.1
 
 dev_dependencies:
   flutter_launcher_icons: ^0.13.1

@@ -19,7 +19,10 @@ import { HEALTH_DIRTY_FIELD } from "../../data/repositories/health.repository.im
  * isso que queremos: a varredura custa o número de workspaces SUJOS, não o
  * tamanho da base.
  */
-const DIRTY_FLOOR = admin.firestore.Timestamp.fromMillis(0);
+// Função, e não constante: no emulador de funções `admin.firestore` ainda não
+// está pronto quando o módulo é carregado, e uma constante aqui derrubava a
+// carga de TODOS os gatilhos.
+const dirtyFloor = () => admin.firestore.Timestamp.fromMillis(0);
 
 export interface DirtyScanResult {
     /** Workspaces em que o retrato foi recalculado e gravado. */
@@ -59,7 +62,7 @@ export async function refreshDirtyWorkspaces(
     while (now().getTime() < deadlineAt) {
         let query = admin.firestore()
             .collection("workspaces")
-            .where(HEALTH_DIRTY_FIELD, ">", DIRTY_FLOOR)
+            .where(HEALTH_DIRTY_FIELD, ">", dirtyFloor())
             .orderBy(HEALTH_DIRTY_FIELD)
             .limit(pageSize);
 

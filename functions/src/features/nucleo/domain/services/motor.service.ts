@@ -14,6 +14,7 @@
  */
 
 import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 import { COLECOES, RAIZ } from "../models/modelo";
 import { Celula, ContasPorId, aninhar, contribuicoes, contribuicoesDaConta, diferenca } from "./contribuicoes";
 import { lerConta, lerLancamento } from "./leitura";
@@ -89,7 +90,7 @@ export class MotorService {
             else {
                 txn.set(aplicadoRef, {
                     celulas: novas.map(paraGuardar),
-                    em: admin.firestore.FieldValue.serverTimestamp(),
+                    em: FieldValue.serverTimestamp(),
                 });
             }
             return { alteradas: delta.length };
@@ -106,7 +107,7 @@ function agruparPorDocumento(celulas: Celula[]): Map<string, Record<string, unkn
     for (const c of celulas) {
         const atual = porDoc.get(c.doc) ?? {};
         mesclar(atual, c.base ?? {});
-        mesclar(atual, aninhar(c.campo, admin.firestore.FieldValue.increment(c.centavos)));
+        mesclar(atual, aninhar(c.campo, FieldValue.increment(c.centavos)));
         porDoc.set(c.doc, atual);
     }
     return porDoc;

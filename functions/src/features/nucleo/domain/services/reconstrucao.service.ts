@@ -11,6 +11,7 @@
  */
 
 import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 import { BatchOperation, commitInChunks } from "../../../../core/utils/batch.utils";
 import { COLECOES, Conta, Lancamento, RAIZ } from "../models/modelo";
 import { Celula, ContasPorId, contribuicoes, contribuicoesDaConta, somar } from "./contribuicoes";
@@ -211,7 +212,7 @@ export class ReconstrucaoService {
             ops.push({
                 op: "set",
                 ref: espaco.collection(COLECOES.aplicados).doc(chave),
-                data: { celulas: lista.map(paraGuardar), em: admin.firestore.FieldValue.serverTimestamp() },
+                data: { celulas: lista.map(paraGuardar), em: FieldValue.serverTimestamp() },
             });
         }
 

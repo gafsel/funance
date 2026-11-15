@@ -1,4 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 
 import 'firebase_options.dart';
@@ -41,3 +43,22 @@ String get regiaoDasFunctions =>
 /// `us-central1`.
 FirebaseFunctions get funcoesDoAmbiente =>
     FirebaseFunctions.instanceFor(region: regiaoDasFunctions);
+
+/// Desenvolvimento local: `--dart-define=EMULADORES=true` liga o app aos
+/// emuladores do Firebase nesta máquina (`firebase emulators:start --project
+/// demo-funances`), com dados semeados por `functions/src/scripts/
+/// semear_emulador.ts`. Nada sai para a internet.
+const bool usarEmuladores = bool.fromEnvironment('EMULADORES');
+
+const FirebaseOptions opcoesDosEmuladores = FirebaseOptions(
+  apiKey: 'demo',
+  appId: '1:1:web:demo',
+  messagingSenderId: '1',
+  projectId: 'demo-funances',
+);
+
+Future<void> conectarEmuladores() async {
+  await FirebaseAuth.instance.useAuthEmulator('127.0.0.1', 9099);
+  FirebaseFirestore.instance.useFirestoreEmulator('127.0.0.1', 8080);
+  funcoesDoAmbiente.useFunctionsEmulator('127.0.0.1', 5001);
+}

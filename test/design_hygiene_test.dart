@@ -15,7 +15,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// cor, tipografia ou raio foi tomada fora do único lugar que pode tomá-la.
 void main() {
   /// Onde os tokens moram — e o único lugar onde um valor cru é legítimo.
-  final tokens = RegExp(r'^lib[/\\]core[/\\]theme[/\\]');
+  final tokens = RegExp(r'^lib[/\\](core[/\\]theme|novo[/\\]tema)[/\\]');
 
   /// Código gerado não é escrito por ninguém, e reescrevê-lo é impossível.
   bool isGenerated(String path) =>
