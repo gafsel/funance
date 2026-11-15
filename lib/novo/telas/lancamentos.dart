@@ -160,14 +160,9 @@ class _TelaLancamentosState extends ConsumerState<TelaLancamentos> {
           aoEditar: (antes, depois) async {
             final repo = ref.read(repositorioProvider);
             if (repo == null) return;
-            final mensageiro = ScaffoldMessenger.of(context);
-            await repo.gravar(depois);
-            mensageiro
-              ..clearSnackBars()
-              ..showSnackBar(SnackBar(
-                content: const Text('Alteração salva.'),
-                action: SnackBarAction(label: 'Desfazer', onPressed: () => repo.gravar(antes)),
-              ));
+            // Pela mesma porta da edição completa: se for de uma série,
+            // pergunta até onde a mudança vai.
+            await salvarEdicao(context, repo, antes, depois);
           },
         ),
       );

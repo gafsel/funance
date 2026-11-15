@@ -6,6 +6,7 @@ import '../dados/provedores.dart';
 import '../dados/repositorio.dart';
 import '../modelo/modelos.dart';
 import '../regras/formatos.dart';
+import '../regras/series.dart';
 import '../regras/leitura_frase.dart';
 import '../tema/tema_novo.dart';
 import 'formulario.dart';
@@ -185,9 +186,8 @@ class _DetalheDoLancamento extends ConsumerWidget {
         navegador.pop();
         _avisar(mensageiro, 'Voltou para agendado.', () => repo.gravar(l));
       case 'apagar':
-        await repo.apagar(l.id);
-        navegador.pop();
-        _avisar(mensageiro, 'Lançamento excluído.', () => repo.gravar(l));
+        final excluiu = await _excluir(context, repo, l);
+        if (excluiu) navegador.pop();
       case 'editar':
         final editado = await _editar(context, ref, repo, l);
         if (editado) navegador.pop();
@@ -197,7 +197,6 @@ class _DetalheDoLancamento extends ConsumerWidget {
 
 Future<bool> _editar(BuildContext context, WidgetRef ref, Repositorio repo, Lancamento l) async {
   final hoje = ref.read(hojeProvider);
-  final mensageiro = ScaffoldMessenger.of(context);
   final editada = await Navigator.of(context).push<Leitura>(MaterialPageRoute(
     fullscreenDialog: true,
     builder: (_) => FormularioAvancado(
@@ -244,8 +243,109 @@ Future<bool> _editar(BuildContext context, WidgetRef ref, Repositorio repo, Lanc
     data: editada.efetivado && l.previstoCentavos != null ? l.data : editada.data,
     dataEfetiva: () => editada.efetivado ? editada.data : null,
   );
+  if (!context.mounted) return false;
+  return salvarEdicao(context, repo, l, novo);
+}
+
+/// Grava a edição de um lançamento. Se ele é de uma série e a mudança faz
+/// sentido para os outros, pergunta antes até onde ela vai. Devolve `false`
+/// quando a pessoa desiste na pergunta (nada é gravado).
+Future<bool> salvarEdicao(BuildContext context, Repositorio repo, Lancamento l, Lancamento novo) async {
+  final mensageiro = ScaffoldMessenger.of(context);
+  // Parte de uma série: a mudança pode valer para os outros também.
+  final serieId = l.serieId;
+  if (serieId != null && mudancaReplicavel(l, novo)) {
+    final daSerie = await repo.daSerie(serieId);
+    final proximos = replicarEdicao(l, novo, daSerie, Alcance.proximos);
+    final todos = replicarEdicao(l, novo, daSerie, Alcance.todos);
+    if (todos.isNotEmpty) {
+      if (!context.mounted) return false;
+      final alcance = await _perguntarAlcance(
+        context,
+        titulo: 'Esta mudança vale para',
+        soEste: 'Os outros da série ficam como estão.',
+        proximos: proximos.isEmpty ? null : 'Muda também ${_quantos(proximos.length)} que ${proximos.length == 1 ? 'vence' : 'vencem'} depois.',
+        todos: 'Muda também ${_quantos(todos.length)} da série. No que já foi pago, só descrição e categoria.',
+      );
+      if (alcance == null) return false;
+      if (alcance != Alcance.soEste) {
+        final mudados = alcance == Alcance.todos ? todos : proximos;
+        final originais = {for (final x in daSerie) x.id: x};
+        final serieAntes = await repo.lerSerie(serieId);
+        await repo.aplicarNaSerie(gravar: [novo, ...mudados], serieId: serieId, serie: serieAntes == null ? null : ajusteDaSerie(l, novo));
+        _avisar(
+          mensageiro,
+          'Alteração salva em ${_quantos(mudados.length + 1)}.',
+          () => repo.aplicarNaSerie(gravar: [l, for (final x in mudados) originais[x.id]!], serieId: serieId, serie: serieAntes),
+        );
+        return true;
+      }
+    }
+  }
   await repo.gravar(novo);
   _avisar(mensageiro, 'Alteração salva.', () => repo.gravar(l));
+  return true;
+}
+
+String _quantos(int n) => n == 1 ? '1 lançamento' : '$n lançamentos';
+
+/// Pergunta até onde vai a edição ou a exclusão num lançamento de série.
+/// As opções sem efeito (nenhum outro lançamento atingido) não aparecem.
+Future<Alcance?> _perguntarAlcance(
+  BuildContext context, {
+  required String titulo,
+  required String soEste,
+  required String? proximos,
+  required String? todos,
+}) =>
+    escolher<Alcance>(
+      context,
+      titulo: titulo,
+      itens: [Alcance.soEste, if (proximos != null) Alcance.proximos, if (todos != null) Alcance.todos],
+      rotulo: (a) => switch (a) {
+        Alcance.soEste => 'Só este',
+        Alcance.proximos => 'Este e os próximos',
+        Alcance.todos => 'Todos da série',
+      },
+      detalhe: (a) => switch (a) { Alcance.soEste => soEste, Alcance.proximos => proximos, Alcance.todos => todos },
+    );
+
+/// Exclui o lançamento; se ele é de uma série com outros ainda agendados,
+/// pergunta se eles saem junto.
+Future<bool> _excluir(BuildContext context, Repositorio repo, Lancamento l) async {
+  final mensageiro = ScaffoldMessenger.of(context);
+  final serieId = l.serieId;
+  if (serieId != null) {
+    final daSerie = await repo.daSerie(serieId);
+    final proximos = excluirJunto(l, daSerie, Alcance.proximos);
+    final todos = excluirJunto(l, daSerie, Alcance.todos);
+    if (todos.isNotEmpty) {
+      if (!context.mounted) return false;
+      final alcance = await _perguntarAlcance(
+        context,
+        titulo: 'Excluir',
+        soEste: 'Os outros da série continuam.',
+        proximos: proximos.isEmpty ? null : 'Exclui também ${_quantos(proximos.length)} que ${proximos.length == 1 ? 'vence' : 'vencem'} depois e ainda ${proximos.length == 1 ? 'está agendado' : 'estão agendados'}.',
+        todos: 'Exclui também ${_quantos(todos.length)} ainda ${todos.length == 1 ? 'agendado' : 'agendados'}. O que já foi pago fica no histórico.',
+      );
+      if (alcance == null) return false;
+      if (alcance != Alcance.soEste) {
+        final junto = alcance == Alcance.todos ? todos : proximos;
+        final serieAntes = await repo.lerSerie(serieId);
+        // Série que se repete para de gerar meses novos.
+        final para = serieAntes != null && serieAntes['forma'] == 'recorrente';
+        await repo.aplicarNaSerie(apagar: [l.id, for (final x in junto) x.id], serieId: serieId, serie: para ? {'ativa': false} : null);
+        _avisar(
+          mensageiro,
+          '${_quantos(junto.length + 1)} excluídos.',
+          () => repo.aplicarNaSerie(gravar: [l, ...junto], serieId: serieId, serie: para ? {'ativa': serieAntes['ativa'] ?? true} : null),
+        );
+        return true;
+      }
+    }
+  }
+  await repo.apagar(l.id);
+  _avisar(mensageiro, 'Lançamento excluído.', () => repo.gravar(l));
   return true;
 }
 

@@ -129,6 +129,35 @@ class Repositorio {
         Lancamento.deMapa,
       ).map((todos) => todos.where((l) => l.efetivado).toList());
 
+  /// Todos os lançamentos de uma série (parcelas ou meses de um recorrente).
+  Future<List<Lancamento>> daSerie(String serieId) async {
+    final s = await _col('lancamentos').where('serieId', isEqualTo: serieId).get();
+    return [for (final d in s.docs) Lancamento.deMapa(d.id, d.data())];
+  }
+
+  Future<Mapa?> lerSerie(String serieId) async => (await _col('series').doc(serieId).get()).data();
+
+  /// Grava e apaga vários lançamentos de uma vez, e ajusta o cadastro da
+  /// série se for o caso: ou tudo entra, ou nada.
+  Future<void> aplicarNaSerie({
+    List<Lancamento> gravar = const [],
+    List<String> apagar = const [],
+    String? serieId,
+    Mapa? serie,
+  }) async {
+    final batch = _db.batch();
+    for (final l in gravar) {
+      batch.set(_col('lancamentos').doc(l.id), l.paraMapa());
+    }
+    for (final id in apagar) {
+      batch.delete(_col('lancamentos').doc(id));
+    }
+    if (serieId != null && serie != null && serie.isNotEmpty) {
+      batch.set(_col('series').doc(serieId), serie, SetOptions(merge: true));
+    }
+    await batch.commit();
+  }
+
   Future<void> apagar(String lancamentoId) => _col('lancamentos').doc(lancamentoId).delete();
 
   /// Marca um previsto como efetivado.
