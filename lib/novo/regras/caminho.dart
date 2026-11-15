@@ -1,4 +1,5 @@
 import '../modelo/modelos.dart';
+import 'faturas.dart';
 import 'formatos.dart';
 
 /// Um degrau do caminho: o que é, por que vem nesta ordem e o que falta.
@@ -91,8 +92,10 @@ List<Degrau> _pessoal(DadosDoCaminho d) {
 
   final dividas = ativos.where((c) => c.tipo == 'divida' && (d.saldos[c.id] ?? 0) < 0).toList();
   final devendo = dividas.fold<int>(0, (s, c) => s - (d.saldos[c.id] ?? 0));
-  final faturasVencidas = d.faturas.where((f) => f.abertoCentavos > 0 && f.vencimento.compareTo(d.hoje) < 0).toList();
-  final semDividaCara = dividas.isEmpty && faturasVencidas.isEmpty;
+  final faturasCaras = faturasEmDividaCara(situacoesDasFaturas(d.faturas, d.hoje));
+  final faturasVencidas = faturasCaras.where((s) => s.atrasada).toList();
+  final faturasEmParte = faturasCaras.where((s) => s.emParte).toList();
+  final semDividaCara = dividas.isEmpty && faturasCaras.isEmpty;
 
   final media = _mediaDeSaidas(d);
   final guardado = ativos.where((c) => c.tipo == 'investimento').fold<int>(0, (s, c) => s + (d.saldos[c.id] ?? 0));
@@ -138,10 +141,14 @@ List<Degrau> _pessoal(DadosDoCaminho d) {
               if (dividas.isNotEmpty) '${reais(devendo)} em ${dividas.length == 1 ? 'uma dívida' : '${dividas.length} dívidas'}',
               if (faturasVencidas.length == 1) 'uma fatura atrasada',
               if (faturasVencidas.length > 1) '${faturasVencidas.length} faturas atrasadas',
+              if (faturasEmParte.length == 1) 'uma fatura paga em parte',
+              if (faturasEmParte.length > 1) '${faturasEmParte.length} faturas pagas em parte',
             ]),
       proximoPasso: faturasVencidas.isNotEmpty
           ? 'Pague a fatura atrasada antes de qualquer outra coisa.'
-          : 'Crie uma meta de quitar a dívida com os juros mais altos.',
+          : faturasEmParte.isNotEmpty
+              ? 'Complete o pagamento da fatura: o rotativo do cartão é a dívida mais cara que existe.'
+              : 'Crie uma meta de quitar a dívida com os juros mais altos.',
     ),
     Degrau(
       id: 'reserva',

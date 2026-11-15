@@ -7,6 +7,7 @@ import '../modelo/modelos.dart';
 import '../regras/caminho.dart';
 import '../regras/empresa.dart';
 import '../regras/distribuicao.dart';
+import '../regras/faturas.dart';
 import '../regras/formatos.dart';
 import '../regras/leitura_frase.dart';
 import '../regras/livre.dart';
@@ -254,6 +255,13 @@ final usoDasContasProvider = Provider<Map<String, int>>((ref) {
   }
   return uso;
 });
+
+/// A situação de cada fatura (aberta, pendente, paga, paga em parte), já
+/// com o que cada uma recebeu da anterior.
+final situacoesDasFaturasProvider = Provider<Map<String, SituacaoDaFatura>>((ref) => situacoesDasFaturas(
+      ref.watch(faturasProvider).valueOrNull ?? const <Fatura>[],
+      ref.watch(hojeProvider),
+    ));
 
 /// Como a renda se divide entre essencial, estilo de vida e futuro, e o que
 /// o app aponta. Nulo enquanto não há renda para comparar.

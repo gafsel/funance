@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../dados/provedores.dart';
 import '../modelo/modelos.dart';
 import '../regras/caminho.dart';
+import '../regras/faturas.dart';
 import '../regras/formatos.dart';
 import '../regras/metas.dart';
 import '../tema/tema_novo.dart';
@@ -421,7 +422,6 @@ class _Contas extends ConsumerWidget {
     final contas = (ref.watch(contasProvider).valueOrNull ?? const <Conta>[]).where((x) => !x.arquivada).toList()
       ..sort((a, b) => a.nome.compareTo(b.nome));
     final saldos = ref.watch(saldosProvider);
-    final faturas = ref.watch(faturasProvider).valueOrNull ?? const <Fatura>[];
     final membros = ref.watch(membrosProvider).valueOrNull ?? const <Membro>[];
     final eu = ref.watch(authProvider).valueOrNull?.uid;
     // As de quem está usando vêm primeiro; depois por banco.
@@ -437,14 +437,11 @@ class _Contas extends ConsumerWidget {
     final cartoes = contas.where((x) => x.ehCartao).toList();
     const tipos = {'corrente': 'Conta corrente', 'dinheiro': 'Dinheiro', 'investimento': 'Investimento', 'divida': 'Dívida'};
 
-    Fatura? faturaAtual(Conta cartao) {
-      final limite = somarMeses(hoje.substring(0, 7), 2);
-      final abertas = faturas.where((f) => f.contaId == cartao.id && f.abertoCentavos > 0 && f.vencimento.compareTo(limite) < 0).toList()
-        ..sort((a, b) => a.vencimento.compareTo(b.vencimento));
-      return abertas.firstOrNull;
-    }
+    final situacoes = ref.watch(situacoesDasFaturasProvider);
+    SituacaoDaFatura? faturaAtual(Conta cartao) => faturaEmDestaque(situacoes, cartao.id);
+    int valorDa(SituacaoDaFatura? s) => s == null ? 0 : valorEmDestaque(s);
 
-    final reservado = cartoes.fold<int>(0, (s, x) => s + (faturaAtual(x)?.abertoCentavos ?? 0));
+    final reservado = cartoes.fold<int>(0, (s, x) => s + (valorDa(faturaAtual(x)) > 0 ? valorDa(faturaAtual(x)) : 0));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -471,18 +468,23 @@ class _Contas extends ConsumerWidget {
           Lista(filhos: [
             for (final x in cartoes)
               Builder(builder: (context) {
-                final f = faturaAtual(x);
-                final venceu = f != null && f.vencimento.compareTo(hoje) < 0;
+                final s = faturaAtual(x);
+                final f = s?.fatura;
+                final venceu = s != null && s.atrasada;
                 return Linha(
                   antes: SeloDaConta(conta: x, membros: membros),
                   titulo: x.nome,
                   detalhe: detalhe(
                     x,
-                    f == null ? 'Sem fatura em aberto' : 'Fatura ${venceu ? 'venceu' : 'vence'} ${diaPorExtenso(f.vencimento, hoje)}',
+                    f == null
+                        ? 'Sem fatura em aberto'
+                        : s!.emParte
+                            ? 'Paga em parte: o resto vai para a próxima'
+                            : 'Fatura ${venceu ? 'venceu' : 'vence'} ${diaPorExtenso(f.vencimento, hoje)}',
                   ),
-                  corDoDetalhe: venceu ? c.atencao : null,
+                  corDoDetalhe: venceu || (s?.emParte ?? false) ? c.atencao : null,
                   direita: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Text(reais(f?.abertoCentavos ?? 0), style: Textos.valor(context)),
+                    Text(reais(valorDa(s)), style: Textos.valor(context)),
                     IconButton(
                       tooltip: 'Todas as faturas',
                       visualDensity: VisualDensity.compact,

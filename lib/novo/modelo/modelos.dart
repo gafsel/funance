@@ -355,8 +355,6 @@ class Fatura {
   final int totalCentavos;
   final int pagoCentavos;
 
-  int get abertoCentavos => totalCentavos - pagoCentavos;
-  bool get quitada => totalCentavos > 0 && abertoCentavos <= 0;
 
   factory Fatura.deMapa(String id, Mapa m) => Fatura(
         id: id,

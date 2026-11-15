@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 import '../../firebase_ambiente.dart';
 import '../dados/provedores.dart';
 import '../modelo/modelos.dart';
+import '../regras/agendados.dart';
 import '../regras/formatos.dart';
 import '../regras/leitura_frase.dart';
 import '../regras/montar.dart';
@@ -39,6 +40,10 @@ class _LancarState extends ConsumerState<Lancar> {
   final _ajustes = <String, Leitura>{};
   /// (linha, leitura) em edição no formulário completo; `null` = modo texto.
   (String, Leitura)? _emDetalhe;
+
+  /// Linhas em que a pessoa preferiu lançar um novo a pagar o agendado
+  /// que o app achou parecido.
+  final _comoNovo = <String>{};
   bool _lendoComIa = false;
   bool _salvando = false;
   String? _aviso;
@@ -119,27 +124,47 @@ class _LancarState extends ConsumerState<Lancar> {
         );
       });
 
-  Future<void> _salvar(List<Leitura> prontas, ContextoDeLeitura ctx) async {
+  /// Salva as leituras. As que estão em [quitar] não criam lançamento:
+  /// marcam como pago o agendado que já existia.
+  Future<void> _salvar(List<Leitura> prontas, ContextoDeLeitura ctx, {Map<Leitura, Lancamento> quitar = const {}}) async {
     final repo = ref.read(repositorioProvider);
     if (repo == null) return;
     setState(() => _salvando = true);
     final autor = ref.read(authProvider).valueOrNull?.uid;
     final contas = {for (final c in ctx.contas) c.id: c};
     final montagens = [
-      for (final l in prontas) montar(l, conta: contas[l.contaId]!, novoId: _uuid.v4, autorId: autor),
+      for (final l in prontas)
+        if (!quitar.containsKey(l)) montar(l, conta: contas[l.contaId]!, novoId: _uuid.v4, autorId: autor),
     ];
     final mensageiro = ScaffoldMessenger.of(context);
     final navegador = Navigator.of(context);
     try {
-      final lote = await repo.salvar(montagens, loteId: _uuid.v4(), autorId: autor);
-      final total = montagens.fold<int>(0, (n, m) => n + m.lancamentos.length);
+      final lote = montagens.isEmpty ? null : await repo.salvar(montagens, loteId: _uuid.v4(), autorId: autor);
+      for (final par in quitar.entries) {
+        await repo.efetivar(par.value, dia: par.key.data, valorCentavos: par.key.valorCentavos, contaId: par.key.contaId);
+      }
+      final novos = montagens.fold<int>(0, (n, m) => n + m.lancamentos.length);
+      final pagos = quitar.length;
       navegador.pop();
       mensageiro
         ..clearSnackBars()
         ..showSnackBar(SnackBar(
           duration: const Duration(seconds: 8),
-          content: Text(total == 1 ? 'Lançamento salvo.' : '$total lançamentos salvos.'),
-          action: SnackBarAction(label: 'Desfazer', onPressed: () => repo.desfazerLote(lote)),
+          content: Text([
+            if (novos == 1) 'Lançamento salvo.',
+            if (novos > 1) '$novos lançamentos salvos.',
+            if (pagos == 1) 'Agendado "${quitar.values.single.descricao}" marcado como pago.',
+            if (pagos > 1) '$pagos agendados marcados como pagos.',
+          ].join(' ')),
+          action: SnackBarAction(
+            label: 'Desfazer',
+            onPressed: () async {
+              if (lote != null) await repo.desfazerLote(lote);
+              for (final original in quitar.values) {
+                await repo.desefetivar(original);
+              }
+            },
+          ),
         ));
     } catch (_) {
       if (mounted) {
@@ -149,6 +174,45 @@ class _LancarState extends ConsumerState<Lancar> {
         });
       }
     }
+  }
+
+  /// No modo avançado não há cartão para mostrar a sugestão: pergunta antes
+  /// de salvar se o lançamento é o agendado parecido.
+  Future<void> _salvarDoAvancado(Leitura leitura, ContextoDeLeitura ctx, List<Lancamento> previstos) async {
+    final parecido = agendadoQueCorresponde(leitura, previstos);
+    if (parecido == null) return _salvar([leitura], ctx);
+    final escolha = await abrirFolha<String>(
+      context,
+      (context) {
+        final t = Theme.of(context).textTheme;
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(Espacos.g, 0, Espacos.g, Espacos.g),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Já existe um agendado parecido', style: t.titleLarge),
+              const SizedBox(height: Espacos.p),
+              Text(
+                '"${parecido.descricao}", ${reais(parecido.previstoCentavos ?? 0)}, vence ${diaPorExtenso(parecido.data, ctx.hoje)}. '
+                'É o mesmo que você está lançando?',
+                style: t.bodyMedium,
+              ),
+              const SizedBox(height: Espacos.g),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, 'quitar'),
+                child: Text('Sim, marcar como pago por ${reais(leitura.valorCentavos)}'),
+              ),
+              const SizedBox(height: Espacos.p),
+              OutlinedButton(onPressed: () => Navigator.pop(context, 'novo'), child: const Text('Não, lançar como novo')),
+            ],
+          ),
+        );
+      },
+      largura: 460,
+    );
+    if (escolha == null || !mounted) return;
+    await _salvar([leitura], ctx, quitar: escolha == 'quitar' ? {leitura: parecido} : const {});
   }
 
   @override
@@ -174,6 +238,13 @@ class _LancarState extends ConsumerState<Lancar> {
     final contas = {for (final x in ctx.contas) x.id: x};
     final categorias = {for (final x in ctx.categorias) x.id: x};
     final nomes = ref.watch(nomesDasContasProvider);
+    // Agendados que as leituras parecem estar pagando.
+    final previstos = ref.watch(previstosProvider).valueOrNull ?? const <Lancamento>[];
+    final parecidos = agendadosDasLeituras(prontas, previstos);
+    final quitar = {
+      for (final (linha, l) in itens)
+        if (l != null && parecidos[l] != null && !_comoNovo.contains(linha)) l: parecidos[l]!,
+    };
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(Espacos.g, Espacos.p, Espacos.g, Espacos.g),
@@ -218,8 +289,8 @@ class _LancarState extends ConsumerState<Lancar> {
                 aoConcluir: (leitura) {
                   final linha = emDetalhe.$1;
                   if (linha.isEmpty) {
-                    // Modo avançado puro: salva direto.
-                    if (leitura.completa) _salvar([leitura], ctx);
+                    // Modo avançado puro: salva direto (ou paga o agendado).
+                    if (leitura.completa) _salvarDoAvancado(leitura, ctx, previstos);
                   } else {
                     setState(() {
                       _ajustes[linha] = leitura;
@@ -272,6 +343,9 @@ class _LancarState extends ConsumerState<Lancar> {
                             nomeDaConta: nomes[l.contaId],
                             nomeDoDestino: nomes[l.contaDestinoId],
                             aoTocar: () => _detalhar(linha, l, ctx),
+                            agendado: parecidos[l],
+                            comoNovo: _comoNovo.contains(linha),
+                            aoAlternar: () => setState(() => _comoNovo.contains(linha) ? _comoNovo.remove(linha) : _comoNovo.add(linha)),
                           ),
                   ),
                 if (semLeitura.isNotEmpty)
@@ -295,10 +369,14 @@ class _LancarState extends ConsumerState<Lancar> {
           ),
           const SizedBox(height: Espacos.p),
           FilledButton(
-            onPressed: prontas.isEmpty || _salvando ? null : () => _salvar(prontas, ctx),
+            onPressed: prontas.isEmpty || _salvando ? null : () => _salvar(prontas, ctx, quitar: quitar),
             child: Text(prontas.isEmpty
                 ? 'Salvar'
-                : (prontas.length == 1 ? 'Salvar ${reais(prontas.single.valorCentavos)}' : 'Salvar ${prontas.length} lançamentos')),
+                : prontas.length == 1
+                    ? (quitar.isEmpty ? 'Salvar ${reais(prontas.single.valorCentavos)}' : 'Marcar agendado como pago, ${reais(prontas.single.valorCentavos)}')
+                    : (quitar.isEmpty
+                        ? 'Salvar ${prontas.length} lançamentos'
+                        : 'Salvar ${prontas.length} (${quitar.length} ${quitar.length == 1 ? 'paga agendado' : 'pagam agendados'})')),
           ),
           ],
         ],
@@ -317,7 +395,16 @@ class _CartaoDeLeitura extends StatelessWidget {
     this.categoria,
     this.nomeDaConta,
     this.nomeDoDestino,
+    this.agendado,
+    this.comoNovo = false,
+    this.aoAlternar,
   });
+
+  /// Agendado que esta leitura parece estar pagando, e se a pessoa preferiu
+  /// lançar um novo mesmo assim.
+  final Lancamento? agendado;
+  final bool comoNovo;
+  final VoidCallback? aoAlternar;
 
   /// Nomes como aparecem nas listas (com o titular, se houver duas iguais).
   final String? nomeDaConta;
@@ -372,6 +459,27 @@ class _CartaoDeLeitura extends StatelessWidget {
             l.completa ? consequencia(l, conta: conta, destino: destino) : 'Falta um detalhe. Toque para completar.',
             style: texto.bodyMedium?.copyWith(fontSize: 13, color: l.completa ? c.tinta2 : c.atencao),
           ),
+          if (agendado != null) ...[
+            const SizedBox(height: Espacos.p),
+            Container(
+              padding: const EdgeInsets.fromLTRB(10, 8, 4, 8),
+              decoration: BoxDecoration(color: comoNovo ? c.suave : c.primariaSuave, borderRadius: Raios.p),
+              child: Row(children: [
+                Icon(comoNovo ? Icons.add_rounded : Icons.event_available_rounded, size: 18, color: c.tinta2),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    comoNovo
+                        ? 'Vai criar um lançamento novo. O agendado "${agendado!.descricao}" continua pendente.'
+                        : 'Parece o agendado "${agendado!.descricao}" (${reais(agendado!.previstoCentavos ?? 0)}, vence ${diaPorExtenso(agendado!.data, hoje)}). '
+                            'Ele será marcado como pago, sem criar outro.',
+                    style: texto.bodySmall?.copyWith(color: c.tinta),
+                  ),
+                ),
+                TextButton(onPressed: aoAlternar, child: Text(comoNovo ? 'Pagar o agendado' : 'Lançar como novo')),
+              ]),
+            ),
+          ],
         ],
       ),
     );
