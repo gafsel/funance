@@ -8,6 +8,7 @@ import 'package:uuid/uuid.dart';
 import '../dados/provedores.dart';
 import '../dados/repositorio.dart';
 import '../modelo/modelos.dart';
+import '../regras/mascara.dart';
 import '../regras/empresa.dart';
 import '../regras/formatos.dart';
 import '../tema/tema_novo.dart';
@@ -447,7 +448,7 @@ class _PagarProLaboreState extends ConsumerState<_PagarProLabore> {
                 controller: _valor,
                 autofocus: true,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.,]'))],
+                inputFormatters: [const MascaraDeValor()],
                 decoration: const InputDecoration(labelText: 'Valor', prefixText: r'R$ '),
               ),
               const SizedBox(height: Espacos.m),

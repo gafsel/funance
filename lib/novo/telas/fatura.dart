@@ -1,11 +1,11 @@
 import '../caminhos.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 import '../dados/provedores.dart';
 import '../modelo/modelos.dart';
+import '../regras/mascara.dart';
 import '../regras/faturas.dart';
 import '../regras/formatos.dart';
 import '../tema/tema_novo.dart';
@@ -203,6 +203,8 @@ class _TelaFaturaState extends ConsumerState<TelaFatura> {
     final hoje = ref.read(hojeProvider);
     final mensageiro = ScaffoldMessenger.of(context);
     final campo = TextEditingController(text: reais(base, comSimbolo: false));
+    // Já vem selecionado: digitar substitui o valor sugerido em vez de emendar nele.
+    campo.selection = TextSelection(baseOffset: 0, extentOffset: campo.text.length);
     var dia = hoje;
     Conta? origem = (ref.read(contasProvider).valueOrNull ?? const <Conta>[])
         .where((x) => x.id == ref.read(contaPadraoProvider) && x.ehDeUso)
@@ -237,7 +239,7 @@ class _TelaFaturaState extends ConsumerState<TelaFatura> {
                 controller: campo,
                 autofocus: true,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.,]'))],
+                inputFormatters: [const MascaraDeValor()],
                 onChanged: (_) => definir(() => erro = null),
                 decoration: InputDecoration(
                   labelText: 'Valor pago',
@@ -349,7 +351,7 @@ class _TelaFaturaState extends ConsumerState<TelaFatura> {
                 controller: campo,
                 autofocus: true,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.,]'))],
+                inputFormatters: [const MascaraDeValor()],
                 decoration: const InputDecoration(labelText: 'Total na fatura do banco', prefixText: r'R$ '),
               ),
               if (resultado != null) ...[

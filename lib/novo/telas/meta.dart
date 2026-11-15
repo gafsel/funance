@@ -1,11 +1,11 @@
 import '../caminhos.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 import '../dados/provedores.dart';
 import '../modelo/modelos.dart';
+import '../regras/mascara.dart';
 import '../regras/formatos.dart';
 import '../regras/metas.dart';
 import '../regras/relatorios.dart';
@@ -210,7 +210,7 @@ class TelaMeta extends ConsumerWidget {
                 controller: campo,
                 autofocus: true,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.,]'))],
+                inputFormatters: [const MascaraDeValor()],
                 decoration: const InputDecoration(labelText: 'Valor', prefixText: r'R$ '),
               ),
               const SizedBox(height: Espacos.m),

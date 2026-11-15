@@ -1,10 +1,10 @@
 import '../caminhos.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../dados/provedores.dart';
 import '../modelo/modelos.dart';
+import '../regras/mascara.dart';
 import '../regras/formatos.dart';
 import '../tema/tema_novo.dart';
 import 'pecas.dart';
@@ -193,7 +193,7 @@ class _TelaFechamentoState extends ConsumerState<TelaFechamento> {
                           enabled: !fechado,
                           textAlign: TextAlign.end,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-                          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[-\d.,]'))],
+                          inputFormatters: [const MascaraDeValor(comSinal: true)],
                           onChanged: (_) => setState(() {}),
                           decoration: const InputDecoration(hintText: 'No extrato'),
                         ),

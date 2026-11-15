@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../dados/provedores.dart';
 
 import '../modelo/modelos.dart';
+import '../regras/mascara.dart';
 import '../regras/formatos.dart';
 import '../regras/leitura_frase.dart';
 import '../tema/tema_novo.dart';
@@ -369,7 +370,7 @@ class _FormularioAvancadoState extends ConsumerState<FormularioAvancado> {
                 controller: _valor,
                 autofocus: widget.inicial.valorCentavos == 0,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.,]'))],
+                inputFormatters: [const MascaraDeValor()],
                 decoration: const InputDecoration(labelText: 'Valor', prefixText: r'R$ '),
               ),
               const SizedBox(height: Espacos.m),

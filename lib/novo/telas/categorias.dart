@@ -1,12 +1,12 @@
 import '../caminhos.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../core/utils/icons_extension.dart';
 import '../dados/provedores.dart';
 import '../modelo/modelos.dart';
+import '../regras/mascara.dart';
 import '../regras/distribuicao.dart';
 import '../regras/formatos.dart';
 import '../tema/tema_novo.dart';
@@ -59,7 +59,7 @@ class TelaCategorias extends ConsumerWidget {
                 TextField(
                   controller: limite,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.,]'))],
+                  inputFormatters: [const MascaraDeValor()],
                   decoration: const InputDecoration(labelText: 'Limite por mês (opcional)', prefixText: r'R$ ', helperText: 'O app avisa quando o gasto passar de 80% do limite.'),
                 ),
               ],

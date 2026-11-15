@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../dados/provedores.dart';
 import '../dados/repositorio.dart';
 import '../modelo/modelos.dart';
+import '../regras/mascara.dart';
 import '../regras/formatos.dart';
 import '../regras/series.dart';
 import '../regras/leitura_frase.dart';
@@ -357,6 +357,8 @@ Future<bool> abrirPagamento(BuildContext context, WidgetRef ref, Lancamento l) a
   final hoje = ref.read(hojeProvider);
   final mensageiro = ScaffoldMessenger.of(context);
   final campo = TextEditingController(text: reais(l.valorCentavos, comSimbolo: false));
+  // Já vem selecionado: digitar substitui o valor sugerido em vez de emendar nele.
+  campo.selection = TextSelection(baseOffset: 0, extentOffset: campo.text.length);
   var dia = hoje;
   var contaId = l.contaId;
   String? erro;
@@ -394,7 +396,7 @@ Future<bool> abrirPagamento(BuildContext context, WidgetRef ref, Lancamento l) a
               controller: campo,
               autofocus: true,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.,]'))],
+              inputFormatters: [const MascaraDeValor()],
               onChanged: (_) => definir(() => erro = null),
               decoration: InputDecoration(
                 labelText: l.ehEntrada ? 'Valor recebido' : 'Valor pago',

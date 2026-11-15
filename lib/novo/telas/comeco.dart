@@ -8,6 +8,7 @@ import '../../firebase_ambiente.dart';
 import '../dados/provedores.dart';
 import '../dados/repositorio.dart';
 import '../modelo/modelos.dart';
+import '../regras/mascara.dart';
 import '../regras/formatos.dart';
 import '../regras/leitura_frase.dart';
 import '../regras/montar.dart';
@@ -151,7 +152,7 @@ class _TelaComecoState extends ConsumerState<TelaComeco> {
           ),
         );
 
-    final valor = [FilteringTextInputFormatter.allow(RegExp(r'[-\d.,]'))];
+    final valor = [const MascaraDeValor(comSinal: true)];
 
     return Scaffold(
       appBar: widget.podeVoltar ? AppBar(title: const Text('Novo espaço')) : null,

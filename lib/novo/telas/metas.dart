@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 import '../dados/provedores.dart';
 import '../modelo/modelos.dart';
+import '../regras/mascara.dart';
 import '../regras/caminho.dart';
 import '../regras/formatos.dart';
 import '../regras/metas.dart';
@@ -394,7 +394,7 @@ class _FormularioDeMetaState extends ConsumerState<_FormularioDeMeta> {
             controller: _alvo,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
+              const MascaraDeValor(),
             ],
             onChanged: (_) => setState(() {}),
             decoration: InputDecoration(
@@ -449,7 +449,7 @@ class _FormularioDeMetaState extends ConsumerState<_FormularioDeMeta> {
                 decimal: true,
               ),
               inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
+                const MascaraDeValor(),
               ],
               decoration: InputDecoration(
                 labelText: 'Quanto separar por mês',

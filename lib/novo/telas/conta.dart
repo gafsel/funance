@@ -1,10 +1,10 @@
 import '../caminhos.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../dados/provedores.dart';
 import '../modelo/modelos.dart';
+import '../regras/mascara.dart';
 import '../regras/formatos.dart';
 import '../regras/livre.dart';
 import '../tema/tema_novo.dart';
@@ -345,7 +345,7 @@ class _TelaContaState extends ConsumerState<TelaConta> {
                 controller: campo,
                 autofocus: true,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[-\d.,]'))],
+                inputFormatters: [const MascaraDeValor(comSinal: true)],
                 decoration: const InputDecoration(labelText: 'Saldo no extrato do banco', prefixText: r'R$ '),
               ),
               if (resultado != null) ...[
