@@ -139,10 +139,15 @@ class Categoria {
     this.limiteMensalCentavos,
     this.icone,
     this.cor,
+    this.grupo,
   });
 
   final String id;
   final String nome;
+
+  /// `essencial`, `conforto` (estilo de vida) ou `investimento` (futuro).
+  /// Nulo: o app sugere pelo nome.
+  final String? grupo;
 
   /// `entrada` ou `saida`.
   final String tipo;
@@ -161,6 +166,7 @@ class Categoria {
         limiteMensalCentavos: _inteiro(m['limiteMensalCentavos']),
         icone: _texto(m['icone']),
         cor: _texto(m['cor']),
+        grupo: _texto(m['grupo']),
       );
 }
 

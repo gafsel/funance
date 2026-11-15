@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../modelo/modelos.dart';
 import '../regras/caminho.dart';
 import '../regras/empresa.dart';
+import '../regras/distribuicao.dart';
 import '../regras/formatos.dart';
 import '../regras/leitura_frase.dart';
 import '../regras/livre.dart';
@@ -252,4 +253,19 @@ final usoDasContasProvider = Provider<Map<String, int>>((ref) {
     if (destino != null) uso[destino] = (uso[destino] ?? 0) + 1;
   }
   return uso;
+});
+
+/// Como a renda se divide entre essencial, estilo de vida e futuro, e o que
+/// o app aponta. Nulo enquanto não há renda para comparar.
+final diagnosticoProvider = Provider<Diagnostico?>((ref) {
+  final categorias = {
+    for (final c in ref.watch(categoriasProvider).valueOrNull ?? const <Categoria>[]) c.id: c,
+  };
+  return diagnosticar(
+    resumos: ref.watch(resumosProvider).valueOrNull ?? const <ResumoMes>[],
+    categorias: categorias,
+    mesAtual: ref.watch(hojeProvider).substring(0, 7),
+    referencia: referenciaDe(ref.watch(marcasProvider).valueOrNull?['distribuicao']?['referencia'] as String?),
+    nomeDe: (id) => categorias[id]?.nome ?? 'Sem categoria',
+  );
 });

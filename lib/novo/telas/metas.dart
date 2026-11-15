@@ -9,6 +9,7 @@ import '../regras/caminho.dart';
 import '../regras/formatos.dart';
 import '../regras/metas.dart';
 import '../tema/tema_novo.dart';
+import 'distribuicao.dart';
 import 'formulario.dart';
 import 'meta.dart';
 import 'pecas.dart';
@@ -64,6 +65,7 @@ class TelaMetas extends ConsumerWidget {
               style: t.bodyMedium?.copyWith(color: c.positivo),
             ),
           ),
+        const CartaoDaDistribuicao(),
       ],
     );
 

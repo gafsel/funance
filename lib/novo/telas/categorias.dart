@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 import '../../core/utils/icons_extension.dart';
 import '../dados/provedores.dart';
 import '../modelo/modelos.dart';
+import '../regras/distribuicao.dart';
 import '../regras/formatos.dart';
 import '../tema/tema_novo.dart';
 import 'formulario.dart';
@@ -24,6 +25,7 @@ class TelaCategorias extends ConsumerWidget {
     final limite = TextEditingController(
         text: (categoria?.limiteMensalCentavos ?? 0) > 0 ? reais(categoria!.limiteMensalCentavos!, comSimbolo: false) : '');
     var icone = categoria?.icone ?? 'category';
+    var grupo = categoria == null ? 'conforto' : grupoDa(categoria);
     var cor = categoria?.cor ?? paletaDeCategorias[(categoria?.id ?? nome.hashCode.toString()).length % paletaDeCategorias.length];
 
     final acao = await abrirFolha<String>(
@@ -58,6 +60,14 @@ class TelaCategorias extends ConsumerWidget {
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.,]'))],
                   decoration: const InputDecoration(labelText: 'Limite por mês (opcional)', prefixText: r'R$ ', helperText: 'O app avisa quando o gasto passar de 80% do limite.'),
+                ),
+              ],
+              if (tipo == 'saida') ...[
+                const TituloDeSecao('Grupo'),
+                Segmentos<String>(
+                  opcoes: [for (final g in gruposDeGasto) (g, nomeDoGrupo(g))],
+                  valor: grupo,
+                  aoMudar: (g) => definir(() => grupo = g),
                 ),
               ],
               const TituloDeSecao('Cor'),
@@ -115,7 +125,7 @@ class TelaCategorias extends ConsumerWidget {
         'cor': cor,
         'limiteMensalCentavos': tipo == 'saida' ? lerCentavos(limite.text) : null,
         'arquivada': acao == 'arquivar',
-        if (categoria == null) 'grupo': null,
+        'grupo': tipo == 'saida' ? grupo : null,
       });
     }
     nome.dispose();
