@@ -42,6 +42,7 @@ class Conta {
     this.conferidoAte,
     this.conferidoSaldoCentavos,
     this.faturasConferidas = const {},
+    this.faturasConferidasEm = const {},
   });
 
   final String id;
@@ -61,6 +62,11 @@ class Conta {
   /// Faturas de cartão já conferidas com a do banco: id da fatura → total
   /// que batia quando foi conferida.
   final Map<String, int> faturasConferidas;
+
+  /// Quando cada fatura foi conferida pela última vez: id da fatura → dia.
+  /// Cada fatura tem a sua data, porque a fechada e a aberta de um mesmo
+  /// cartão são conferidas em momentos diferentes.
+  final Map<String, String> faturasConferidasEm;
 
   bool get conjunta => donos.length > 1;
 
@@ -98,6 +104,12 @@ class Conta {
             ? {
                 for (final e in (m['faturasConferidas'] as Map).entries)
                   if (_inteiro(e.value) != null) '${e.key}': _inteiro(e.value)!,
+              }
+            : const {},
+        faturasConferidasEm: m['faturasConferidasEm'] is Map
+            ? {
+                for (final e in (m['faturasConferidasEm'] as Map).entries)
+                  if (e.value is String) '${e.key}': e.value as String,
               }
             : const {},
       );

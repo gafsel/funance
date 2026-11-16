@@ -48,9 +48,36 @@ List<SituacaoDaFatura> faturasParaConferir(Map<String, SituacaoDaFatura> situaco
   return [?destaque];
 }
 
-/// Há quantos dias a conta foi conferida; nulo se nunca foi.
-int? diasSemConferir(Conta conta, String hoje) =>
-    conta.conferidoAte == null ? null : diaDaChave(hoje).difference(diaDaChave(conta.conferidoAte!)).inDays;
+/// Um passo da conferência: uma conta, ou uma fatura de um cartão. Cada
+/// fatura é um passo à parte, com a sua própria data de conferência.
+class Passo {
+  const Passo(this.conta, [this.fatura]);
+  final Conta conta;
+
+  /// Nula para conta, e para cartão sem fatura a conferir.
+  final SituacaoDaFatura? fatura;
+
+  String get id => fatura == null ? conta.id : '${conta.id}/${fatura!.fatura.id}';
+
+  /// Até quando este passo foi conferido; nulo se nunca foi.
+  String? get conferidoAte => fatura == null ? conta.conferidoAte : conta.faturasConferidasEm[fatura!.fatura.id];
+}
+
+/// O roteiro inteiro: as contas na ordem de conferir e, no lugar de cada
+/// cartão, as faturas dele que precisam de conferência.
+List<Passo> passosDaConferencia(Iterable<Conta> contas, String? euId, Map<String, SituacaoDaFatura> situacoes) => [
+      for (final conta in roteiroDaConferencia(contas, euId))
+        if (!conta.ehCartao)
+          Passo(conta)
+        else ...switch (faturasParaConferir(situacoes, conta.id)) {
+          [] => [Passo(conta)],
+          final faturas => [for (final s in faturas) Passo(conta, s)],
+        },
+    ];
+
+/// Há quantos dias o passo foi conferido; nulo se nunca foi.
+int? diasSemConferir(Passo passo, String hoje) =>
+    passo.conferidoAte == null ? null : diaDaChave(hoje).difference(diaDaChave(passo.conferidoAte!)).inDays;
 
 /// O saldo com que a conta fechou cada dia, de [desde] até [hoje], andando
 /// para trás a partir do saldo de hoje. [movimentoPorDia] é o quanto a

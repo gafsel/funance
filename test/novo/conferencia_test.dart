@@ -67,8 +67,31 @@ void main() {
   });
 
   test('dias sem conferir', () {
-    expect(diasSemConferir(conta('a', 'corrente', conferidoAte: '2026-11-09'), '2026-11-16'), 7);
-    expect(diasSemConferir(conta('a', 'corrente'), '2026-11-16'), isNull);
+    expect(diasSemConferir(Passo(conta('a', 'corrente', conferidoAte: '2026-11-09')), '2026-11-16'), 7);
+    expect(diasSemConferir(Passo(conta('a', 'corrente')), '2026-11-16'), isNull);
+  });
+
+  test('cada fatura é um passo, com a sua própria data de conferência', () {
+    const cartao = Conta(
+      id: 'cartao', nome: 'Cartão', tipo: 'cartao', donos: ['eu'], conferidoAte: '2026-11-14',
+      faturasConferidasEm: {'nov': '2026-11-14'},
+    );
+    final situacoes = situacoesDasFaturas(const [
+      Fatura(id: 'nov', contaId: 'cartao', vencimento: '2026-11-20', fechamento: '2026-11-13', inicio: '', fim: '', totalCentavos: 10000),
+      Fatura(id: 'dez', contaId: 'cartao', vencimento: '2026-12-20', fechamento: '2026-12-13', inicio: '', fim: '', totalCentavos: 5000),
+    ], '2026-11-16');
+    final passos = passosDaConferencia([cartao, conta('conta', 'corrente')], 'eu', situacoes);
+    expect(passos.map((p) => p.id), ['cartao/nov', 'cartao/dez', 'conta']);
+    expect(passos[0].conferidoAte, '2026-11-14');
+    expect(diasSemConferir(passos[0], '2026-11-16'), 2);
+    // A fatura aberta nunca foi conferida, mesmo o cartão tendo uma data.
+    expect(passos[1].conferidoAte, isNull);
+  });
+
+  test('cartão sem fatura a conferir ainda é um passo', () {
+    final passos = passosDaConferencia([conta('cartao', 'cartao')], 'eu', const {});
+    expect(passos.single.fatura, isNull);
+    expect(passos.single.id, 'cartao');
   });
 
   test('saldo no fim de cada dia, andando para trás a partir de hoje', () {

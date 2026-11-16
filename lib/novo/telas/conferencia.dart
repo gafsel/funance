@@ -48,7 +48,7 @@ int? _lerSaldo(String texto) {
   return absoluto == null ? null : (t.startsWith('-') ? -absoluto : absoluto);
 }
 
-/// Convite no início: quantas contas estão sem conferir há uma semana.
+/// Convite no início: quantos passos estão sem conferir há uma semana.
 class ConviteParaConferir extends ConsumerWidget {
   const ConviteParaConferir({super.key});
 
@@ -57,9 +57,13 @@ class ConviteParaConferir extends ConsumerWidget {
     final c = Cores.de(context);
     final t = Theme.of(context).textTheme;
     final hoje = ref.watch(hojeProvider);
-    final roteiro = roteiroDaConferencia(ref.watch(contasProvider).valueOrNull ?? const <Conta>[], ref.watch(authProvider).valueOrNull?.uid);
-    final paradas = roteiro.where((x) => (diasSemConferir(x, hoje) ?? 999) >= 7).length;
-    if (roteiro.isEmpty || paradas == 0) return const SizedBox.shrink();
+    final passos = passosDaConferencia(
+      ref.watch(contasProvider).valueOrNull ?? const <Conta>[],
+      ref.watch(authProvider).valueOrNull?.uid,
+      ref.watch(situacoesDasFaturasProvider),
+    );
+    final parados = passos.where((x) => (diasSemConferir(x, hoje) ?? 999) >= 7).length;
+    if (passos.isEmpty || parados == 0) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(bottom: Espacos.p),
       child: Cartao(
@@ -70,7 +74,7 @@ class ConviteParaConferir extends ConsumerWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              '$paradas de ${roteiro.length} ${roteiro.length == 1 ? 'conta' : 'contas'} sem conferir há uma semana ou mais',
+              '$parados de ${passos.length} contas e faturas sem conferir há uma semana ou mais',
               style: t.bodyMedium?.copyWith(fontSize: 13),
             ),
           ),
@@ -81,6 +85,11 @@ class ConviteParaConferir extends ConsumerWidget {
   }
 }
 
+/// Como chamar a fatura de um passo para ela não se confundir com a outra
+/// do mesmo cartão: o mês em que vence e se está aberta ou fechada.
+String _nomeDaFatura(SituacaoDaFatura s) =>
+    'fatura de ${nomeDoMes(s.fatura.vencimento.substring(0, 7)).split(' ').first.toLowerCase()}, ${s.aberta ? 'aberta' : 'fechada'}';
+
 class TelaConferencia extends ConsumerStatefulWidget {
   const TelaConferencia({super.key});
 
@@ -89,7 +98,7 @@ class TelaConferencia extends ConsumerStatefulWidget {
 }
 
 class _TelaConferenciaState extends ConsumerState<TelaConferencia> {
-  /// A conta em que a pessoa está; nula = a primeira que ainda falta.
+  /// O passo em que a pessoa está; nulo = o primeiro que ainda falta.
   String? _atual;
 
   @override
@@ -99,34 +108,43 @@ class _TelaConferenciaState extends ConsumerState<TelaConferencia> {
     final hoje = ref.watch(hojeProvider);
     final eu = ref.watch(authProvider).valueOrNull?.uid;
     final membros = ref.watch(membrosProvider).valueOrNull ?? const <Membro>[];
-    final roteiro = roteiroDaConferencia(ref.watch(contasProvider).valueOrNull ?? const <Conta>[], eu);
-    bool feita(Conta x) => diasSemConferir(x, hoje) == 0;
-    final faltam = roteiro.where((x) => !feita(x)).toList();
-    final atual = roteiro.where((x) => x.id == _atual).firstOrNull ?? faltam.firstOrNull ?? roteiro.firstOrNull;
+    final passos = passosDaConferencia(
+      ref.watch(contasProvider).valueOrNull ?? const <Conta>[],
+      eu,
+      ref.watch(situacoesDasFaturasProvider),
+    );
+    bool feito(Passo x) => diasSemConferir(x, hoje) == 0;
+    final faltam = passos.where((x) => !feito(x)).toList();
+    final atual = passos.where((x) => x.id == _atual).firstOrNull ?? faltam.firstOrNull ?? passos.firstOrNull;
 
-    void proxima() {
-      final depois = roteiro.skipWhile((x) => x.id != atual?.id).skip(1).where((x) => !feita(x)).firstOrNull;
+    void proximo() {
+      final depois = passos.skipWhile((x) => x.id != atual?.id).skip(1).where((x) => !feito(x)).firstOrNull;
       setState(() => _atual = depois?.id ?? faltam.where((x) => x.id != atual?.id).firstOrNull?.id);
     }
 
     final lista = Lista(filhos: [
-      for (final x in roteiro)
+      for (final x in passos)
         Linha(
-          antes: SeloDaConta(conta: x, membros: membros),
-          titulo: x.nome,
+          antes: SeloDaConta(conta: x.conta, membros: membros),
+          // Cada fatura do cartão é um passo: o título diz qual é.
+          // No roteiro o nome é curto para caber: "Cartão Nubank · nov fechada".
+          titulo: x.fatura == null
+              ? x.conta.nome
+              : '${x.conta.nome} · ${mesAbreviado(x.fatura!.fatura.vencimento)} ${x.fatura!.aberta ? 'aberta' : 'fechada'}',
+          // A data da conferência vem primeiro: é o que não pode ser cortado.
           detalhe: [
-            titularidade(x, membros, eu),
             switch (diasSemConferir(x, hoje)) {
               null => 'nunca conferida',
               0 => 'conferida hoje',
               _ => 'conferida até ${diaPorExtenso(x.conferidoAte!, hoje)}',
             },
+            if (x.fatura == null) titularidade(x.conta, membros, eu),
           ].where((p) => p.isNotEmpty).join(' · '),
           corDoDetalhe: (diasSemConferir(x, hoje) ?? 999) >= 7 ? c.atencao : null,
           direita: Icon(
-            feita(x) ? Icons.check_circle_rounded : (x.id == atual?.id ? Icons.radio_button_checked_rounded : Icons.radio_button_unchecked_rounded),
+            feito(x) ? Icons.check_circle_rounded : (x.id == atual?.id ? Icons.radio_button_checked_rounded : Icons.radio_button_unchecked_rounded),
             size: 20,
-            color: feita(x) ? c.positivo : (x.id == atual?.id ? c.primaria : c.tinta3),
+            color: feito(x) ? c.positivo : (x.id == atual?.id ? c.primaria : c.tinta3),
           ),
           aoTocar: () => setState(() => _atual = x.id),
         ),
@@ -134,14 +152,14 @@ class _TelaConferenciaState extends ConsumerState<TelaConferencia> {
 
     final painel = atual == null
         ? const Cartao(padding: EdgeInsets.zero, child: Vazio('Nenhuma conta para conferir.'))
-        : atual.ehCartao
-            ? _PassoDoCartao(key: ValueKey(atual.id), cartao: atual, aoConcluir: proxima)
-            : _PassoDaConta(key: ValueKey(atual.id), conta: atual, aoConcluir: proxima);
+        : atual.conta.ehCartao
+            ? _PassoDoCartao(key: ValueKey(atual.id), cartao: atual.conta, fatura: atual.fatura, aoConcluir: proximo)
+            : _PassoDaConta(key: ValueKey(atual.id), conta: atual.conta, aoConcluir: proximo);
 
     final resumo = Text(
       faltam.isEmpty
-          ? 'Tudo conferido hoje. As contas seguem em ordem de banco, e em cada banco o cartão vem antes da conta.'
-          : '${roteiro.length - faltam.length} de ${roteiro.length} conferidas hoje. A ordem é por titular e banco; em cada banco, o cartão antes da conta.',
+          ? 'Tudo conferido hoje. A ordem é por titular e banco; em cada banco, as faturas do cartão antes da conta.'
+          : '${passos.length - faltam.length} de ${passos.length} conferidos hoje. A ordem é por titular e banco; em cada banco, as faturas do cartão antes da conta.',
       style: t.bodySmall,
     );
 
@@ -155,7 +173,7 @@ class _TelaConferenciaState extends ConsumerState<TelaConferencia> {
                 resumo,
                 const SizedBox(height: Espacos.g),
                 Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  SizedBox(width: 340, child: lista),
+                  SizedBox(width: 360, child: lista),
                   const SizedBox(width: Espacos.xg),
                   Expanded(child: painel),
                 ]),
@@ -168,8 +186,11 @@ class _TelaConferenciaState extends ConsumerState<TelaConferencia> {
 
 /// Cabeçalho comum de um passo: a conta, um número grande e os atalhos.
 class _Cabecalho extends ConsumerWidget {
-  const _Cabecalho({required this.conta, required this.rotulo, required this.valor, required this.acoes});
+  const _Cabecalho({required this.conta, required this.rotulo, required this.valor, required this.acoes, this.titulo});
   final Conta conta;
+
+  /// No lugar do nome da conta (a fatura de um cartão diz qual é).
+  final String? titulo;
   final String rotulo;
   final int valor;
   final List<Widget> acoes;
@@ -184,7 +205,7 @@ class _Cabecalho extends ConsumerWidget {
         const SizedBox(width: 12),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(conta.nome, style: t.titleMedium),
+            Text(titulo ?? conta.nome, style: t.titleMedium),
             Text(rotulo, style: t.bodySmall),
             FittedBox(
               fit: BoxFit.scaleDown,
@@ -203,9 +224,14 @@ class _Cabecalho extends ConsumerWidget {
 /// Até quando a conta foi conferida, em destaque: é a partir desse dia que
 /// a pessoa precisa olhar no app do banco.
 class _UltimaConferencia extends StatelessWidget {
-  const _UltimaConferencia({required this.conta, required this.hoje, this.complemento});
-  final Conta conta;
+  const _UltimaConferencia({required this.ate, required this.hoje, this.complemento, this.nunca});
+
+  /// Até quando foi conferido; nulo se nunca foi.
+  final String? ate;
   final String hoje;
+
+  /// O que dizer quando nunca foi conferido.
+  final String? nunca;
 
   /// O que ficou registrado naquela conferência (o saldo, o total da fatura).
   final String? complemento;
@@ -214,8 +240,8 @@ class _UltimaConferencia extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = Cores.de(context);
     final t = Theme.of(context).textTheme;
-    final ate = conta.conferidoAte;
-    final dias = diasSemConferir(conta, hoje);
+    final ate = this.ate;
+    final dias = ate == null ? null : diaDaChave(hoje).difference(diaDaChave(ate)).inDays;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(color: c.suave, borderRadius: Raios.m),
@@ -234,7 +260,7 @@ class _UltimaConferencia extends StatelessWidget {
             const SizedBox(height: 2),
             Text(
               ate == null
-                  ? 'Confira no banco desde o começo do que está lançado aqui.'
+                  ? (nunca ?? 'Confira no banco desde o começo do que está lançado aqui.')
                   : dias == 0
                       ? 'Já conferida hoje.${complemento == null ? '' : ' $complemento'}'
                       : 'No banco, olhe a partir de ${diaPorExtenso(somarDias(ate, 1), hoje)}.${complemento == null ? '' : ' $complemento'}',
@@ -285,9 +311,14 @@ class _CampoDoBanco extends StatelessWidget {
   }
 }
 
+/// Uma fatura de um cartão: o total do banco contra o do app, o que foi
+/// lançado nela desde a última vez que ela foi conferida, e o pagamento.
 class _PassoDoCartao extends ConsumerStatefulWidget {
-  const _PassoDoCartao({super.key, required this.cartao, required this.aoConcluir});
+  const _PassoDoCartao({super.key, required this.cartao, required this.fatura, required this.aoConcluir});
   final Conta cartao;
+
+  /// Nula quando o cartão não tem fatura a conferir.
+  final SituacaoDaFatura? fatura;
   final VoidCallback aoConcluir;
 
   @override
@@ -295,14 +326,11 @@ class _PassoDoCartao extends ConsumerStatefulWidget {
 }
 
 class _PassoDoCartaoState extends ConsumerState<_PassoDoCartao> {
-  /// Um campo de "total no banco" por fatura a conferir.
-  final _totais = <String, TextEditingController>{};
+  final _total = TextEditingController();
 
   @override
   void dispose() {
-    for (final c in _totais.values) {
-      c.dispose();
-    }
+    _total.dispose();
     super.dispose();
   }
 
@@ -314,17 +342,16 @@ class _PassoDoCartaoState extends ConsumerState<_PassoDoCartao> {
     final hoje = ref.watch(hojeProvider);
     final repo = ref.watch(repositorioProvider);
     final categorias = {for (final x in ref.watch(categoriasProvider).valueOrNull ?? const <Categoria>[]) x.id: x};
-    // Fechada sem pagamento e a aberta: as duas entram na conferência.
-    final faturas = faturasParaConferir(ref.watch(situacoesDasFaturasProvider), cartao.id);
+    final s = widget.fatura;
 
-    if (faturas.isEmpty) {
+    if (s == null) {
       return Cartao(
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Text(cartao.nome, style: t.titleMedium),
           const SizedBox(height: 4),
           Text('Sem fatura em aberto neste cartão. Se há compra nova no banco, lance e a fatura aparece aqui.', style: t.bodySmall),
           const SizedBox(height: Espacos.m),
-          _UltimaConferencia(conta: cartao, hoje: hoje),
+          _UltimaConferencia(ate: cartao.conferidoAte, hoje: hoje),
           const SizedBox(height: Espacos.m),
           Acoes(filhos: [
             FilledButton(
@@ -340,136 +367,95 @@ class _PassoDoCartaoState extends ConsumerState<_PassoDoCartao> {
       );
     }
 
-    bool bate(SituacaoDaFatura s) => _lerSaldo(_totais[s.fatura.id]?.text ?? '') == s.fatura.totalCentavos;
-    final todasBatem = faturas.every(bate);
-    final somaDoApp = faturas.fold<int>(0, (soma, s) => soma + s.fatura.totalCentavos);
-
-    final desde = cartao.conferidoAte;
-    final principal = faturas.last.fatura;
-    final carregando = desde == null && ref.watch(_comprasDaFaturaProvider(principal)).isLoading;
-    // Desde a última conferência vale o cartão inteiro, não só uma fatura.
-    final novas = desde == null
-        ? ((ref.watch(_comprasDaFaturaProvider(principal)).valueOrNull ?? const <Lancamento>[]).toList()
-          ..sort((a, b) => b.dia.compareTo(a.dia)))
-        : ((ref.watch(_feitosDesdeProvider(somarDias(desde, 1))).valueOrNull ?? const <Lancamento>[])
-            .where((l) => l.efetivado && l.contaId == cartao.id && !l.ehTransferencia)
-            .toList()
-          ..sort((a, b) => b.dia.compareTo(a.dia)));
-
-    Widget blocoDaFatura(SituacaoDaFatura s) {
-      final f = s.fatura;
-      final controle = _totais[f.id] ??= TextEditingController();
-      final informado = _lerSaldo(controle.text);
-      return Padding(
-        padding: const EdgeInsets.only(top: Espacos.g),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Row(children: [
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(
-                  s.aberta ? 'Fatura aberta' : (s.atrasada ? 'Fatura fechada, vencida e sem pagamento' : 'Fatura fechada, aguardando pagamento'),
-                  style: t.titleSmall?.copyWith(color: s.atrasada ? c.atencao : null),
-                ),
-                Text(
-                  s.aberta
-                      ? 'fecha ${diaPorExtenso(f.fechamento, hoje)} · vence ${diaPorExtenso(f.vencimento, hoje)}'
-                      : 'fechou ${diaPorExtenso(f.fechamento, hoje)} · vence ${diaPorExtenso(f.vencimento, hoje)}',
-                  style: t.bodySmall,
-                ),
-              ]),
-            ),
-            Text(reais(f.totalCentavos), style: Textos.valor(context, tamanho: 16)),
-          ]),
-          if (s.transportadoCentavos != 0)
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: Text('Com o que veio da fatura anterior, o devido é ${reais(s.devidoCentavos)}.', style: t.bodySmall),
-            ),
-          if (cartao.faturasConferidas[f.id] != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: Text('Conferida antes em ${reais(cartao.faturasConferidas[f.id]!)}.', style: t.bodySmall),
-            ),
-          const SizedBox(height: Espacos.p),
-          _CampoDoBanco(
-            controle: controle,
-            rotulo: 'Total das compras que o banco mostra',
-            noApp: f.totalCentavos,
-            aoMudar: () => setState(() {}),
-          ),
-          const SizedBox(height: Espacos.p),
-          Wrap(spacing: Espacos.p, runSpacing: Espacos.p, children: [
-            if (informado != null && informado != f.totalCentavos)
-              BotaoPequeno(
-                'Comparar item a item',
-                aoTocar: () => abrirFolha<void>(context, (_) => _CompararFatura(cartao: cartao, fatura: f), largura: 620, alta: true),
-              ),
-            BotaoPequeno('Abrir a fatura', aoTocar: () => abrirFatura(context, cartao, f.id)),
-            // O pagamento sai da conta: registrado aqui, com o valor conferido,
-            // ele já está certo quando a conta for conferida.
-            if (s.pendente && s.aPagarCentavos > 0)
-              BotaoPequeno(
-                'Registrar o pagamento de ${reais(s.aPagarCentavos, sempre: true)}',
-                aoTocar: () => pagarFatura(context, ref, cartao, f, base: s.aPagarCentavos, aberta: false),
-              ),
-          ]),
-        ]),
-      );
-    }
+    final f = s.fatura;
+    // A data é desta fatura: a fechada e a aberta do mesmo cartão são
+    // conferidas em momentos diferentes.
+    final desde = cartao.faturasConferidasEm[f.id];
+    final carregando = ref.watch(_comprasDaFaturaProvider(f)).isLoading;
+    final compras = (ref.watch(_comprasDaFaturaProvider(f)).valueOrNull ?? const <Lancamento>[])
+        .where((l) => !l.ehTransferencia)
+        .toList()
+      ..sort((a, b) => b.dia.compareTo(a.dia));
+    final novas = desde == null ? compras : compras.where((l) => l.dia.compareTo(desde) > 0).toList();
+    final informado = _lerSaldo(_total.text);
+    final bate = informado != null && informado == f.totalCentavos;
+    final conferidaEm = cartao.faturasConferidas[f.id];
 
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Cartao(
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           _Cabecalho(
             conta: cartao,
-            rotulo: faturas.length == 1 ? 'Compras da fatura no app' : 'Compras das ${faturas.length} faturas a conferir',
-            valor: somaDoApp,
+            titulo: '${cartao.nome} · ${_nomeDaFatura(s)}',
+            rotulo: s.aberta
+                ? 'Fecha ${diaPorExtenso(f.fechamento, hoje)} · vence ${diaPorExtenso(f.vencimento, hoje)}'
+                : 'Fechou ${diaPorExtenso(f.fechamento, hoje)} · ${s.atrasada ? 'venceu' : 'vence'} ${diaPorExtenso(f.vencimento, hoje)}'
+                    '${s.paga ? ' · paga' : ' · sem pagamento'}',
+            valor: f.totalCentavos,
             acoes: [
               BotaoPequeno('Lançar neste cartão', icone: Icons.add_rounded, cheio: true, aoTocar: () => abrirLancar(context, contaId: cartao.id)),
               BotaoPequeno('Importar fatura', icone: Icons.upload_file_rounded, aoTocar: () => abrirImportacao(context, contaId: cartao.id)),
+              BotaoPequeno('Abrir a fatura', aoTocar: () => abrirFatura(context, cartao, f.id)),
             ],
           ),
           const SizedBox(height: Espacos.m),
-          _UltimaConferencia(conta: cartao, hoje: hoje),
-          if (faturas.length > 1)
-            Padding(
-              padding: const EdgeInsets.only(top: Espacos.m),
-              child: Text(
-                'A fatura que fechou ainda não foi paga: confira ela (para o pagamento sair no valor certo) e a que está aberta.',
-                style: t.bodySmall,
-              ),
-            ),
-          for (final (i, s) in faturas.indexed) ...[
-            if (i > 0) const Padding(padding: EdgeInsets.only(top: Espacos.g), child: Divider(height: 1)),
-            blocoDaFatura(s),
+          _UltimaConferencia(
+            ate: desde,
+            hoje: hoje,
+            nunca: 'Esta fatura ainda não foi conferida. Confira no banco todas as compras dela, de ${diaPorExtenso(f.inicio, hoje)} a ${diaPorExtenso(f.fim, hoje)}.',
+            complemento: conferidaEm == null ? null : 'O total era ${reais(conferidaEm)}.',
+          ),
+          if (s.transportadoCentavos != 0) ...[
+            const SizedBox(height: Espacos.p),
+            Text('Compras do ciclo. Com o que veio da fatura anterior, o devido é ${reais(s.devidoCentavos)}.', style: t.bodySmall),
           ],
           const SizedBox(height: Espacos.g),
+          _CampoDoBanco(
+            controle: _total,
+            rotulo: 'Total das compras que o banco mostra',
+            noApp: f.totalCentavos,
+            aoMudar: () => setState(() {}),
+          ),
+          const SizedBox(height: Espacos.m),
           Acoes(filhos: [
             FilledButton(
-              onPressed: !todasBatem
+              onPressed: !bate
                   ? null
                   : () async {
                       await repo?.gravarConta(cartao.id, {
                         'conferidoAte': hoje,
-                        'faturasConferidas': {for (final s in faturas) s.fatura.id: s.fatura.totalCentavos},
+                        'faturasConferidas': {f.id: f.totalCentavos},
+                        'faturasConferidasEm': {f.id: hoje},
                       });
                       widget.aoConcluir();
                     },
-              child: Text(faturas.length == 1 ? 'Conferido, próxima' : 'As ${faturas.length} conferidas, próxima'),
+              child: const Text('Conferida, próxima'),
             ),
+            if (informado != null && !bate)
+              OutlinedButton(
+                onPressed: () => abrirFolha<void>(context, (_) => _CompararFatura(cartao: cartao, fatura: f), largura: 620, alta: true),
+                child: const Text('Comparar item a item'),
+              ),
+            // O pagamento sai da conta: registrado aqui, com o valor conferido,
+            // ele já está certo quando a conta for conferida.
+            if (s.pendente && s.aPagarCentavos > 0)
+              OutlinedButton(
+                onPressed: () => pagarFatura(context, ref, cartao, f, base: s.aPagarCentavos, aberta: false),
+                child: Text('Registrar o pagamento de ${reais(s.aPagarCentavos, sempre: true)}'),
+              ),
           ]),
         ]),
       ),
       TituloDeSecao(
-        desde == null ? 'Compras da fatura aberta' : 'Lançado desde a última conferência',
-        detalhe: desde == null ? '${novas.length}' : '${novas.length} desde ${diaPorExtenso(desde, hoje)}',
+        desde == null ? 'Compras desta fatura' : 'Lançado nesta fatura desde a última conferência',
+        detalhe: desde == null ? '${compras.length}' : '${novas.length} desde ${diaPorExtenso(desde, hoje)}',
       ),
       if (carregando)
         const Cartao(child: Center(child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))))
       else if (novas.isEmpty)
         Cartao(
           padding: EdgeInsets.zero,
-          child: Vazio(desde == null ? 'Nenhuma compra nesta fatura.' : 'Nada lançado neste cartão desde a última conferência.'),
+          child: Vazio(desde == null ? 'Nenhuma compra nesta fatura.' : 'Nada lançado nesta fatura desde a última conferência dela.'),
         )
       else
         Lista(filhos: [
@@ -732,7 +718,7 @@ class _PassoDaContaState extends ConsumerState<_PassoDaConta> {
           ),
           const SizedBox(height: Espacos.m),
           _UltimaConferencia(
-            conta: conta,
+            ate: conta.conferidoAte,
             hoje: hoje,
             complemento: conta.conferidoSaldoCentavos == null ? null : 'O saldo era ${reais(conta.conferidoSaldoCentavos!)}.',
           ),
