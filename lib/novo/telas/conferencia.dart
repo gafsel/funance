@@ -101,6 +101,28 @@ class _TelaConferenciaState extends ConsumerState<TelaConferencia> {
   /// O passo em que a pessoa está; nulo = o primeiro que ainda falta.
   String? _atual;
 
+  /// No celular o roteiro é uma fila de cartões que se arrasta: cada um
+  /// ocupa 80% da largura, e a ponta do vizinho mostra que há mais.
+  final _paginas = PageController(viewportFraction: 0.8);
+
+  @override
+  void dispose() {
+    _paginas.dispose();
+    super.dispose();
+  }
+
+  String _situacao(Passo x, String hoje) => switch (diasSemConferir(x, hoje)) {
+        null => 'nunca conferida',
+        0 => 'conferida hoje',
+        _ => 'conferida até ${diaPorExtenso(x.conferidoAte!, hoje)}',
+      };
+
+  // "Cartão Nubank · nov fechada": curto, para caber e não confundir as duas
+  // faturas do mesmo cartão.
+  String _nome(Passo x) => x.fatura == null
+      ? x.conta.nome
+      : '${x.conta.nome} · ${mesAbreviado(x.fatura!.fatura.vencimento)} ${x.fatura!.aberta ? 'aberta' : 'fechada'}';
+
   @override
   Widget build(BuildContext context) {
     final c = Cores.de(context);
@@ -116,39 +138,34 @@ class _TelaConferenciaState extends ConsumerState<TelaConferencia> {
     bool feito(Passo x) => diasSemConferir(x, hoje) == 0;
     final faltam = passos.where((x) => !feito(x)).toList();
     final atual = passos.where((x) => x.id == _atual).firstOrNull ?? faltam.firstOrNull ?? passos.firstOrNull;
+    final indice = atual == null ? 0 : passos.indexWhere((x) => x.id == atual.id);
+    final mesa = ehMesa(context);
 
+    // A fila do celular acompanha o passo atual (ao concluir um, ao tocar
+    // na barra de progresso).
+    if (!mesa) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!_paginas.hasClients || _paginas.position.isScrollingNotifier.value) return;
+        if ((_paginas.page ?? 0).round() != indice) {
+          _paginas.animateToPage(indice, duration: const Duration(milliseconds: 280), curve: Curves.easeOutCubic);
+        }
+      });
+    }
+
+    void irPara(Passo x) => setState(() => _atual = x.id);
     void proximo() {
       final depois = passos.skipWhile((x) => x.id != atual?.id).skip(1).where((x) => !feito(x)).firstOrNull;
       setState(() => _atual = depois?.id ?? faltam.where((x) => x.id != atual?.id).firstOrNull?.id);
     }
 
-    final lista = Lista(filhos: [
-      for (final x in passos)
-        Linha(
-          antes: SeloDaConta(conta: x.conta, membros: membros),
-          // Cada fatura do cartão é um passo: o título diz qual é.
-          // No roteiro o nome é curto para caber: "Cartão Nubank · nov fechada".
-          titulo: x.fatura == null
-              ? x.conta.nome
-              : '${x.conta.nome} · ${mesAbreviado(x.fatura!.fatura.vencimento)} ${x.fatura!.aberta ? 'aberta' : 'fechada'}',
-          // A data da conferência vem primeiro: é o que não pode ser cortado.
-          detalhe: [
-            switch (diasSemConferir(x, hoje)) {
-              null => 'nunca conferida',
-              0 => 'conferida hoje',
-              _ => 'conferida até ${diaPorExtenso(x.conferidoAte!, hoje)}',
-            },
-            if (x.fatura == null) titularidade(x.conta, membros, eu),
-          ].where((p) => p.isNotEmpty).join(' · '),
-          corDoDetalhe: (diasSemConferir(x, hoje) ?? 999) >= 7 ? c.atencao : null,
-          direita: Icon(
-            feito(x) ? Icons.check_circle_rounded : (x.id == atual?.id ? Icons.radio_button_checked_rounded : Icons.radio_button_unchecked_rounded),
-            size: 20,
-            color: feito(x) ? c.positivo : (x.id == atual?.id ? c.primaria : c.tinta3),
-          ),
-          aoTocar: () => setState(() => _atual = x.id),
-        ),
-    ]);
+    final progresso = _Progresso(
+      passos: passos,
+      feito: feito,
+      atual: atual,
+      euId: eu,
+      aoTocar: irPara,
+      nome: _nome,
+    );
 
     final painel = atual == null
         ? const Cartao(padding: EdgeInsets.zero, child: Vazio('Nenhuma conta para conferir.'))
@@ -156,31 +173,204 @@ class _TelaConferenciaState extends ConsumerState<TelaConferencia> {
             ? _PassoDoCartao(key: ValueKey(atual.id), cartao: atual.conta, fatura: atual.fatura, aoConcluir: proximo)
             : _PassoDaConta(key: ValueKey(atual.id), conta: atual.conta, aoConcluir: proximo);
 
-    final resumo = Text(
-      faltam.isEmpty
-          ? 'Tudo conferido hoje. A ordem é por titular e banco; em cada banco, as faturas do cartão antes da conta.'
-          : '${passos.length - faltam.length} de ${passos.length} conferidos hoje. A ordem é por titular e banco; em cada banco, as faturas do cartão antes da conta.',
-      style: t.bodySmall,
-    );
+    if (mesa) {
+      final lista = Lista(filhos: [
+        for (final x in passos)
+          Linha(
+            antes: SeloDaConta(conta: x.conta, membros: membros),
+            titulo: _nome(x),
+            // A data da conferência vem primeiro: é o que não pode ser cortado.
+            detalhe: [_situacao(x, hoje), if (x.fatura == null) titularidade(x.conta, membros, eu)].where((p) => p.isNotEmpty).join(' · '),
+            corDoDetalhe: (diasSemConferir(x, hoje) ?? 999) >= 7 ? c.atencao : null,
+            direita: Icon(
+              feito(x) ? Icons.check_circle_rounded : (x.id == atual?.id ? Icons.radio_button_checked_rounded : Icons.radio_button_unchecked_rounded),
+              size: 20,
+              color: feito(x) ? c.positivo : (x.id == atual?.id ? c.primaria : c.tinta3),
+            ),
+            aoTocar: () => irPara(x),
+          ),
+      ]);
+      return Scaffold(
+        appBar: AppBar(title: const Text('Conferência')),
+        body: Pagina(
+          larguraMaxima: 1100,
+          centralizada: true,
+          filhos: [
+            progresso,
+            const SizedBox(height: Espacos.g),
+            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              SizedBox(width: 360, child: lista),
+              const SizedBox(width: Espacos.xg),
+              Expanded(child: painel),
+            ]),
+          ],
+        ),
+      );
+    }
+
+    // Celular: progresso, a fila de passos que se arrasta e o passo atual.
+    final margem = margemDaTela(context);
+    Widget cartaoDoPasso(Passo x) {
+      final ativo = x.id == atual?.id;
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 5),
+        child: Cartao(
+          cor: ativo ? c.primariaSuave : null,
+          onTap: () => irPara(x),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(children: [
+            SeloDaConta(conta: x.conta, membros: membros, tamanho: 34),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(_nome(x), maxLines: 1, overflow: TextOverflow.ellipsis, style: t.titleSmall),
+                  Text(
+                    _situacao(x, hoje),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: t.bodySmall?.copyWith(color: (diasSemConferir(x, hoje) ?? 999) >= 7 ? c.atencao : null),
+                  ),
+                ],
+              ),
+            ),
+            if (feito(x)) Icon(Icons.check_circle_rounded, size: 20, color: c.positivo),
+          ]),
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(title: const Text('Conferência')),
-      body: Pagina(
-        larguraMaxima: 1100,
-        centralizada: true,
-        filhos: ehMesa(context)
-            ? [
-                resumo,
-                const SizedBox(height: Espacos.g),
-                Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  SizedBox(width: 360, child: lista),
-                  const SizedBox(width: Espacos.xg),
-                  Expanded(child: painel),
-                ]),
-              ]
-            : [resumo, const SizedBox(height: Espacos.g), painel, const TituloDeSecao('Roteiro'), lista],
+      body: ListView(
+        padding: EdgeInsets.only(top: Espacos.g, bottom: Espacos.xxg),
+        children: [
+          Padding(padding: EdgeInsets.symmetric(horizontal: margem), child: progresso),
+          const SizedBox(height: Espacos.m),
+          if (passos.isNotEmpty)
+            SizedBox(
+              height: 62,
+              child: PageView.builder(
+                controller: _paginas,
+                itemCount: passos.length,
+                onPageChanged: (i) => setState(() => _atual = passos[i].id),
+                itemBuilder: (context, i) => cartaoDoPasso(passos[i]),
+              ),
+            ),
+          const SizedBox(height: Espacos.g),
+          Padding(padding: EdgeInsets.symmetric(horizontal: margem), child: painel),
+        ],
       ),
     );
+  }
+}
+
+/// O progresso da conferência: um trecho por passo, na ordem do roteiro.
+/// Cada banco (de cada titular) aparece com o logo e, grudados nele, os
+/// passos daquele banco formando uma pílula: só as pontas são redondas.
+/// Verde é o que já foi conferido hoje; o passo atual vem na cor primária.
+class _Progresso extends ConsumerWidget {
+  const _Progresso({required this.passos, required this.feito, required this.atual, required this.euId, required this.aoTocar, required this.nome});
+  final List<Passo> passos;
+  final bool Function(Passo) feito;
+  final Passo? atual;
+  final String? euId;
+  final void Function(Passo) aoTocar;
+  final String Function(Passo) nome;
+
+  /// Passos seguidos do mesmo banco e dos mesmos titulares andam juntos.
+  String _chave(Passo x) => '${x.conta.banco ?? x.conta.id}|${x.conta.donos.join(',')}';
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final membros = ref.watch(membrosProvider).valueOrNull ?? const <Membro>[];
+    final c = Cores.de(context);
+    final t = Theme.of(context).textTheme;
+    final feitos = passos.where(feito).length;
+    final falta = passos.length - feitos;
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+        Text('$feitos', style: Textos.numerao(context, tamanho: 26).copyWith(color: falta == 0 ? c.positivo : c.tinta)),
+        const SizedBox(width: 6),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Text('de ${passos.length} conferidos hoje', style: t.bodyMedium?.copyWith(color: c.tinta2)),
+        ),
+        const Spacer(),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Text(
+            falta == 0 ? 'Tudo conferido' : (falta == 1 ? 'falta 1' : 'faltam $falta'),
+            style: t.labelLarge?.copyWith(color: falta == 0 ? c.positivo : c.tinta2),
+          ),
+        ),
+      ]),
+      const SizedBox(height: Espacos.p),
+      LayoutBuilder(builder: (context, limites) {
+        // Um grupo por banco e titular: o logo e, grudados nele, os passos
+        // daquele banco formando uma pílula.
+        final grupos = <List<Passo>>[];
+        for (final x in passos) {
+          if (grupos.isNotEmpty && _chave(grupos.last.first) == _chave(x)) {
+            grupos.last.add(x);
+          } else {
+            grupos.add([x]);
+          }
+        }
+        const logo = 22.0, folga = 10.0, emenda = 1.5, altura = 14.0;
+        final fixo = grupos.length * (logo + 8) + (grupos.length - 1) * folga + (passos.length - grupos.length) * emenda;
+        final trecho = ((limites.maxWidth - fixo) / passos.length).clamp(16.0, 120.0);
+        const ponta = Radius.circular(999), meio = Radius.circular(2);
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          clipBehavior: Clip.none,
+          child: Row(children: [
+            for (final (g, grupo) in grupos.indexed) ...[
+              if (g > 0) const SizedBox(width: folga),
+              SeloDaConta(
+                // O selo da conta, não o do cartão: aqui importa o banco.
+                conta: grupo.where((x) => !x.conta.ehCartao).firstOrNull?.conta ?? grupo.first.conta,
+                membros: membros,
+                tamanho: logo,
+              ),
+              const SizedBox(width: 4),
+              for (final (i, x) in grupo.indexed) ...[
+                if (i > 0) const SizedBox(width: emenda),
+                Tooltip(
+                  message: nome(x),
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => aoTocar(x),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 220),
+                        width: trecho,
+                        height: altura,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.horizontal(
+                            left: i == 0 ? ponta : meio,
+                            right: i == grupo.length - 1 ? ponta : meio,
+                          ),
+                          color: feito(x) ? c.positivo : (x.id == atual?.id ? c.primaria : c.suave),
+                          border: feito(x) || x.id == atual?.id ? null : Border.all(color: c.linha),
+                        ),
+                        child: feito(x) && trecho >= 16
+                            ? Icon(Icons.check_rounded, size: 11, color: c.superficie)
+                            : null,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ]),
+        );
+      }),
+    ]);
   }
 }
 
