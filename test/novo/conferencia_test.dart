@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:funances/novo/modelo/modelos.dart';
 import 'package:funances/novo/regras/conferencia.dart';
+import 'package:funances/novo/regras/faturas.dart';
 import 'package:funances/novo/regras/importar.dart';
 
 Conta conta(String id, String tipo, {String? banco, List<String> donos = const ['eu'], String? conferidoAte}) =>
@@ -37,6 +38,32 @@ void main() {
     expect(ordem.map((c) => c.id), [
       'cartao inter', 'cartao nubank', 'conta nubank', 'conta itau', 'cartao nubank dela', 'conta nubank dela',
     ]);
+  });
+
+  group('faturas para conferir', () {
+    Fatura fatura(String id, String vence, String fecha, {int total = 10000, int pago = 0}) =>
+        Fatura(id: id, contaId: 'cartao', vencimento: vence, fechamento: fecha, inicio: fecha, fim: fecha, totalCentavos: total, pagoCentavos: pago);
+    const hoje = '2026-11-16';
+    final dezembro = fatura('dez', '2026-12-10', '2026-12-05');
+
+    test('fechada e sem pagamento: confere ela e a aberta', () {
+      final s = situacoesDasFaturas([dezembro, fatura('nov', '2026-11-20', '2026-11-13')], hoje);
+      expect(faturasParaConferir(s, 'cartao').map((x) => x.fatura.id), ['nov', 'dez']);
+    });
+
+    test('depois de paga, só a aberta', () {
+      final s = situacoesDasFaturas([dezembro, fatura('nov', '2026-11-20', '2026-11-13', pago: 10000)], hoje);
+      expect(faturasParaConferir(s, 'cartao').map((x) => x.fatura.id), ['dez']);
+    });
+
+    test('duas fechadas sem pagamento entram as duas, da mais antiga para a mais nova', () {
+      final s = situacoesDasFaturas([dezembro, fatura('nov', '2026-11-10', '2026-11-05'), fatura('out', '2026-10-10', '2026-10-05')], hoje);
+      expect(faturasParaConferir(s, 'cartao').map((x) => x.fatura.id), ['out', 'nov', 'dez']);
+    });
+
+    test('sem fatura nenhuma, nada a conferir', () {
+      expect(faturasParaConferir(situacoesDasFaturas(const [], hoje), 'cartao'), isEmpty);
+    });
   });
 
   test('dias sem conferir', () {

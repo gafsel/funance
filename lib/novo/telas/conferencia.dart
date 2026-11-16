@@ -295,11 +295,14 @@ class _PassoDoCartao extends ConsumerStatefulWidget {
 }
 
 class _PassoDoCartaoState extends ConsumerState<_PassoDoCartao> {
-  final _total = TextEditingController();
+  /// Um campo de "total no banco" por fatura a conferir.
+  final _totais = <String, TextEditingController>{};
 
   @override
   void dispose() {
-    _total.dispose();
+    for (final c in _totais.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -311,14 +314,17 @@ class _PassoDoCartaoState extends ConsumerState<_PassoDoCartao> {
     final hoje = ref.watch(hojeProvider);
     final repo = ref.watch(repositorioProvider);
     final categorias = {for (final x in ref.watch(categoriasProvider).valueOrNull ?? const <Categoria>[]) x.id: x};
-    final s = faturaEmDestaque(ref.watch(situacoesDasFaturasProvider), cartao.id);
+    // Fechada sem pagamento e a aberta: as duas entram na conferência.
+    final faturas = faturasParaConferir(ref.watch(situacoesDasFaturasProvider), cartao.id);
 
-    if (s == null) {
+    if (faturas.isEmpty) {
       return Cartao(
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Text(cartao.nome, style: t.titleMedium),
           const SizedBox(height: 4),
           Text('Sem fatura em aberto neste cartão. Se há compra nova no banco, lance e a fatura aparece aqui.', style: t.bodySmall),
+          const SizedBox(height: Espacos.m),
+          _UltimaConferencia(conta: cartao, hoje: hoje),
           const SizedBox(height: Espacos.m),
           Acoes(filhos: [
             FilledButton(
@@ -334,89 +340,129 @@ class _PassoDoCartaoState extends ConsumerState<_PassoDoCartao> {
       );
     }
 
-    final f = s.fatura;
-    final carregando = ref.watch(_comprasDaFaturaProvider(f)).isLoading;
-    final compras = (ref.watch(_comprasDaFaturaProvider(f)).valueOrNull ?? const <Lancamento>[]).toList()
-      ..sort((a, b) => b.dia.compareTo(a.dia));
+    bool bate(SituacaoDaFatura s) => _lerSaldo(_totais[s.fatura.id]?.text ?? '') == s.fatura.totalCentavos;
+    final todasBatem = faturas.every(bate);
+    final somaDoApp = faturas.fold<int>(0, (soma, s) => soma + s.fatura.totalCentavos);
+
     final desde = cartao.conferidoAte;
-    // Desde a última conferência vale o cartão inteiro, não só esta fatura:
-    // a compra nova pode já estar na fatura seguinte.
+    final principal = faturas.last.fatura;
+    final carregando = desde == null && ref.watch(_comprasDaFaturaProvider(principal)).isLoading;
+    // Desde a última conferência vale o cartão inteiro, não só uma fatura.
     final novas = desde == null
-        ? compras
+        ? ((ref.watch(_comprasDaFaturaProvider(principal)).valueOrNull ?? const <Lancamento>[]).toList()
+          ..sort((a, b) => b.dia.compareTo(a.dia)))
         : ((ref.watch(_feitosDesdeProvider(somarDias(desde, 1))).valueOrNull ?? const <Lancamento>[])
             .where((l) => l.efetivado && l.contaId == cartao.id && !l.ehTransferencia)
             .toList()
           ..sort((a, b) => b.dia.compareTo(a.dia)));
-    final informado = _lerSaldo(_total.text);
-    final bate = informado != null && informado == f.totalCentavos;
+
+    Widget blocoDaFatura(SituacaoDaFatura s) {
+      final f = s.fatura;
+      final controle = _totais[f.id] ??= TextEditingController();
+      final informado = _lerSaldo(controle.text);
+      return Padding(
+        padding: const EdgeInsets.only(top: Espacos.g),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Row(children: [
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(
+                  s.aberta ? 'Fatura aberta' : (s.atrasada ? 'Fatura fechada, vencida e sem pagamento' : 'Fatura fechada, aguardando pagamento'),
+                  style: t.titleSmall?.copyWith(color: s.atrasada ? c.atencao : null),
+                ),
+                Text(
+                  s.aberta
+                      ? 'fecha ${diaPorExtenso(f.fechamento, hoje)} · vence ${diaPorExtenso(f.vencimento, hoje)}'
+                      : 'fechou ${diaPorExtenso(f.fechamento, hoje)} · vence ${diaPorExtenso(f.vencimento, hoje)}',
+                  style: t.bodySmall,
+                ),
+              ]),
+            ),
+            Text(reais(f.totalCentavos), style: Textos.valor(context, tamanho: 16)),
+          ]),
+          if (s.transportadoCentavos != 0)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text('Com o que veio da fatura anterior, o devido é ${reais(s.devidoCentavos)}.', style: t.bodySmall),
+            ),
+          if (cartao.faturasConferidas[f.id] != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text('Conferida antes em ${reais(cartao.faturasConferidas[f.id]!)}.', style: t.bodySmall),
+            ),
+          const SizedBox(height: Espacos.p),
+          _CampoDoBanco(
+            controle: controle,
+            rotulo: 'Total das compras que o banco mostra',
+            noApp: f.totalCentavos,
+            aoMudar: () => setState(() {}),
+          ),
+          const SizedBox(height: Espacos.p),
+          Wrap(spacing: Espacos.p, runSpacing: Espacos.p, children: [
+            if (informado != null && informado != f.totalCentavos)
+              BotaoPequeno(
+                'Comparar item a item',
+                aoTocar: () => abrirFolha<void>(context, (_) => _CompararFatura(cartao: cartao, fatura: f), largura: 620, alta: true),
+              ),
+            BotaoPequeno('Abrir a fatura', aoTocar: () => abrirFatura(context, cartao, f.id)),
+            // O pagamento sai da conta: registrado aqui, com o valor conferido,
+            // ele já está certo quando a conta for conferida.
+            if (s.pendente && s.aPagarCentavos > 0)
+              BotaoPequeno(
+                'Registrar o pagamento de ${reais(s.aPagarCentavos, sempre: true)}',
+                aoTocar: () => pagarFatura(context, ref, cartao, f, base: s.aPagarCentavos, aberta: false),
+              ),
+          ]),
+        ]),
+      );
+    }
 
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Cartao(
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           _Cabecalho(
             conta: cartao,
-            rotulo: 'Fatura que vence ${diaPorExtenso(f.vencimento, hoje)} · ${s.aberta ? 'aberta' : (s.paga ? 'paga' : 'fechada')}',
-            valor: f.totalCentavos,
+            rotulo: faturas.length == 1 ? 'Compras da fatura no app' : 'Compras das ${faturas.length} faturas a conferir',
+            valor: somaDoApp,
             acoes: [
               BotaoPequeno('Lançar neste cartão', icone: Icons.add_rounded, cheio: true, aoTocar: () => abrirLancar(context, contaId: cartao.id)),
               BotaoPequeno('Importar fatura', icone: Icons.upload_file_rounded, aoTocar: () => abrirImportacao(context, contaId: cartao.id)),
-              BotaoPequeno('Abrir a fatura', aoTocar: () => abrirFatura(context, cartao, f.id)),
             ],
           ),
           const SizedBox(height: Espacos.m),
-          _UltimaConferencia(
-            conta: cartao,
-            hoje: hoje,
-            complemento: cartao.faturasConferidas[f.id] == null
-                ? null
-                : 'Esta fatura foi conferida em ${reais(cartao.faturasConferidas[f.id]!)}.',
-          ),
-          if (s.transportadoCentavos != 0) ...[
-            const SizedBox(height: Espacos.p),
-            Text(
-              'Compras do ciclo. Com o que veio da fatura anterior, o devido é ${reais(s.devidoCentavos)}.',
-              style: t.bodySmall,
+          _UltimaConferencia(conta: cartao, hoje: hoje),
+          if (faturas.length > 1)
+            Padding(
+              padding: const EdgeInsets.only(top: Espacos.m),
+              child: Text(
+                'A fatura que fechou ainda não foi paga: confira ela (para o pagamento sair no valor certo) e a que está aberta.',
+                style: t.bodySmall,
+              ),
             ),
+          for (final (i, s) in faturas.indexed) ...[
+            if (i > 0) const Padding(padding: EdgeInsets.only(top: Espacos.g), child: Divider(height: 1)),
+            blocoDaFatura(s),
           ],
           const SizedBox(height: Espacos.g),
-          _CampoDoBanco(
-            controle: _total,
-            rotulo: 'Total das compras que o banco mostra',
-            noApp: f.totalCentavos,
-            aoMudar: () => setState(() {}),
-          ),
-          const SizedBox(height: Espacos.m),
           Acoes(filhos: [
             FilledButton(
-              onPressed: !bate
+              onPressed: !todasBatem
                   ? null
                   : () async {
                       await repo?.gravarConta(cartao.id, {
                         'conferidoAte': hoje,
-                        'faturasConferidas': {f.id: f.totalCentavos},
+                        'faturasConferidas': {for (final s in faturas) s.fatura.id: s.fatura.totalCentavos},
                       });
                       widget.aoConcluir();
                     },
-              child: const Text('Conferido, próxima'),
+              child: Text(faturas.length == 1 ? 'Conferido, próxima' : 'As ${faturas.length} conferidas, próxima'),
             ),
-            if (informado != null && !bate)
-              OutlinedButton(
-                onPressed: () => abrirFolha<void>(context, (_) => _CompararFatura(cartao: cartao, fatura: f), largura: 620, alta: true),
-                child: const Text('Comparar item a item'),
-              ),
-            // O pagamento sai da conta: registrado aqui, com o valor conferido,
-            // ele já está certo quando a conta for conferida.
-            if (s.pendente && s.aPagarCentavos > 0)
-              OutlinedButton(
-                onPressed: () => pagarFatura(context, ref, cartao, f, base: s.aPagarCentavos, aberta: false),
-                child: Text('Registrar o pagamento de ${reais(s.aPagarCentavos, sempre: true)}'),
-              ),
           ]),
         ]),
       ),
       TituloDeSecao(
-        desde == null ? 'Compras desta fatura' : 'Lançado desde a última conferência',
-        detalhe: desde == null ? '${compras.length}' : '${novas.length} desde ${diaPorExtenso(desde, hoje)}',
+        desde == null ? 'Compras da fatura aberta' : 'Lançado desde a última conferência',
+        detalhe: desde == null ? '${novas.length}' : '${novas.length} desde ${diaPorExtenso(desde, hoje)}',
       ),
       if (carregando)
         const Cartao(child: Center(child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))))

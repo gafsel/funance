@@ -1,4 +1,5 @@
 import '../modelo/modelos.dart';
+import 'faturas.dart';
 import 'formatos.dart';
 import 'importar.dart';
 import 'leitura_frase.dart';
@@ -27,6 +28,24 @@ List<Conta> roteiroDaConferencia(Iterable<Conta> contas, String? euId) {
     return porTipo != 0 ? porTipo : a.nome.compareTo(b.nome);
   });
   return lista;
+}
+
+/// As faturas de um cartão que entram na conferência, da mais antiga para
+/// a mais nova: as que já fecharam e ainda não foram pagas, e a que está
+/// aberta. Entre o fechamento de uma fatura e o pagamento dela as duas
+/// precisam ser olhadas: a fechada para acertar o valor do pagamento, a
+/// aberta porque as compras novas já caem nela.
+List<SituacaoDaFatura> faturasParaConferir(Map<String, SituacaoDaFatura> situacoes, String cartaoId) {
+  final doCartao = situacoes.values.where((s) => s.fatura.contaId == cartaoId).toList()
+    ..sort((a, b) => a.fatura.vencimento.compareTo(b.fatura.vencimento));
+  final lista = [
+    ...doCartao.where((s) => s.pendente && s.aPagarCentavos > 0),
+    // A aberta de agora: a primeira que ainda não fechou.
+    ?doCartao.where((s) => s.aberta).firstOrNull,
+  ];
+  if (lista.isNotEmpty) return lista;
+  final destaque = faturaEmDestaque(situacoes, cartaoId);
+  return [?destaque];
 }
 
 /// Há quantos dias a conta foi conferida; nulo se nunca foi.
